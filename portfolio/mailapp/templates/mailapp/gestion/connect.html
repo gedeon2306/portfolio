@@ -1,0 +1,50 @@
+{% extends 'mailapp/base.html' %}
+{% load static %}
+
+{% block content %}
+    <!-- connexion Section -->
+    <section id="connexion" class="connexion">
+        <div class="connexion-container">
+            <div class="connexion-card">
+                <h1 class="connexion-title">Connexion</h1>
+                <form method="post">
+                    {% csrf_token %}
+                    {% if form.errors %}
+                        <div class="alert alert-danger">
+                            {% for field in form %}
+                                {{ field.errors }}
+                            {% endfor %}
+                            {{ form.non_field_errors }}
+                        </div>
+                        <br>
+                    {% endif %}
+                    <div class="connexion-input-group">
+                        <label class="connexion-label" for="username">Nom d'utilisateur:</label>
+                        {{ form.username }}
+                    </div>
+                    <div class="connexion-input-group">
+                        <label class="connexion-label" for="password">Mot de passe:</label>
+                        {{ form.password }}
+                    </div>
+                    <button type="submit" class="btn">Se connecter</button>
+                </form>
+            </div>
+        </div>
+    </section>
+    <!-- Scroll to Top -->
+    <a href="#connexion" class="scroll-top">
+        <i class="ri-arrow-up-line"></i>
+    </a>
+    <!-- Footer -->
+    <footer>
+        <div class="container footer-container">
+            <a href="{% url 'index' %}" class="footer-logo">Jihrel<span>Dev</span></a>
+            <div class="footer-social">
+                {% include 'mailapp/social-link.html' %}
+            </div>
+            <div class="copyright">
+                &copy; 2025 Gédéon Jihrel GANGOUE MBIMI. Tous droits réservés.
+            </div>
+        </div>
+    </footer>
+{% endblock content %}

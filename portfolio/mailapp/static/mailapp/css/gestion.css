@@ -1,0 +1,247 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* body {
+    font-family: Arial, sans-serif;
+    background-color: #f5f5f5;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px; 
+} */
+
+.gestion-container {
+    max-width: 1200px;
+    width: 100%;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-top: 15px;
+}
+
+.flex-container {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.left-section {
+    flex: 1;
+    min-width: 300px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.right-section {
+    flex: 1;
+    min-width: 300px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.grid-links {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 15px;
+    width: 90%;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.link-item {
+    background-color: var(--primary);
+    color: var(--white);
+    text-decoration: none;
+    border-radius: 15px;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    font-weight: bold;
+    transition: background-color 0.3s, transform 0.2s;
+    aspect-ratio: 1/1;
+    font-size: 2.5em;
+}
+
+.link-item:hover {
+    background-color: var(--primary-dark);
+    transform: scale(1.05);
+}
+
+.image-container {
+    width: 100%;
+    max-width: 400px;
+    height: auto;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.image-container img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+@media (max-width: 768px) {
+    .gestion-container {
+        padding-top: 70px;
+    }
+
+    .flex-container {
+        flex-direction: column;
+    }
+    
+    .left-section, .right-section {
+        padding: 30px;
+    }
+    
+    .left-section {
+        margin-bottom: 20px;
+    }
+}
+
+
+/* Accordion pour la gestion des e-mails */
+
+html {
+    box-sizing: border-box;
+}
+*, *:before, *:after {
+    box-sizing: inherit;
+}
+
+.card-accordion {
+    width: 95%; /* Utiliser un pourcentage pour s'adapter à la largeur du parent */
+    max-width: 900px; /* Conserver une largeur maximale sur les grands écrans */
+    margin: 20px auto;
+}
+.accordion {
+    background-color: var(--primary); 
+    color: var(--white); 
+    cursor: pointer;
+    padding: 12px;
+    width: 100%;
+    border-bottom: 1px solid #ddd;
+    text-align: left;
+    outline: none;
+    font-size: 14px;
+    transition: 0.4s;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.accordion:hover {
+    background-color: var(--primary-light);
+}
+
+.accordion.active {
+    background-color: var(--primary-dark);
+}
+
+.no-data {
+    text-align: center;
+    color: #a19e9e9d;
+    font-style: italic;
+}
+
+.panel {
+    background-color: var(--white);
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.2s ease-out;
+    border-left: 1px solid #ddd;
+    border-right: 1px solid #ddd;
+    border-bottom: 1px solid #ddd;
+    color: #000000;
+    width: 100%;
+}
+
+.panel p {
+    padding: 15px;
+    font-size: 13px;
+    line-height: 1.6;
+    text-align: justify;
+}
+
+.panel .padding-none {
+    padding:  0 15px;
+}
+
+.email-subject {
+    flex-grow: 1;
+    font-weight: bold;
+    display: flex; /* Pour aligner l'icône et le texte */
+    align-items: center;
+    overflow: hidden; /* Empêcher le texte de déborder */
+    text-overflow: ellipsis; /* Ajouter "..." si le texte est trop long */
+    white-space: nowrap; /* Empêcher le texte de passer à la ligne */
+}
+
+.email-subject i {
+    margin-right: 8px; /* Espacement entre l'icône et le texte de l'objet */
+    font-size: 1.2em; /* Taille de l'icône de l'objet */
+}
+
+.email-date {
+    font-size: 12px;
+    color: var(--white);
+    display: flex; /* Pour aligner l'icône et la date */
+    align-items: center;
+    margin-right: 10px; /* Espacement entre la date et l'icône de suppression */
+    white-space: nowrap; /* Empêcher la date de passer à la ligne */
+}
+
+.email-date i {
+    margin-right: 5px; /* Espacement entre l'icône d'heure et la date */
+    font-size: 1em; /* Taille de l'icône d'heure */
+}
+
+.delete {
+    cursor: pointer; 
+    color: var(--white);
+    font-size: 1.3em;
+    text-decoration: none;
+}
+
+.delete:hover {
+    color: #ff0000;
+}
+
+/* Media query pour les écrans plus petits (par exemple, les téléphones) */
+@media (max-width: 600px) {
+    .card-accordion {
+        width: 98%; /* Prendre encore plus de largeur sur les petits écrans */
+        margin: 10px auto;
+    }
+
+    .email-subject {
+        font-size: 13px; /* Réduire la taille du texte sur les petits écrans */
+    }
+
+    .email-date {
+        font-size: 11px; /* Réduire la taille de la date sur les petits écrans */
+    }
+
+    .email-subject i {
+        margin-right: 5px; /* Réduire l'espacement sur les petits écrans */
+        font-size: 1.1em;
+    }
+
+    .email-date i {
+        margin-right: 3px;
+        font-size: 0.9em;
+    }
+
+    .delete {
+        font-size: 1em;
+    }
+}

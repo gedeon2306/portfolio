@@ -1,0 +1,67 @@
+{% extends 'mailapp/base.html' %}
+{% load static %}
+
+{% block content %}
+    <!-- connexion Section -->
+    <section id="view_project" class="view_project">
+        <div class="card">
+            <div class="card-header">
+                <img src="{% if project.image %}{{ project.image.url }}{% else %}{% static 'mailapp/images/projetVide.jpg' %}{% endif %}" alt="Image d'en-tête">
+            </div>
+            <div class="card-body">
+                <div class="info-line">Titre: {{project.titre}}</div>
+                <div class="info-line">Description: {{project.description}}</div>
+                <div class="info-line">
+                    {% if project.url %}
+                        Site: <a href="{{project.url}}" class="url" target="_blank" rel="noopener noreferrer">{{project.url}}</a>
+                    {% else %}
+                        Site: vide
+                    {% endif %}
+                </div>
+                <div class="info-line">
+                    {% if project.code %}
+                        Code Source: <a href="{{project.code}}" class="url" target="_blank" rel="noopener noreferrer">{{project.code}}</a>
+                    {% else %}
+                        Code Source: vide
+                    {% endif %}
+                </div>
+                <div class="info-line">
+                    {% if project.doc %}
+                        Documentation: <a href="{{project.doc.url}}" class="url" target="_blank">{{project.titre}}.pdf</a>
+                    {% else %}
+                        Documentation: vide
+                    {% endif %}
+                </div>
+                <div class="info-line">
+                    {% if project.demo %}
+                        Démo: <a href="{{project.demo}}" class="url" target="_blank" rel="noopener noreferrer">{{project.demo}}</a>
+                    {% else %}
+                        Démo: vide
+                    {% endif %}
+                </div>
+            </div>
+            <div class="button-container">
+                <a href="{% url 'ges_projects' %}"><i class="ri-arrow-left-s-line"></i></a>
+                <a href="{% url 'project_tec' project.id %}"><i class="ri-add-line"></i></a>
+                <a href="{% url 'modfifierProject' project.id %}"><i class="ri-edit-line"></i></a>
+                <a data-url="{% url 'delete' 'project' project.id %}" data-message="ce projet" class="delete-confirme"><i class="ri-delete-bin-line"></i></a>
+            </div>
+        </div>
+    </section>
+    <!-- Scroll to Top -->
+    <a href="#view_project" class="scroll-top">
+        <i class="ri-arrow-up-line"></i>
+    </a>
+    <!-- Footer -->
+    <footer>
+        <div class="container footer-container">
+            <a href="{% url 'index' %}" class="footer-logo">Jihrel<span>Dev</span></a>
+            <div class="footer-social">
+                {% include 'mailapp/social-link.html' %}
+            </div>
+            <div class="copyright">
+                &copy; 2025 Gédéon Jihrel GANGOUE MBIMI. Tous droits réservés.
+            </div>
+        </div>
+    </footer>
+{% endblock content %}

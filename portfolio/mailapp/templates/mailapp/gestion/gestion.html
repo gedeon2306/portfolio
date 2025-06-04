@@ -1,0 +1,44 @@
+{% extends 'mailapp/base.html' %}
+{% load static %}
+
+{% block content %}
+    <!-- connexion Section -->
+    <section id="gestion" class="gestion">
+        <div class="gestion-container">
+            <div class="flex-container">
+                <!-- Section gauche avec 4 liens en carré -->
+                <div class="left-section">
+                    <div class="grid-links">
+                        <a href="{% url 'myInfo' %}" class="link-item"><i class="ri-user-line"></i></a>
+                        <a href="{% url 'mails' %}" class="link-item"><i class="ri-mail-send-line"></i></a>
+                        <a href="{% url 'skills' %}" class="link-item"><i class="ri-menu-2-line"></i></a>
+                        <a href="{% url 'ges_projects' %}" class="link-item"><i class="ri-folder-5-line"></i></a>
+                    </div>
+                </div>
+                
+                <!-- Section droite avec l'image -->
+                <div class="right-section">
+                    <div class="image-container">
+                        <img src="{% static 'mailapp/images/gear.png' %}" alt="Image de gestion">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- Scroll to Top -->
+    <a href="#gestion" class="scroll-top">
+        <i class="ri-arrow-up-line"></i>
+    </a>
+    <!-- Footer -->
+    <footer>
+        <div class="container footer-container">
+            <a href="{% url 'index' %}" class="footer-logo">Jihrel<span>Dev</span></a>
+            <div class="footer-social">
+                {% include 'mailapp/social-link.html' %}
+            </div>
+            <div class="copyright">
+                &copy; 2025 Gédéon Jihrel GANGOUE MBIMI. Tous droits réservés.
+            </div>
+        </div>
+    </footer>
+{% endblock content %}

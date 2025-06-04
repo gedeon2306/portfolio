@@ -1,0 +1,136 @@
+{% extends 'mailapp/base.html' %}
+{% load static %}
+
+{% block content %}
+    <!-- connexion Section -->
+    <section id="myInfo" class="myInfo">
+        <div class="myInfo-container">
+            <h1 class="myInfo-form-title">{{titre}}</h1>
+            <form id="projectForm" class="myInfo-form" method="POST" enctype="multipart/form-data"">
+                {% csrf_token %}
+                <div class="profile-header">
+                    <div class="profile-img-container">
+                        <img src="
+                            {% if titre == 'Ajouter un projet' %}
+                                {% static 'mailapp/images/projetVide.jpg' %}
+                            {% else %}
+                                {% if project.image %}
+                                    {{ project.image.url }}
+                                {% else %}
+                                    {% static 'mailapp/images/projetVide.jpg' %}
+                                {% endif %}
+                            {% endif %}
+                            " 
+                            alt="Photo de profil" 
+                            class=" photo2"
+                        >
+                        <button type="button" class="change-photo-btn">
+                            <i class="ri-camera-line"></i>
+                        </button>
+                        {{form.image}}
+                    </div>
+                </div>
+                <div class="myInfo-form-group">
+                    <label for="titre" class="myInfo-label">Titre</label>
+                    {{form.titre}}
+                </div>
+                <div class="myInfo-form-group">
+                    <label for="description" class="myInfo-label">Description</label>
+                    {{form.description}}
+                </div>
+                <div class="myInfo-form-row">
+                    <div class="myInfo-form-group">
+                        <label for="url" class="myInfo-label">Site</label>
+                        {{form.url}}
+                    </div>
+                    <div class="myInfo-form-group">
+                        <label for="code" class="myInfo-label">Code source</label>
+                        {{form.code}}
+                    </div>
+                </div>
+                <div class="myInfo-form-row">
+                    <div class="myInfo-form-group">
+                        <label for="doc" class="myInfo-label">Documentation</label>
+                        {{form.doc}}
+                    </div>
+                    <div class="myInfo-form-group">
+                        <label for="demo" class="myInfo-label">Url video démo</label>
+                        {{form.demo}}
+                    </div>
+                </div>
+                <button type="submit" class="myInfo-submit-button">
+                    {% if titre == 'Ajouter un projet' %}
+                        Ajouter <i class="ri-add-line"></i> 
+                    {% else %} 
+                        Modifier <i class="ri-pencil-line"></i> 
+                    {% endif %}
+                </button>
+            </form>
+        </div>
+    </section>
+    <!-- Scroll to Top -->
+    <a href="#myInfo" class="scroll-top">
+        <i class="ri-arrow-up-line"></i>
+    </a>
+    <!-- Footer -->
+    <footer>
+        <div class="container footer-container">
+            <a href="{% url 'index' %}" class="footer-logo">Jihrel<span>Dev</span></a>
+            <div class="footer-social">
+                {% include 'mailapp/social-link.html' %}
+            </div>
+            <div class="copyright">
+                &copy; 2025 Gédéon Jihrel GANGOUE MBIMI. Tous droits réservés.
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Gestion de la modification du profil (si on est sur la page myInfo)
+            const myInfoForm = document.getElementById('myinfo-form');
+            const imageInput = document.getElementById('image');
+            const changePhotoBtn = document.querySelector('.change-photo-btn');
+
+            if (myInfoForm) {
+                // Gestion du changement de photo
+                if (changePhotoBtn) {
+                    changePhotoBtn.addEventListener('click', () => {
+                        imageInput.click();
+                    });
+
+                    imageInput.addEventListener('change', (e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                            const reader = new FileReader();
+                            reader.onload = function(e) {
+                                document.querySelector('.profile-img-container .profile-img-large').src = e.target.result;
+                            }
+                            reader.readAsDataURL(file);
+                        }
+                    });
+                }
+            }
+
+            if (projectForm) {
+                // Gestion du changement de photo
+                if (changePhotoBtn) {
+                    changePhotoBtn.addEventListener('click', () => {
+                        imageInput.click();
+                    });
+
+                    imageInput.addEventListener('change', (e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                            const reader = new FileReader();
+                            reader.onload = function(e) {
+                                document.querySelector('.profile-img-container .photo2').src = e.target.result;
+                            }
+                            reader.readAsDataURL(file);
+                        }
+                    });
+                }
+            }
+        });
+    </script>
+{% endblock content %}

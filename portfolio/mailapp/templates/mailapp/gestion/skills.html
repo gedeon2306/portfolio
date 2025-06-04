@@ -1,0 +1,163 @@
+{% extends 'mailapp/base.html' %}
+{% load static %}
+
+{% block content %}
+    <!-- connexion Section -->
+    <section id="skills" class="content">
+        <div class="form-section">
+            <h2 class="myInfo-form-title">Formulaire</h2>
+            <form action="#" method="POST" class="myInfo-form" id="form">
+                {% csrf_token %}
+                <div class="myInfo-form-group">
+                    <label for="competence" class="myInfo-label">Compétence</label>
+                    {{ form.competence }}
+                </div>
+                <button id="boutonAction" type="submit" class="myInfo-submit-button">Ajouter <i class="ri-add-circle-fill"></i></button>
+                <button type="button" id="boutonAnnuler" class="myInfo-submit-button annuler-button" style="display:none;">Annuler <i class="ri-close-circle-fill"></i></button>
+            </form>
+        </div>
+
+        <div class="table-section">
+            <h2 class="myInfo-form-title">Listes des compétences</h2>
+            <a href="{% url 'gestion' %}" class="action-btn" title="Retourner vers le menu gestion" style="margin-bottom: 5px; margin-right: 10px;">
+                <i class="ri-arrow-left-line"></i>
+            </a>
+            <table id="table" class="skill-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Nom</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for skill in skills %}
+                        <tr data-id="{{skill.id}}">
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ skill.competence }}</td>
+                            <td class="actions">
+                                <a href="{% url 'list_skills' skill.id %}" class="action-btn add-btn" title="Ajouter plus de téchnologie en {{skill.competence}}">
+                                    <i class="ri-add-fill"></i>
+                                </a>
+                                <button class="action-btn view-btn" data-target="modal{{skill.id}}" title="Voir">
+                                    <i class="ri-file-text-line"></i>
+                                </button>
+                                <a href="#" class="action-btn edit-btn" title="Modifier">
+                                    <i class="ri-pencil-fill"></i>
+                                </a>
+                                <a data-url="{% url 'delete' 'skill' skill.id %}" data-message="cette compétence" class="action-btn delete-btn delete-confirme" title="Supprimer">
+                                    <i class="ri-close-circle-line"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        <div id="modal{{skill.id}}" class="modal-overlay">
+                            <div class="modal">
+                                <div class="modal-header">
+                                    <h2 class="modal-title">Téchnologie : {{skill.competence}} </h2>
+                                    <button class="close-button">&times;</button>
+                                </div>
+                                <div class="modal-body">
+                                    {% for tec in list_skills %}
+                                        {% if tec.skill.id == skill.id %}
+                                            <p>{{tec.libelle}} ({{tec.pourcentage}}%) </p> 
+                                        {% endif %}
+                                    {% empty %}
+                                        <p>Aucune technologie trouvée.</p>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <tr>
+                            <td colspan="3" class="no-data" style="text-align: center;">Aucune compétence trouvée.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+    <!-- Scroll to Top -->
+    <a href="#skills" class="scroll-top">
+        <i class="ri-arrow-up-line"></i>
+    </a>
+    <!-- Footer -->
+    <footer>
+        <div class="container footer-container">
+            <a href="{% url 'index' %}" class="footer-logo">Jihrel<span>Dev</span></a>
+            <div class="footer-social">
+                {% include 'mailapp/social-link.html' %}
+            </div>
+            <div class="copyright">
+                &copy; 2025 Gédéon Jihrel GANGOUE MBIMI. Tous droits réservés.
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const modalOverlays = document.querySelectorAll('.modal-overlay');
+            const openModalButtons = document.querySelectorAll('.view-btn');
+            const closeModalButtons = document.querySelectorAll('.close-button');
+
+            openModalButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const targetModalId = button.dataset.target;
+                    const targetModal = document.getElementById(targetModalId);
+                    targetModal.classList.add('open');
+                });
+            });
+
+            closeModalButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const modal = button.closest('.modal-overlay');
+                    modal.classList.remove('open');
+                });
+            });
+
+            modalOverlays.forEach(modalOverlay => {
+                modalOverlay.addEventListener('click', (event) => {
+                    if (event.target === modalOverlay) {
+                        modalOverlay.classList.remove('open');
+                    }
+                });
+            });
+
+            // switch formulaire (Ajouter/Modifier)
+            const tableau = document.getElementById('table');
+            const formulaire = document.getElementById('form');
+            const competence = document.getElementById('competence');
+            const boutonAction = document.getElementById('boutonAction');
+            const actionAjouter = formulaire.getAttribute('action'); // Garde l'action d'ajout de côté
+            
+            tableau.addEventListener('click', function(event) {
+            const lienClique = event.target.closest('a.edit-btn'); // Trouve le lien cliqué
+            
+            if (lienClique) {
+                event.preventDefault(); // Empêche le lien de fonctionner normalement
+            
+                const ligne = lienClique.closest('tr'); // Trouve la ligne du lien
+                const nom = ligne.querySelector('td:nth-child(2)').textContent.trim(); // Récupère le nom
+                // const id = ligne.querySelector('td:first-child').textContent.trim(); // Récupère l'id
+                const id= ligne.getAttribute('data-id')
+            
+                competence.value = nom; // Met le nom dans le champ du formulaire
+                // boutonAction.textContent = 'Modifier <i class="ri-pencil-fill"></i>'; // Change le texte du bouton
+                boutonAction.innerHTML  = 'Modifier <i class="ri-pencil-fill"></i>'; // Change le texte du bouton
+                formulaire.setAttribute('action', '/modfifierSkill/'+id); // Change l'action du formulaire
+                boutonAnnuler.style.display = 'inline-block'; // Affiche le bouton "Annuler"
+            }
+            });
+            
+            // Fonction pour réinitialiser le formulaire
+            function resetFormulaire() {
+                competence.value = '';
+                boutonAction.innerHTML = 'Ajouter <i class="ri-add-circle-fill"></i>';
+                formulaire.setAttribute('action', actionAjouter);
+                boutonAnnuler.style.display = 'none'; // Cache le bouton "Annuler"
+            }
+
+            // Écouteur d'événement pour le bouton "Annuler"
+            boutonAnnuler.addEventListener('click', resetFormulaire);
+        });
+    </script>
+{% endblock content %}

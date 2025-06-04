@@ -1,0 +1,156 @@
+{% extends 'mailapp/base.html' %}
+{% load static %}
+
+{% block content %}
+    <!-- connexion Section -->
+    <section id="myInfo" class="myInfo">
+        <div class="myInfo-container">
+            <h1 class="myInfo-form-title">Informations Personnelles</h1>
+            <form id="myinfo-form" class="myInfo-form" method="POST" enctype="multipart/form-data"">
+                {% csrf_token %}
+                <div class="profile-header">
+                    <div class="profile-img-container">
+                        <img src="
+                                    {% if info.count == 0 %}
+                                        {% static 'mailapp/images/avatar-placeholder.svg' %}
+                                    {% else %}
+                                        {% if info.image %}
+                                            {{ info.image.url }}
+                                        {% else %}
+                                            {% static 'mailapp/images/avatar-placeholder.svg' %}
+                                        {% endif %}
+                                    {% endif %}
+                                " 
+                            alt="Photo de profil" 
+                            class="profile-img-large"
+                        >
+                        <button type="button" class="change-photo-btn">
+                            <i class="ri-camera-line"></i>
+                        </button>
+                        {{form.image}}
+                    </div>
+                    <!-- <h2>Modifier le profil</h2> -->
+                </div>
+                <div class="myInfo-form-row">
+                    <div class="myInfo-form-group">
+                        <label for="nom" class="myInfo-label">Nom</label>
+                        {{form.nom}}
+                    </div>
+                    <div class="myInfo-form-group">
+                        <label for="prenom" class="myInfo-label">Prénom</label>
+                        {{form.prenom}}
+                    </div>
+                </div>
+                <div class="myInfo-form-row">
+                    <div class="myInfo-form-group">
+                        <label for="email" class="myInfo-label">Email</label>
+                        {{form.email}}
+                    </div>
+                    <div class="myInfo-form-group">
+                        <label for="telephone" class="myInfo-label">Téléphone</label>
+                        {{form.telephone}}
+                    </div>
+                </div>
+                <div class="myInfo-form-row">
+                    <div class="myInfo-form-group">
+                        <label for="localisation" class="myInfo-label">Localisation</label>
+                        {{form.localisation}}
+                    </div>
+                    <div class="myInfo-form-group">
+                        <label for="profession" class="myInfo-label">Profession</label>
+                        {{form.profession}}
+                    </div>
+                </div>
+                <div class="myInfo-form-group">
+                    <label for="description" class="myInfo-label">Description</label>
+                    {{form.description}}
+                </div>
+                <div class="myInfo-form-row">
+                    <div class="myInfo-form-group">
+                        <label for="cv" class="myInfo-label">CV</label>
+                        {{form.cv}}
+                    </div>
+                    <div class="myInfo-form-group">
+                        <label for="formation" class="myInfo-label">Formation</label>
+                        {{form.formation}}
+                    </div>
+                </div>
+                <div class="myInfo-form-row">
+                    <div class="myInfo-form-group">
+                        <label for="experience" class="myInfo-label">Expérience</label>
+                        {{form.experience}}
+                    </div>
+                    <div class="myInfo-form-group">
+                        <label for="passions" class="myInfo-label">Passions</label>
+                        {{form.passions}}
+                    </div>
+                </div>
+                <div class="myInfo-form-row">
+                    <div class="myInfo-form-group">
+                        <label for="github" class="myInfo-label">Github</label>
+                        {{form.github}}
+                    </div>
+                    <div class="myInfo-form-group">
+                        <label for="linkedin" class="myInfo-label">LinkedIn</label>
+                        {{form.linkedin}}
+                    </div>
+                </div>
+                <div class="myInfo-form-row">
+                    <div class="myInfo-form-group">
+                        <label for="twitter_x" class="myInfo-label">Twitter/X</label>
+                        {{form.twitter_x}}    
+                    </div>
+                    <div class="myInfo-form-group">
+                        <label for="instagram" class="myInfo-label">Instagram</label>
+                        {{form.instagram}}
+                    </div>
+                </div>
+                <button type="submit" class="myInfo-submit-button">Soumettre</button>
+            </form>
+        </div>
+    </section>
+    <!-- Scroll to Top -->
+    <a href="#myInfo" class="scroll-top">
+        <i class="ri-arrow-up-line"></i>
+    </a>
+    <!-- Footer -->
+    <footer>
+        <div class="container footer-container">
+            <a href="{% url 'index' %}" class="footer-logo">Jihrel<span>Dev</span></a>
+            <div class="footer-social">
+                {% include 'mailapp/social-link.html' %}
+            </div>
+            <div class="copyright">
+                &copy; 2025 Gédéon Jihrel GANGOUE MBIMI. Tous droits réservés.
+            </div>
+        </div>
+    </footer>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Gestion de la modification du profil (si on est sur la page myInfo)
+            const myInfoForm = document.getElementById('myinfo-form');
+            const imageInput = document.getElementById('image');
+            const changePhotoBtn = document.querySelector('.change-photo-btn');
+
+            if (myInfoForm) {
+                // Gestion du changement de photo
+                if (changePhotoBtn) {
+                    changePhotoBtn.addEventListener('click', () => {
+                        imageInput.click();
+                    });
+
+                    imageInput.addEventListener('change', (e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                            const reader = new FileReader();
+                            reader.onload = function(e) {
+                                document.querySelector('.profile-img-container .profile-img-large').src = e.target.result;
+                            }
+                            reader.readAsDataURL(file);
+                        }
+                    });
+                }
+            }
+        });
+    </script>
+{% endblock content %}

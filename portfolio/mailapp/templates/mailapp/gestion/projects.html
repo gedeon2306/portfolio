@@ -1,0 +1,88 @@
+{% extends 'mailapp/base.html' %}
+{% load static %}
+
+{% block content %}
+    <!-- connexion Section -->
+    <section id="ges_projects" class="ges_projects">
+        <div style="display: flex; align-items: center;">
+            <a href="{% url 'gestion' %}" class="action-btn" title="Retourner vers le menu gestion" style="margin-bottom: 5px; margin-right: 10px;">
+                <i class="ri-arrow-left-line"></i>
+            </a>
+            <a href="{% url 'add_project' %}" class="action-btn" title="Nouveau Projet" style="margin-bottom: 5px;">
+                <i class="ri-add-line"></i>
+            </a>
+        </div>
+        <div class="table-container">
+            <div class="table-header">
+                <div class="search-container">
+                    <input type="text" id="searchInput" onkeyup="recherche()" class="search-input" placeholder="Rechercher un projet...">
+                    <i class="ri-search-line search-icon"></i>
+                </div>
+            </div>
+            <table class="project-table" id="projectTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Titre</th>
+                        <th>Description</th>
+                        <th>Site</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for project in projects %}
+                        <tr>
+                            <td>{{forloop.counter}}</td>
+                            <td>{{project.titre}}</td>
+                            <td>{{project.description|truncatechars:35}}</td>
+                            <td>{% if project.url %}<a href="{{project.url}}" class="url" target="_blank" rel="noopener noreferrer">{{project.url}}</a>{% else %}{% endif %}
+                            <td class="actions">
+                                <a href="{% url 'project_tec' project.id %}" class="action-btn add-btn" title="Ajouter plus de téchnologie en {{skill.competence}}">
+                                    <i class="ri-add-fill"></i>
+                                </a>
+                                <a href="{% url 'view_project' project.id %}" class="action-btn view-btn" title="Voir">
+                                    <i class="ri-eye-2-line"></i>
+                                </a>
+                                <a href="{% url 'modfifierProject' project.id %}" class="action-btn edit-btn" title="Modifier">
+                                    <i class="ri-pencil-fill"></i>
+                                </a>
+                                <a data-url="{% url 'delete' 'project' project.id %}" data-message="ce projet" class="action-btn delete-btn delete-confirme" title="Supprimer">
+                                    <i class="ri-delete-bin-6-line"></i>
+                                </a>
+                                {% if project.important %}
+                                    <a data-url="{% url 'important' 'not_important' project.id %}" data-message="le retirer des projets important" data-action="rétiter" class="action-btn delete-btn important-confirme" title="Rétirer des projets important">
+                                        <i class="ri-checkbox-multiple-blank-fill"></i>
+                                    </a>
+                                {% else %}
+                                    <a data-url="{% url 'important' 'important' project.id %}" data-message="l'ajouter aux projets important" data-action="ajouter" class="action-btn edit-btn important-confirme" title="Ajouter des projets important">
+                                        <i class="ri-checkbox-multiple-line"></i>
+                                    </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="5" class="no-data" style="text-align: center;">Aucun projet trouvé.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+    <!-- Scroll to Top -->
+    <a href="#ges_projects" class="scroll-top">
+        <i class="ri-arrow-up-line"></i>
+    </a>
+    <!-- Footer -->
+    <footer>
+        <div class="container footer-container">
+            <a href="{% url 'index' %}" class="footer-logo">Jihrel<span>Dev</span></a>
+            <div class="footer-social">
+                {% include 'mailapp/social-link.html' %}
+            </div>
+            <div class="copyright">
+                &copy; 2025 Gédéon Jihrel GANGOUE MBIMI. Tous droits réservés.
+            </div>
+        </div>
+    </footer>
+{% endblock content %}

@@ -1,0 +1,57 @@
+{% extends 'mailapp/base.html' %}
+{% load static %}
+
+{% block content %}
+    <!-- connexion Section -->
+    <section id="mail" class="mail">
+        <div class="card-accordion">
+            <h1 class="myInfo-form-title">Gestion des mails <i class="ri-mail-send-fill"></i></h1>
+            {% for email in emails %} 
+            
+                <button class="accordion">
+                    <span class="email-subject"><a data-url="{% url 'delete' 'email' email.id %}" data-message="cet email" class="delete delete-confirme" title="Supprimer"><i class="ri-delete-bin-6-line"></i></a> {{email.sujet}} </span>
+                    <span class="email-date"><i class="ri-time-line"></i> {{email.date_envoi}}</span>
+                </button>
+                <div class="panel">
+                    <p>Nom   : <strong>{{email.nom}}</strong></p>
+                    <p class="padding-none">email : <strong>{{email.email}}</strong></p>
+                    <p>{{email.message}}</p>
+                </div>
+
+            {% empty %}
+                <h3 class="no-data">Aucun email reçu <i class="ri-close-circle-fill"></i></h3>
+            {% endfor %}
+        </div>
+    </section>
+    <!-- Scroll to Top -->
+    <a href="#mail" class="scroll-top">
+        <i class="ri-arrow-up-line"></i>
+    </a>
+    <!-- Footer -->
+    <footer>
+        <div class="container footer-container">
+            <a href="{% url 'index' %}" class="footer-logo">Jihrel<span>Dev</span></a>
+            <div class="footer-social">
+                {% include 'mailapp/social-link.html' %}
+            </div>
+            <div class="copyright">
+                &copy; 2025 Gédéon Jihrel GANGOUE MBIMI. Tous droits réservés.
+            </div>
+        </div>
+    </footer>
+    <script>
+        //  Annimation Mails
+        var acc = document.getElementsByClassName("accordion");
+        for (var i = 0; i < acc.length; i++) {
+            acc[i].addEventListener("click", function() {
+                this.classList.toggle("active");
+                var panel = this.nextElementSibling;
+                if (panel.style.maxHeight) {
+                    panel.style.maxHeight = null;
+                } else {
+                    panel.style.maxHeight = panel.scrollHeight + "px";
+                }
+            });
+        }
+    </script>
+{% endblock content %}
