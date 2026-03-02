@@ -323,7 +323,7 @@ def modfifierTec(request, id):
 def ges_projects(request):
 
     context = {
-        'projects': Projets.objects.all(),
+        'projects': Projets.objects.all().order_by('-id'),
         'accueil': False,
         'projets': False,
         'connexion': False,
