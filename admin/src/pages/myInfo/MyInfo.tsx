@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { FiPlus, FiTrash2, FiSave } from 'react-icons/fi';
-import { Spinner } from '../../../components/Spinner';
+import { Spinner } from '../../components/Spinner';
 import './MyInfo.css';
 
 type MyInfoForm = {

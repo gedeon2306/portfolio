@@ -2,7 +2,8 @@ import type { RouteObject } from 'react-router-dom';
 import Login from './pages/login/Login';
 import DashboardLayout from './components/DashboardLayout';
 import DashboardHome from './pages/dashboard/DashboardHome';
-import MyInfo from './pages/dashboard/myInfo/MyInfo';
+import MyInfo from './pages/myInfo/MyInfo';
+import Skills from './pages/skills/Skills';
 
 export const routes: RouteObject[] = [
   {
@@ -21,10 +22,14 @@ export const routes: RouteObject[] = [
         index: true,
         element: <DashboardHome />,
       },
-        {
-          path: 'myinfo',
-          element: <MyInfo />,
-        },
+      {
+        path: 'myinfo',
+        element: <MyInfo />,
+      },
+      {
+        path: 'skills',
+        element: <Skills />,
+      },
       {
         path: 'content',
         element: <div className="dashboard-placeholder">Contenus à venir</div>,
