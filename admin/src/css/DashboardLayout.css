@@ -1,0 +1,415 @@
+.dashboard-shell {
+  height: 100vh;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 272px 1fr;
+  background: var(--surface);
+}
+
+.dashboard-sidebar {
+  position: relative;
+  height: 100vh;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-6) var(--space-5);
+  background: linear-gradient(190deg, var(--color-violet-700) 0%, var(--color-violet-600) 55%, var(--color-violet-500) 130%);
+  color: var(--accent-contrast);
+}
+
+/* Lueur discrète en haut de la barre latérale : la seule touche décorative */
+.dashboard-sidebar::before {
+  content: '';
+  position: fixed;
+  width: 272px;
+  height: 260px;
+  top: -40%;
+  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.16), transparent 72%);
+  pointer-events: none;
+}
+
+.sidebar-top {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding-bottom: var(--space-5);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* Même logique que .logo-wrap / .theme-toggle de Login.css : le bouton
+   de thème vit en médaillon sur le logo. */
+.sidebar-logo-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.sidebar-logo {
+  width: 46px;
+  height: 46px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.14);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  box-shadow: 0 4px 14px rgba(18, 17, 20, 0.22);
+}
+
+.sidebar-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sidebar-theme-toggle {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  background: var(--surface);
+  border: 2px solid var(--color-violet-600);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  transition: background var(--duration) var(--ease), transform var(--duration) var(--ease);
+}
+
+.sidebar-theme-toggle:hover {
+  background: var(--surface-hover);
+  transform: scale(1.08);
+}
+
+.sidebar-theme-toggle svg {
+  width: 13px;
+  height: 13px;
+}
+
+.sidebar-label {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  opacity: 0.68;
+}
+
+.sidebar-brand h2 {
+  font-size: 1.05rem;
+  margin-top: 0.2rem;
+  font-weight: 600;
+}
+
+.sidebar-close {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  display: none;
+  place-items: center;
+  color: var(--accent-contrast);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  flex-shrink: 0;
+  margin-left: auto;
+  transition: background var(--duration) var(--ease), border-color var(--duration) var(--ease);
+}
+
+.sidebar-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Poignée de collapse : flotte sur le bord de la sidebar, indépendante
+   du logo. Sa position ne bouge jamais, que la sidebar soit large ou
+   réduite, puisqu'elle est ancrée au bord droit, pas au contenu. */
+.sidebar-edge-toggle {
+  position: absolute;
+  top: 2.6rem;
+  right: -14px;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  display: grid;
+  place-items: center;
+  background: var(--bg);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  z-index: 5;
+  transition: background var(--duration) var(--ease), color var(--duration) var(--ease), border-color var(--duration) var(--ease);
+}
+
+.sidebar-edge-toggle:hover {
+  background: var(--surface-hover);
+  color: var(--accent);
+  border-color: var(--border-strong);
+}
+
+.sidebar-edge-toggle svg {
+  width: 14px;
+  height: 14px;
+}
+
+.sidebar-nav {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  flex: 1;
+  padding-top: var(--space-5);
+}
+
+.sidebar-link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--radius-md);
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+  font-size: var(--text-sm);
+  flex-shrink: 0;
+  transition: background var(--duration) var(--ease), color var(--duration) var(--ease);
+}
+
+.sidebar-link::before {
+  content: '';
+  position: absolute;
+  left: -4px;
+  top: 50%;
+  translate: 0 -50%;
+  width: 3px;
+  height: 0;
+  border-radius: var(--radius-full);
+  background: var(--accent-contrast);
+  transition: height var(--duration) var(--ease);
+}
+
+.sidebar-link:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.sidebar-link.active {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--accent-contrast);
+}
+
+.sidebar-link.active::before {
+  height: 18px;
+}
+
+.sidebar-icon {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+}
+
+.sidebar-footer {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  flex-shrink: 0;
+}
+
+.sidebar-footer-dot {
+  width: 8px;
+  height: 8px;
+  margin-top: 0.35rem;
+  border-radius: var(--radius-full);
+  background: #4ade80;
+  box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.22);
+  flex-shrink: 0;
+}
+
+.sidebar-footer-title {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  margin-bottom: 0.15rem;
+}
+
+.sidebar-footer-text {
+  font-size: var(--text-xs);
+  color: rgba(255, 255, 255, 0.68);
+}
+
+/* ---- Colonne principale : seule zone qui scrolle ---- */
+.dashboard-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100vh;
+}
+
+.dashboard-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-5) var(--space-7);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  box-shadow: var(--shadow-sm);
+}
+
+.mobile-nav-toggle {
+  display: none;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.header-title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.dashboard-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--accent);
+  font-weight: 600;
+  margin-bottom: var(--space-1);
+}
+
+.dashboard-header h1 {
+  font-size: clamp(1.3rem, 2vw, 1.65rem);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.header-cta {
+  box-shadow: var(--shadow-sm);
+}
+
+.dashboard-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-7);
+  max-width: 1280px;
+  width: 100%;
+  margin-inline: auto;
+}
+
+/* ---- Sidebar réduite (desktop) ---- */
+.dashboard-shell.sidebar-collapsed {
+  grid-template-columns: 84px 1fr;
+}
+
+.dashboard-shell.sidebar-collapsed .sidebar-brand > div:last-child,
+.dashboard-shell.sidebar-collapsed .sidebar-footer-title,
+.dashboard-shell.sidebar-collapsed .sidebar-footer-text,
+.dashboard-shell.sidebar-collapsed .sidebar-link span {
+  display: none;
+}
+
+.dashboard-shell.sidebar-collapsed .sidebar-top {
+  justify-content: center;
+}
+
+.dashboard-shell.sidebar-collapsed .sidebar-link {
+  justify-content: center;
+  padding-inline: 0.7rem;
+}
+
+.dashboard-shell.sidebar-collapsed .sidebar-link::before {
+  left: -3px;
+}
+
+.dashboard-shell.sidebar-collapsed .sidebar-footer {
+  justify-content: center;
+  padding: var(--space-3);
+}
+
+/* ---- Mobile : sidebar = tiroir plein écran qui glisse de gauche à droite ---- */
+.mobile-nav-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(18, 17, 20, 0.5);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 240ms var(--ease);
+  z-index: 40;
+}
+
+.mobile-nav-overlay.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (max-width: 900px) {
+  .dashboard-shell,
+  .dashboard-shell.sidebar-collapsed {
+    grid-template-columns: 1fr;
+    height: 100dvh;
+  }
+
+  .dashboard-sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: min(300px, 84vw);
+    z-index: 50;
+    transform: translateX(-100%);
+    transition: transform 280ms var(--ease);
+    box-shadow: var(--shadow-md);
+  }
+
+  .dashboard-sidebar.is-open {
+    transform: translateX(0);
+  }
+
+  .dashboard-shell.sidebar-collapsed .sidebar-brand > div:last-child,
+  .dashboard-shell.sidebar-collapsed .sidebar-footer-title,
+  .dashboard-shell.sidebar-collapsed .sidebar-footer-text,
+  .dashboard-shell.sidebar-collapsed .sidebar-link span {
+    display: revert;
+  }
+
+  .sidebar-edge-toggle {
+    display: none;
+  }
+
+  .sidebar-close {
+    display: grid;
+  }
+
+  .mobile-nav-toggle {
+    display: flex;
+  }
+
+  .dashboard-header {
+    padding: var(--space-4) var(--space-5);
+  }
+
+  .dashboard-content {
+    padding: var(--space-5);
+  }
+}

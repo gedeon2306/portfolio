@@ -157,6 +157,12 @@ h1, h2, h3, h4 {
 }
 .btn-ghost:hover { background: var(--surface-hover); }
 
+.btn-danger {
+  background: #e74c3c;
+  color: var(--accent-contrast);
+}
+.btn-danger:hover { background: #c0392b; }
+
 .btn-icon {
   width: 18px;
   height: 18px;
@@ -210,6 +216,18 @@ h1, h2, h3, h4 {
   border: 2px solid color-mix(in srgb, currentColor 20%, transparent);
   border-top-color: currentColor;
   animation: spin 0.9s linear infinite;
+}
+
+.dashboard-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 220px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  color: var(--text-secondary);
+  background: var(--bg);
+  font-weight: 600;
 }
 
 @keyframes spin {
