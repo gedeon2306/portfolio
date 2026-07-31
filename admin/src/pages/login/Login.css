@@ -1,0 +1,122 @@
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6);
+  background: var(--bg);
+}
+
+.login-card {
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+/* ---- Logo + interrupteur de thème incrusté ---- */
+.logo-wrap {
+  position: relative;
+  margin-bottom: var(--space-6);
+}
+
+.logo-mark {
+  width: 96px;
+  height: 96px;
+  border-radius: var(--radius-full);
+  background: var(--accent);
+  color: var(--accent-contrast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  box-shadow: var(--shadow-md);
+  transition: background var(--duration) var(--ease);
+}
+
+.theme-toggle {
+  position: absolute;
+  bottom: -6px;
+  right: -6px;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-full);
+  background: var(--surface);
+  border: 3px solid var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  transition: background var(--duration) var(--ease),
+    border-color var(--duration) var(--ease),
+    transform var(--duration) var(--ease);
+}
+
+.theme-toggle:hover {
+  background: var(--surface-hover);
+  transform: scale(1.06);
+}
+
+.theme-toggle svg {
+  width: 17px;
+  height: 17px;
+}
+
+/* ---- Titre / texte ---- */
+.login-title {
+  font-size: var(--text-2xl);
+  margin-bottom: var(--space-2);
+}
+
+.login-subtitle {
+  max-width: 30ch;
+  margin-bottom: var(--space-7);
+}
+
+/* ---- Formulaire ---- */
+.login-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  text-align: left;
+}
+
+.login-submit {
+  width: 100%;
+  margin-top: var(--space-2);
+  padding-block: var(--space-3);
+}
+
+/* Bouton: icône + texte, état loading */
+.login-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.login-submit .btn-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.login-submit .btn-icon {
+  display: inline-block;
+}
+
+.login-submit:disabled {
+  cursor: wait;
+  opacity: 0.85;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 420px) {
+  .login-card { max-width: 100%; }
+  .logo-mark { width: 84px; height: 84px; font-size: var(--text-xl); }
+}
