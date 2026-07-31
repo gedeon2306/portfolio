@@ -2,7 +2,7 @@ import type { RouteObject } from 'react-router-dom';
 import Login from './pages/login/Login';
 import DashboardLayout from './components/DashboardLayout';
 import DashboardHome from './pages/dashboard/DashboardHome';
-import MesInfo from './pages/dashboard/MesInfo';
+import MyInfo from './pages/dashboard/myInfo/MyInfo';
 
 export const routes: RouteObject[] = [
   {
@@ -23,7 +23,7 @@ export const routes: RouteObject[] = [
       },
         {
           path: 'myinfo',
-          element: <MesInfo />,
+          element: <MyInfo />,
         },
       {
         path: 'content',

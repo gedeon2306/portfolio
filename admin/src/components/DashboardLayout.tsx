@@ -10,6 +10,7 @@ import {
   LuSettings,
   LuSun,
   LuX,
+  LuUserRound
 } from 'react-icons/lu';
 import { FiLogOut } from "react-icons/fi";
 import { IoBarChart } from "react-icons/io5";
@@ -20,6 +21,7 @@ import '../css/DashboardLayout.css';
 
 const navigation = [
   { to: '/dashboard', label: 'Vue d’ensemble', icon: LuLayoutDashboard },
+  { to: '/dashboard/myinfo', label: 'Mes infos', icon: LuUserRound },
   { to: '/dashboard/content', label: 'Contenus', icon: LuFolderKanban },
   { to: '/dashboard/analytics', label: 'Statistiques', icon: IoBarChart },
   { to: '/dashboard/settings', label: 'Paramètres', icon: LuSettings },
