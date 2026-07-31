@@ -1,0 +1,171 @@
+import uuid
+from django.db import models
+from django.core.validators import MinValueValidator, MaxValueValidator
+
+
+class dashboard(models.Model):
+    # Informations sur la page
+    path = models.CharField(max_length=500, db_index=True, help_text="URL consultée (ex: /projects/my-app/)")
+    method = models.CharField(max_length=10, default="GET")
+    
+    # Origine du trafic
+    referrer = models.URLField(max_length=500, blank=True, null=True, help_text="Site d'origine du visiteur")
+    
+    # Informations sur le visiteur
+    ip_address = models.GenericIPAddressField(blank=True, null=True, help_text="Adresse IP (peut être anonymisée)")
+    user_agent = models.CharField(max_length=255, blank=True, null=True, help_text="Navigateur / Système d'exploitation")
+    session_key = models.CharField(max_length=40, blank=True, null=True, db_index=True)
+    
+    # Type d'appareil (optionnel mais utile)
+    device_type = models.CharField(
+        max_length=20,
+        choices=[
+            ('desktop', 'Desktop'),
+            ('mobile', 'Mobile'),
+            ('tablet', 'Tablet'),
+            ('bot', 'Bot / Crawler'),
+            ('other', 'Autre'),
+        ],
+        default='other'
+    )
+
+    # Date et heure
+    timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+        verbose_name = "Page vue"
+        verbose_name_plural = "Pages vues"
+        # Index composé pour accélérer les requêtes d'analytics par URL et par date
+        indexes = [
+            models.Index(fields=['path', 'timestamp']),
+        ]
+
+    def __str__(self):
+        return f"{self.path} - {self.timestamp.strftime('%Y-%m-%d %H:%M')}"
+
+
+class MyInfo(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    nom = models.CharField(max_length=100)
+    prenom = models.CharField(max_length=100)
+    email = models.EmailField()
+    telephone = models.CharField(max_length=20)
+    localisation = models.CharField(max_length=100)
+    profession = models.CharField(max_length=100)
+    description1 = models.TextField()
+    description2 = models.TextField()
+    image = models.TextField(null=True, blank=True)
+    cv = models.TextField(null=True, blank=True)
+    formation = models.CharField(max_length=100)
+    experience = models.CharField(max_length=100)
+    passions = models.CharField(max_length=100)
+    github = models.URLField(blank=True, null=True)
+    linkedin = models.URLField(blank=True, null=True)
+    instagram = models.URLField(blank=True, null=True)
+    twitter_x = models.URLField(blank=True, null=True)
+    tik_tok = models.URLField(blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.nom} {self.prenom}"
+
+    class Meta:
+        verbose_name = "Mon Info"
+        verbose_name_plural = "Mes Infos"
+
+
+class Langues(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    NIVEAUX_CHOICES = [
+        ('A1', 'A1'),
+        ('A2', 'A2'),
+        ('B1', 'B1'),
+        ('B2', 'B2'),
+        ('C1', 'C1'),
+        ('C2', 'C2'),
+    ]
+    
+    langue = models.CharField(max_length=50)
+    niveau = models.CharField(max_length=2, choices=NIVEAUX_CHOICES)
+
+    def __str__(self):
+        return f"{self.langue} - {self.niveau}"
+
+    class Meta:
+        verbose_name = "Langue"
+        verbose_name_plural = "Langues"  
+
+
+class Skills(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    competence = models.CharField(max_length=50)
+
+    def __str__(self):
+        return self.competence
+
+    class Meta:
+        verbose_name = "Compétence"
+        verbose_name_plural = "Compétences"
+
+
+class Skills_list(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    skill = models.ForeignKey(Skills, on_delete=models.CASCADE, related_name='skills_list')
+    libelle = models.CharField(max_length=20)
+    pourcentage = models.IntegerField(
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        help_text="Entrez un nombre entier entre 1 et 100."
+    )
+
+    def __str__(self):
+        return f"{self.libelle}"
+
+    class Meta:
+        verbose_name = "Liste de compétences"
+        verbose_name_plural = "Listes de compétences"
+
+
+class Projets(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    titre = models.CharField(max_length=100)
+    description = models.TextField()
+    image = models.TextField(null=True, blank=True)
+    url = models.URLField(blank=True, null=True)
+    doc = models.TextField(null=True, blank=True)
+    code = models.URLField(blank=True, null=True)
+    important = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.titre
+
+    class Meta:
+        verbose_name = "Projet"
+        verbose_name_plural = "Projets"
+
+
+class Technologies(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    project = models.ForeignKey(Projets, on_delete=models.CASCADE, related_name='tec_projets')
+    technologie = models.ForeignKey(Skills_list, on_delete=models.CASCADE, related_name='tec_skills')
+
+    def __str__(self):
+        return self.technologie.libelle
+
+    class Meta:
+        verbose_name = "Technologie"
+        verbose_name_plural = "Technologies"
+
+
+class certifications(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    titre = models.CharField(max_length=100)
+    description = models.TextField()
+    image = models.TextField(null=True, blank=True)
+    url = models.URLField(blank=True, null=True)
+
+    def __str__(self):
+        return self.titre
+
+    class Meta:
+        verbose_name = "Certification"
+        verbose_name_plural = "Certifications"
