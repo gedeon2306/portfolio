@@ -9,8 +9,8 @@ import {
   LuMoon,
   LuSettings,
   LuSun,
+  LuUserRound,
   LuX,
-  LuUserRound
 } from 'react-icons/lu';
 import { ImParagraphLeft } from "react-icons/im";
 import { FiLogOut } from "react-icons/fi";
@@ -24,6 +24,7 @@ const navigation = [
   { to: '/dashboard', label: 'Vue d’ensemble', icon: LuLayoutDashboard },
   { to: '/dashboard/myinfo', label: 'Mes infos', icon: LuUserRound },
   { to: '/dashboard/skills', label: 'Skills', icon: ImParagraphLeft },
+  { to: '/dashboard/projects', label: 'Projets', icon: LuFolderKanban },
   { to: '/dashboard/content', label: 'Contenus', icon: LuFolderKanban },
   { to: '/dashboard/analytics', label: 'Statistiques', icon: IoBarChart },
   { to: '/dashboard/settings', label: 'Paramètres', icon: LuSettings },
