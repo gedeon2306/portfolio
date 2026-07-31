@@ -4,6 +4,7 @@ import DashboardLayout from './components/DashboardLayout';
 import DashboardHome from './pages/dashboard/DashboardHome';
 import MyInfo from './pages/myInfo/MyInfo';
 import Skills from './pages/skills/Skills';
+import Projects from './pages/projects/Projects';
 
 export const routes: RouteObject[] = [
   {
@@ -29,6 +30,10 @@ export const routes: RouteObject[] = [
       {
         path: 'skills',
         element: <Skills />,
+      },
+      {
+        path: 'projects',
+        element: <Projects />,
       },
       {
         path: 'content',
