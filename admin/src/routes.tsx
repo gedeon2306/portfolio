@@ -5,6 +5,9 @@ import DashboardHome from './pages/dashboard/DashboardHome';
 import MyInfo from './pages/myInfo/MyInfo';
 import Skills from './pages/skills/Skills';
 import Projects from './pages/projects/Projects';
+import Certificates from './pages/certificates/Certificates';
+import Analytics from './pages/analytics/Analytics';
+import Settings from './pages/settings/Settings';
 
 export const routes: RouteObject[] = [
   {
@@ -36,16 +39,16 @@ export const routes: RouteObject[] = [
         element: <Projects />,
       },
       {
-        path: 'content',
-        element: <div className="dashboard-placeholder">Contenus à venir</div>,
+        path: 'certificates',
+        element: <Certificates />,
       },
       {
         path: 'analytics',
-        element: <div className="dashboard-placeholder">Statistiques à venir</div>,
+        element: <Analytics />,
       },
       {
         path: 'settings',
-        element: <div className="dashboard-placeholder">Paramètres à venir</div>,
+        element: <Settings />,
       },
     ],
   },

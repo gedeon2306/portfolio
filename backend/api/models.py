@@ -126,14 +126,26 @@ class Skills_list(models.Model):
 
 
 class Projets(models.Model):
+    PROJECT_CATEGORIES = [
+        ('Web', 'Web'),
+        ('Mobile', 'Mobile'),
+        ('Productivité', 'Productivité'),
+        ('Marketing', 'Marketing'),
+        ('Backend', 'Backend'),
+    ]
+    
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     titre = models.CharField(max_length=100)
+    categorie = models.CharField(max_length=100, choices=PROJECT_CATEGORIES)
+    status = models.BooleanField(default=False)
+    important = models.BooleanField(default=False)
     description = models.TextField()
     image = models.TextField(null=True, blank=True)
     url = models.URLField(blank=True, null=True)
     doc = models.TextField(null=True, blank=True)
-    code = models.URLField(blank=True, null=True)
-    important = models.BooleanField(default=False)
+    code_source = models.URLField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.titre
@@ -159,9 +171,13 @@ class Technologies(models.Model):
 class certifications(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     titre = models.CharField(max_length=100)
+    organisme = models.CharField(max_length=100)
+    annee = models.IntegerField(validators=[MinValueValidator(1900), MaxValueValidator(2100)])
+    url = models.URLField(blank=True, null=True)
     description = models.TextField()
     image = models.TextField(null=True, blank=True)
-    url = models.URLField(blank=True, null=True)
+    status = models.BooleanField(default=False)
+    important = models.BooleanField(default=False)
 
     def __str__(self):
         return self.titre
