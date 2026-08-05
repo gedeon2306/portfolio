@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type KeyboardEvent } from 'react';
 import {
   LuFolder,
   LuTrash2,
@@ -9,26 +9,28 @@ import {
   LuExternalLink,
   LuGithub,
   LuX,
-  LuStar
+  LuStar,
+  LuGlobe,
+  LuGlobeLock,
+  LuCode
 } from 'react-icons/lu';
 import { FiEdit3 } from 'react-icons/fi';
 import { useToast } from '../../context/ToastContext';
 import './Projects.css';
-
-type ProjectStatus = 'published' | 'draft' | 'archived';
 
 type Project = {
   id: string;
   name: string;
   description: string;
   category: string;
-  status: ProjectStatus;
+  status: boolean; // true = publié, false = brouillon
   updatedAt: string;
-  featured: boolean;
+  important: boolean;
   githubUrl?: string;
   demoUrl?: string;
   image?: string;
   doc?: string;
+  technologies: string[];
 };
 
 const initialProjects: Project[] = [
@@ -37,48 +39,53 @@ const initialProjects: Project[] = [
     name: 'Portfolio V2',
     description: 'Refonte complète du portfolio personnel avec une identité visuelle moderne et animations Emiel Kowalski.',
     category: 'Web',
-    status: 'published',
+    status: true,
     updatedAt: 'Il y a 2 jours',
-    featured: true,
+    important: true,
     githubUrl: 'https://github.com/gedeon2306/portfolio',
     demoUrl: 'https://gedeondupont.dev',
+    technologies: ['React', 'TypeScript', 'Vite'],
   },
   {
     id: 'p2',
     name: 'Dashboard Admin Console',
     description: 'Interface d’administration complète pour la gestion des contenus, compétences et analytiques.',
     category: 'Productivité',
-    status: 'published',
+    status: true,
     updatedAt: 'Il y a 5 jours',
-    featured: true,
+    important: true,
     githubUrl: 'https://github.com/gedeon2306/admin-dashboard',
+    technologies: ['React', 'Django REST', 'PostgreSQL'],
   },
   {
     id: 'p3',
     name: 'Landing Agency Digital',
     description: 'Landing page haute conversion pour une agence de création numérique avec design dark glass.',
     category: 'Marketing',
-    status: 'draft',
+    status: false,
     updatedAt: 'Il y a 1 semaine',
-    featured: false,
+    important: false,
+    technologies: ['Next.js', 'Tailwind CSS'],
   },
   {
     id: 'p4',
     name: 'Mobile Health Tracker',
     description: 'Application mobile de suivi de santé et performances sportives temps réel.',
     category: 'Mobile',
-    status: 'published',
+    status: true,
     updatedAt: 'Il y a 2 semaines',
-    featured: false,
+    important: false,
+    technologies: ['React Native', 'Expo'],
   },
   {
     id: 'p5',
     name: 'API REST Django Portfolio',
     description: 'Backend sécurisé Django REST Framework avec gestion JWT et stockage des données.',
     category: 'Backend',
-    status: 'published',
+    status: true,
     updatedAt: 'Il y a 3 semaines',
-    featured: true,
+    important: true,
+    technologies: ['Django', 'DRF', 'JWT'],
   },
 ];
 
@@ -89,7 +96,8 @@ export default function Projects() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
-  
+  const [selectedImportance, setSelectedImportance] = useState<string>('all');
+
   // Modals state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [deleteConfirmProject, setDeleteConfirmProject] = useState<Project | null>(null);
@@ -98,23 +106,66 @@ export default function Projects() {
   const [formName, setFormName] = useState('');
   const [formDesc, setFormDesc] = useState('');
   const [formCat, setFormCat] = useState('Web');
-  const [formStatus, setFormStatus] = useState<ProjectStatus>('published');
+  const [formStatus, setFormStatus] = useState<boolean>(true);
   const [formImage, setFormImage] = useState<File | null>(null);
   const [formUrl, setFormUrl] = useState('');
   const [formCodeSource, setFormCodeSource] = useState('');
   const [formDoc, setFormDoc] = useState<File | null>(null);
   const [formImportant, setFormImportant] = useState(false);
+  const [formTechnologies, setFormTechnologies] = useState<string[]>([]);
+  const [techInput, setTechInput] = useState('');
 
   const categories = ['all', 'Web', 'Mobile', 'Productivité', 'Marketing', 'Backend'];
 
-  const filteredProjects = projects.filter((p) => {
-    const matchesSearch =
-      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || p.category === selectedCategory;
-    const matchesStatus = selectedStatus === 'all' || p.status === selectedStatus;
-    return matchesSearch && matchesCategory && matchesStatus;
-  });
+  const availableSkills = [
+    'React', 'Next.js', 'TypeScript', 'JavaScript', 'Vite',
+    'Django', 'Django REST', 'PostgreSQL', 'Node.js',
+    'Tailwind CSS', 'React Native', 'Expo', 'JWT',
+  ];
+
+  const addTechnology = () => {
+    if (!techInput) return;
+    if (formTechnologies.includes(techInput)) {
+      toast.error('Déjà ajoutée', `"${techInput}" est déjà dans la liste.`);
+      return;
+    }
+    setFormTechnologies((prev) => [...prev, techInput]);
+    setTechInput('');
+  };
+
+  const removeTechnology = (tech: string) => {
+    setFormTechnologies((prev) => prev.filter((t) => t !== tech));
+  };
+
+  const handleTechInputKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addTechnology();
+    }
+  };
+
+  const filteredProjects = projects
+    .filter((p) => {
+      const matchesSearch =
+        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.description.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = selectedCategory === 'all' || p.category === selectedCategory;
+      const matchesStatus =
+        selectedStatus === 'all' ||
+        (selectedStatus === 'published' && p.status) ||
+        (selectedStatus === 'draft' && !p.status);
+      const matchesImportance =
+        selectedImportance === 'all' ||
+        (selectedImportance === 'important' && p.important) ||
+        (selectedImportance === 'normal' && !p.important);
+      return matchesSearch && matchesCategory && matchesStatus && matchesImportance;
+    })
+    // Tri : projets importants d'abord, puis publiés avant brouillons
+    .sort((a, b) => {
+      if (a.important !== b.important) return a.important ? -1 : 1;
+      if (a.status !== b.status) return a.status ? -1 : 1;
+      return 0;
+    });
 
   const handleCreateProject = () => {
     if (!formName.trim() || !formDesc.trim()) {
@@ -129,11 +180,12 @@ export default function Projects() {
       category: formCat,
       status: formStatus,
       updatedAt: 'À l’instant',
-      featured: formImportant,
+      important: formImportant,
       image: formImage ? URL.createObjectURL(formImage) : undefined,
       githubUrl: formCodeSource || undefined,
       demoUrl: formUrl || undefined,
       doc: formDoc ? URL.createObjectURL(formDoc) : undefined,
+      technologies: formTechnologies,
     };
 
     setProjects((prev) => [newProject, ...prev]);
@@ -141,12 +193,14 @@ export default function Projects() {
     setFormName('');
     setFormDesc('');
     setFormCat('Web');
-    setFormStatus('published');
+    setFormStatus(true);
     setFormImage(null);
     setFormUrl('');
     setFormCodeSource('');
     setFormDoc(null);
     setFormImportant(false);
+    setFormTechnologies([]);
+    setTechInput('');
     toast.success('Projet créé !', `Le projet "${newProject.name}" a été ajouté.`);
   };
 
@@ -157,15 +211,24 @@ export default function Projects() {
     setDeleteConfirmProject(null);
   };
 
-  const toggleFeatured = (id: string) => {
+  const toggleImportant = (id: string) => {
+    const target = projects.find((p) => p.id === id);
+    if (!target) return;
+    const next = !target.important;
     setProjects((prev) =>
-      prev.map((p) => {
-        if (p.id !== id) return p;
-        const next = !p.featured;
-        toast.info(next ? 'Projet mis en avant' : 'Projet retiré de la une');
-        return { ...p, featured: next };
-      })
+      prev.map((p) => (p.id === id ? { ...p, important: next } : p))
     );
+    toast.info(next ? 'Projet mis en avant' : 'Projet retiré de la une');
+  };
+
+  const toggleStatus = (id: string) => {
+    const target = projects.find((p) => p.id === id);
+    if (!target) return;
+    const next = !target.status;
+    setProjects((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, status: next } : p))
+    );
+    toast.info(next ? 'Projet publié' : 'Projet passé en brouillon');
   };
 
   return (
@@ -223,6 +286,17 @@ export default function Projects() {
           <option value="draft">Brouillons</option>
         </select>
 
+        {/* Filtre par Importance */}
+        <select
+          value={selectedImportance}
+          onChange={(e) => setSelectedImportance(e.target.value)}
+          className="field-select"
+        >
+          <option value="all">Toutes importances</option>
+          <option value="important">Importants</option>
+          <option value="normal">Normaux</option>
+        </select>
+
         {/* Toggle Vue Grille / Liste */}
         <div className="view-toggle-group">
           <button
@@ -265,24 +339,41 @@ export default function Projects() {
               <div className="project-card-header">
                 <div className="project-category-row">
                   <span className="badge badge-accent">{project.category}</span>
-                  <span className={`badge ${project.status === 'published' ? 'badge-neutral' : 'badge-neutral'}`}>
-                    {project.status === 'published' ? '● Publié' : '○ Brouillon'}
+                  <span className="badge badge-neutral">
+                    {project.status ? '● Publié' : '○ Brouillon'}
                   </span>
                 </div>
 
-                <button
-                  type="button"
-                  className={`star-btn ${project.featured ? 'active' : ''}`}
-                  onClick={() => toggleFeatured(project.id)}
-                  title={project.featured ? 'Mis en avant' : 'Mettre en avant'}
-                >
-                  <LuStar />
-                </button>
+                <div className="project-quick-actions">
+                  <button
+                    type="button"
+                    className={`status-btn ${project.status ? 'active' : ''}`}
+                    onClick={() => toggleStatus(project.id)}
+                    title={project.status ? 'Repasser en brouillon' : 'Publier'}
+                  >
+                    {project.status ? <LuGlobe /> : <LuGlobeLock />}
+                  </button>
+                  <button
+                    type="button"
+                    className={`star-btn ${project.important ? 'active' : ''}`}
+                    onClick={() => toggleImportant(project.id)}
+                    title={project.important ? 'Mis en avant' : 'Mettre en avant'}
+                  >
+                    <LuStar />
+                  </button>
+                </div>
               </div>
 
               <div className="project-body">
                 <h3>{project.name}</h3>
                 <p className="project-desc">{project.description}</p>
+                {project.technologies.length > 0 && (
+                  <div className="project-tech-list">
+                    {project.technologies.map((tech) => (
+                      <span key={tech} className="tech-badge">{tech}</span>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="project-footer">
@@ -339,7 +430,7 @@ export default function Projects() {
       {/* Modal Création Projet */}
       {isCreateModalOpen && (
         <div className="modal-overlay" onClick={() => setIsCreateModalOpen(false)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-card modal-lg" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>Ajouter un Nouveau Projet</h3>
               <button
@@ -364,7 +455,7 @@ export default function Projects() {
                 />
               </div>
 
-              <div className="field-row-dual">
+              <div className="field-row-triple">
                 <div className="field">
                   <label htmlFor="pcat">Catégorie</label>
                   <select
@@ -385,12 +476,25 @@ export default function Projects() {
                   <label htmlFor="pstatus">Statut de publication</label>
                   <select
                     id="pstatus"
-                    value={formStatus}
-                    onChange={(e) => setFormStatus(e.target.value as ProjectStatus)}
+                    value={formStatus ? 'published' : 'draft'}
+                    onChange={(e) => setFormStatus(e.target.value === 'published')}
                     className="field-select"
                   >
                     <option value="published">Publié</option>
                     <option value="draft">Brouillon</option>
+                  </select>
+                </div>
+
+                <div className="field">
+                  <label htmlFor="pimportant">Importance</label>
+                  <select
+                    id="pimportant"
+                    value={formImportant ? 'important' : 'normal'}
+                    onChange={(e) => setFormImportant(e.target.value === 'important')}
+                    className="field-select"
+                  >
+                    <option value="normal">Normal</option>
+                    <option value="important">Important</option>
                   </select>
                 </div>
               </div>
@@ -403,16 +507,6 @@ export default function Projects() {
                   value={formDesc}
                   onChange={(e) => setFormDesc(e.target.value)}
                   rows={3}
-                />
-              </div>
-
-              <div className="field">
-                <label htmlFor="pimage">Image (PNG/JPG) — optionnel</label>
-                <input
-                  id="pimage"
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setFormImage(e.target.files ? e.target.files[0] : null)}
                 />
               </div>
 
@@ -440,25 +534,69 @@ export default function Projects() {
                 </div>
               </div>
 
-              <div className="field">
-                <label htmlFor="pdoc">Documentation (PDF, optionnel)</label>
-                <input
-                  id="pdoc"
-                  type="file"
-                  accept="application/pdf"
-                  onChange={(e) => setFormDoc(e.target.files ? e.target.files[0] : null)}
-                />
+              <div className="field-row-dual">
+                <div className="field">
+                  <label htmlFor="pimage">Image (PNG/JPG) — optionnel</label>
+                  <input
+                    id="pimage"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setFormImage(e.target.files ? e.target.files[0] : null)}
+                  />
+                </div>
+
+                <div className="field">
+                  <label htmlFor="pdoc">Documentation (PDF, optionnel)</label>
+                  <input
+                    id="pdoc"
+                    type="file"
+                    accept="application/pdf"
+                    onChange={(e) => setFormDoc(e.target.files ? e.target.files[0] : null)}
+                  />
+                </div>
               </div>
 
               <div className="field">
-                <label className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={formImportant}
-                    onChange={(e) => setFormImportant(e.target.checked)}
-                  />{' '}
-                  Mettre en avant ce projet
-                </label>
+                <label htmlFor="ptech">Technologies</label>
+                <div className="tech-input-row">
+                  <select
+                    id="ptech"
+                    className="field-select"
+                    value={techInput}
+                    onChange={(e) => setTechInput(e.target.value)}
+                  >
+                    <option value="">Choisir une technologie...</option>
+                    {availableSkills
+                      .filter((skill) => !formTechnologies.includes(skill))
+                      .map((skill) => (
+                        <option key={skill} value={skill}>{skill}</option>
+                      ))}
+                  </select>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={addTechnology}
+                  >
+                    <LuPlus className="btn-icon" /> Ajouter
+                  </button>
+                </div>
+                {formTechnologies.length > 0 && (
+                  <div className="tech-chips">
+                    {formTechnologies.map((tech) => (
+                      <span key={tech} className="tech-chip">
+                        <LuCode className="tech-chip-icon" />
+                        {tech}
+                        <button
+                          type="button"
+                          onClick={() => removeTechnology(tech)}
+                          title={`Retirer ${tech}`}
+                        >
+                          <LuX />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 

@@ -32,14 +32,70 @@
 
 .certificate-card-top {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
+  gap: 12px;
+}
+
+.cert-quick-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.star-btn {
+  color: var(--text-tertiary);
+  font-size: 1.1rem;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  transition: all var(--duration) var(--ease);
+}
+
+.star-btn:hover, .star-btn.active {
+  color: var(--accent);
+}
+
+.status-btn {
+  color: var(--text-tertiary);
+  font-size: 1.1rem;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  transition: all var(--duration) var(--ease);
+}
+
+.status-btn:hover {
+  color: var(--text);
+}
+
+.status-btn.active {
+  color: var(--color-success, #22c55e);
 }
 
 .cert-badge-wrap {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.cert-org-name {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.cert-meta-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .cert-badge-icon {
@@ -58,7 +114,6 @@
 .cert-date {
   font-size: 0.7rem;
   color: var(--text-tertiary);
-  margin-left: 8px;
 }
 
 .certificate-body h3 {
@@ -84,4 +139,17 @@
 .cert-link-btn {
   font-size: var(--text-xs);
   color: var(--accent);
+}
+
+.modal-card {
+  max-width: 640px;
+  max-height: 90vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-card .modal-body {
+  overflow-y: auto;
+  padding: 10px;
 }
