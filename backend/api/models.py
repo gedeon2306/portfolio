@@ -185,3 +185,31 @@ class certifications(models.Model):
     class Meta:
         verbose_name = "Certification"
         verbose_name_plural = "Certifications"
+
+
+class Journal(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    action = models.CharField(max_length=100)
+
+    def __str__(self):
+        return self.action
+
+    class Meta:
+        verbose_name = "Journal"
+        verbose_name_plural = "Journaux"
+
+
+class settings(models.Model):
+    titre_app = models.CharField(max_length=100)
+    mode_maintenance = models.BooleanField(default=False)
+    notification_email = models.EmailField(blank=True, null=True)
+    dfa = models.BooleanField(default=False)
+    utilisateur = models.CharField(max_length=100)
+    mdp = models.CharField(max_length=100)
+
+    def __str__(self):
+        return self.titre_app
+
+    class Meta:
+        verbose_name = "Paramètre"
+        verbose_name_plural = "Paramètres"
