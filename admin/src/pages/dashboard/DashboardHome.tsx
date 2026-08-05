@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   LuArrowUpRight,
-  LuCircleDashed,
+  LuAward,
   LuFolderKanban,
   LuSparkles,
   LuTrendingUp,
@@ -116,12 +116,12 @@ export default function DashboardHome() {
       action: () => navigate('/dashboard/skills'),
     },
     {
-      title: 'Tâches à finaliser',
-      value: '3',
-      trend: 'Priorité haute',
-      caption: 'Vérifications du CV & Bio',
-      icon: LuCircleDashed,
-      action: () => navigate('/dashboard/myinfo'),
+      title: 'Certifications',
+      value: '24',
+      trend: 'Encore plus',
+      caption: 'En constante évolution',
+      icon: LuAward,
+      action: () => navigate('/dashboard/certificates'),
     },
   ];
 

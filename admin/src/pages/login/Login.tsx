@@ -175,7 +175,7 @@ export default function Login() {
 
         <div className="login-footer">
           <LuCircleHelp className="footer-icon" />
-          <span>Antigravity Portfolio Admin v2.0</span>
+          <span>Portfolio Admin v2.0</span>
         </div>
       </div>
     </div>
