@@ -11,12 +11,17 @@ import {
   LuSun,
   LuUserRound,
   LuX,
+  LuSearch,
+  LuBell,
+  LuAward,
+  LuChartColumn,
+  LuCheck,
+  LuLogOut
 } from 'react-icons/lu';
-import { ImParagraphLeft } from "react-icons/im";
-import { FiLogOut } from "react-icons/fi";
-import { IoBarChart } from "react-icons/io5";
+import { ImParagraphLeft } from 'react-icons/im';
 import { useTheme } from '../context/ThemeContext';
-import { Spinner } from './Spinner';
+import { useToast } from '../context/ToastContext';
+import { CommandPalette } from './CommandPalette';
 import logo from '../assets/logo_jd_blanc_sbg.png';
 import '../css/DashboardLayout.css';
 
@@ -25,44 +30,60 @@ const navigation = [
   { to: '/dashboard/myinfo', label: 'Mes infos', icon: LuUserRound },
   { to: '/dashboard/skills', label: 'Skills', icon: ImParagraphLeft },
   { to: '/dashboard/projects', label: 'Projets', icon: LuFolderKanban },
-  { to: '/dashboard/content', label: 'Contenus', icon: LuFolderKanban },
-  { to: '/dashboard/analytics', label: 'Statistiques', icon: IoBarChart },
+  { to: '/dashboard/certificates', label: 'Certificats', icon: LuAward },
+  { to: '/dashboard/analytics', label: 'Statistiques', icon: LuChartColumn },
   { to: '/dashboard/settings', label: 'Paramètres', icon: LuSettings },
 ];
 
 export default function DashboardLayout() {
   const { theme, toggleTheme } = useTheme();
+  const toast = useToast();
   const navigate = useNavigate();
   const location = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isCmdOpen, setIsCmdOpen] = useState(false);
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
 
-  const title = useMemo(() => {
-    const current = navigation.find((item) => item.to === location.pathname);
-    return current?.label ?? 'Vue d’ensemble';
+  const notifications = [
+    { id: '1', title: 'Nouveau message reçu', time: 'Il y a 10 min', read: false },
+    { id: '2', title: 'Projet Portfolio V2 mis à jour', time: 'Il y a 2h', read: false },
+    { id: '3', title: 'Nouveau certificat AWS ajouté', time: 'Hier à 18:40', read: true },
+  ];
+
+  const currentNav = useMemo(() => {
+    return navigation.find((item) => item.to === location.pathname) ?? { label: 'Vue d’ensemble', to: '/dashboard' };
   }, [location.pathname]);
 
-  // Ferme le tiroir mobile à chaque changement de page
   useEffect(() => {
     setIsMobileNavOpen(false);
   }, [location.pathname]);
 
-  // Empêche le scroll du contenu derrière le tiroir ouvert, et permet Échap pour fermer
   useEffect(() => {
     if (!isMobileNavOpen) return;
-
     document.body.style.overflow = 'hidden';
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setIsMobileNavOpen(false);
     };
     window.addEventListener('keydown', handleKeyDown);
-
     return () => {
       document.body.style.overflow = '';
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [isMobileNavOpen]);
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    toast.info('Déconnexion en cours...', 'À très bientôt sur l’administration.');
+    try {
+      localStorage.removeItem('authToken');
+      await new Promise((r) => setTimeout(r, 700));
+      navigate('/connexion');
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
 
   return (
     <div className={`dashboard-shell ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
@@ -72,9 +93,8 @@ export default function DashboardLayout() {
         aria-hidden="true"
       />
 
+      {/* Sidebar Latérale */}
       <aside className={`dashboard-sidebar ${isMobileNavOpen ? 'is-open' : ''}`}>
-        {/* Poignée de collapse : flotte sur le bord droit de la sidebar,
-            visible en permanence, indépendante du contenu du logo. */}
         <button
           type="button"
           className="sidebar-edge-toggle"
@@ -88,24 +108,26 @@ export default function DashboardLayout() {
           <div className="sidebar-brand">
             <div className="sidebar-logo-wrap">
               <div className="sidebar-logo">
-                <img src={logo} alt="Logo" />
+                <img src={logo} alt="Logo JD" />
               </div>
               <button
                 type="button"
                 className="sidebar-theme-toggle"
                 onClick={toggleTheme}
-                aria-label={theme === 'light' ? 'Activer le thème sombre' : 'Activer le thème clair'}
+                title={theme === 'light' ? 'Passer au mode sombre' : 'Passer au mode clair'}
+                aria-label="Changer de thème"
               >
                 {theme === 'light' ? <LuMoon /> : <LuSun />}
               </button>
             </div>
-            <div>
-              <p className="sidebar-label">Admin</p>
-              <h2>Portfolio</h2>
-            </div>
+            {!isCollapsed && (
+              <div className="sidebar-brand-text">
+                <span className="sidebar-label">Admin Console</span>
+                <h2>Gédéon Dupont</h2>
+              </div>
+            )}
           </div>
 
-          {/* Fermer le tiroir (mobile uniquement) */}
           <button
             type="button"
             className="sidebar-close"
@@ -116,7 +138,7 @@ export default function DashboardLayout() {
           </button>
         </div>
 
-        <nav className="sidebar-nav" aria-label="Navigation du tableau de bord">
+        <nav className="sidebar-nav" aria-label="Navigation principale">
           {navigation.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
@@ -125,12 +147,36 @@ export default function DashboardLayout() {
               className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
             >
               <Icon className="sidebar-icon" />
-              <span>{label}</span>
+              <span className="sidebar-link-label">{label}</span>
             </NavLink>
           ))}
         </nav>
+
+        {/* Pied de sidebar / Profil rapide */}
+        <div className="sidebar-footer">
+          <div className="sidebar-user-avatar">
+            <span>JD</span>
+            <span className="user-online-dot" />
+          </div>
+          {!isCollapsed && (
+            <div className="sidebar-user-info">
+              <p className="user-name">Gédéon Dupont</p>
+              <p className="user-role">Administrateur</p>
+            </div>
+          )}
+          <button
+            type="button"
+            className="sidebar-logout-btn"
+            onClick={handleLogout}
+            title="Se déconnecter"
+            disabled={isLoggingOut}
+          >
+            <LuLogOut />
+          </button>
+        </div>
       </aside>
 
+      {/* Zone Principale */}
       <div className="dashboard-main">
         <header className="dashboard-header">
           <div className="header-title-row">
@@ -143,47 +189,88 @@ export default function DashboardLayout() {
               <LuMenu />
             </button>
             <div>
-              <p className="dashboard-eyebrow">Tableau de bord</p>
-              <h1>{title}</h1>
+              <div className="dashboard-breadcrumbs">
+                <span>Espace Administrateur</span>
+                <span className="crumb-sep">/</span>
+                <span className="crumb-active">{currentNav.label}</span>
+              </div>
+              <h1>{currentNav.label}</h1>
             </div>
           </div>
 
           <div className="header-actions">
+            {/* Bouton Recherche / Command Palette */}
+            <button
+              type="button"
+              className="header-cmd-trigger"
+              onClick={() => setIsCmdOpen(true)}
+              title="Recherche rapide (Ctrl+K)"
+            >
+              <LuSearch className="cmd-icon" />
+              <span className="cmd-text">Rechercher...</span>
+              <kbd className="cmd-shortcut-tag">⌘K</kbd>
+            </button>
+
+            {/* Notifications Popover Trigger */}
+            <div className="notif-wrapper">
               <button
                 type="button"
-                className="btn btn-danger header-cta"
-                onClick={async () => {
-                  setIsLoggingOut(true);
-                  try {
-                    // nettoyage local (token, etc.)
-                    localStorage.removeItem('authToken');
-                    // attente minimale pour afficher le spinner
-                    await new Promise((r) => setTimeout(r, 600));
-                    navigate('/connexion');
-                  } finally {
-                    setIsLoggingOut(false);
-                  }
-                }}
-                disabled={isLoggingOut}
+                className={`header-icon-btn ${isNotifOpen ? 'active' : ''}`}
+                onClick={() => setIsNotifOpen((prev) => !prev)}
+                title="Notifications"
+                aria-label="Notifications"
               >
-                {isLoggingOut ? <Spinner /> : <FiLogOut className="btn-icon" />}
+                <LuBell />
+                <span className="notif-badge-dot" />
               </button>
+
+              {isNotifOpen && (
+                <div className="notif-dropdown">
+                  <div className="notif-header">
+                    <h4>Notifications</h4>
+                    <span className="badge badge-accent">3 nouvelles</span>
+                  </div>
+                  <div className="notif-list">
+                    {notifications.map((n) => (
+                      <div key={n.id} className={`notif-item ${!n.read ? 'unread' : ''}`}>
+                        <div className="notif-dot" />
+                        <div className="notif-content">
+                          <p className="notif-title">{n.title}</p>
+                          <p className="notif-time">{n.time}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="notif-footer">
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => setIsNotifOpen(false)}>
+                      <LuCheck /> Tout marquer comme lu
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Bouton Déconnexion rapide */}
+            <button
+              type="button"
+              className="btn btn-danger header-logout-cta"
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+              title="Déconnexion"
+            >
+              {isLoggingOut ? <span className="spinner" /> : <LuLogOut className="btn-icon" />}
+              <span className="logout-text">Déconnexion</span>
+            </button>
           </div>
         </header>
 
         <main className="dashboard-content">
-            <Outlet context={{ logout: async () => {
-              setIsLoggingOut(true);
-              try {
-                localStorage.removeItem('authToken');
-                await new Promise((r) => setTimeout(r, 600));
-                navigate('/connexion');
-              } finally {
-                setIsLoggingOut(false);
-              }
-            }, isLoggingOut }} />
+          <Outlet context={{ logout: handleLogout, isLoggingOut }} />
         </main>
       </div>
+
+      {/* Command Palette Keyboard Shortcut Modal */}
+      <CommandPalette isOpen={isCmdOpen} onClose={() => setIsCmdOpen(false)} />
     </div>
   );
 }
