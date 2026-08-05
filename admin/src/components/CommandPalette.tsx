@@ -15,7 +15,7 @@ import {
 } from 'react-icons/lu';
 import { ImParagraphLeft } from 'react-icons/im';
 import { useTheme } from '../context/ThemeContext';
-import './CommandPalette.css';
+import '../css/CommandPalette.css';
 
 interface CommandPaletteProps {
   isOpen: boolean;
