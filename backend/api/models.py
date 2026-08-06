@@ -169,8 +169,28 @@ class Technologies(models.Model):
 
 
 class certifications(models.Model):
+    CERTIFICATION_CATEGORIES = [
+        ('IA', 'Intelligence Artificielle'),
+        ('Web', 'Développement Web'),
+        ('Mobile', 'Développement Mobile'),
+        ('Data Base', 'Base de Données'),
+        ('DevOps', 'DevOps'),
+        ('UI/UX', 'UI/UX Design'),
+        ('Réseaux', 'Réseaux et Télécommunications'),
+        ('Cybersécurité', 'Cybersécurité'),
+        ('Langue', 'Langue'),
+        ('Gestion de Projet', 'Gestion de Projet'),
+        ('Marketing Digital', 'Marketing Digital'),
+        ('Linux', 'Administration Linux'),
+        ('Data', 'Science des Données'),
+        ('Cloud', 'Cloud Computing'),
+        ('Langage de Programmation', 'Langage de Programmation'),
+        ('Autre', 'Autre'),
+    ]
+        
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     titre = models.CharField(max_length=100)
+    categorie = models.CharField(max_length=100, choices=CERTIFICATION_CATEGORIES)
     organisme = models.CharField(max_length=100)
     annee = models.IntegerField(validators=[MinValueValidator(1900), MaxValueValidator(2100)])
     url = models.URLField(blank=True, null=True)
@@ -178,6 +198,8 @@ class certifications(models.Model):
     image = models.TextField(null=True, blank=True)
     status = models.BooleanField(default=False)
     important = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.titre
