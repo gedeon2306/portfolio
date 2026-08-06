@@ -23,9 +23,32 @@ export type CertificateItem = {
   url?: string;
   dateObtention?: string;
   organisme?: string;
+  categorie: string;
   status: boolean; // true = publié, false = brouillon
   important: boolean;
 };
+
+export const CERTIFICATION_CATEGORIES: { value: string; label: string }[] = [
+  { value: 'IA', label: 'Intelligence Artificielle' },
+  { value: 'Web', label: 'Développement Web' },
+  { value: 'Mobile', label: 'Développement Mobile' },
+  { value: 'Data Base', label: 'Base de Données' },
+  { value: 'DevOps', label: 'DevOps' },
+  { value: 'UI/UX', label: 'UI/UX Design' },
+  { value: 'Réseaux', label: 'Réseaux et Télécommunications' },
+  { value: 'Cybersécurité', label: 'Cybersécurité' },
+  { value: 'Langue', label: 'Langue' },
+  { value: 'Gestion de Projet', label: 'Gestion de Projet' },
+  { value: 'Marketing Digital', label: 'Marketing Digital' },
+  { value: 'Linux', label: 'Administration Linux' },
+  { value: 'Data', label: 'Science des Données' },
+  { value: 'Cloud', label: 'Cloud Computing' },
+  { value: 'Langage de Programmation', label: 'Langage de Programmation' },
+  { value: 'Autre', label: 'Autre' },
+];
+
+const categoryLabel = (value: string) =>
+  CERTIFICATION_CATEGORIES.find((c) => c.value === value)?.label || value;
 
 const initialCertificates: CertificateItem[] = [
   {
@@ -35,6 +58,7 @@ const initialCertificates: CertificateItem[] = [
     url: 'https://aws.amazon.com/verification',
     dateObtention: '2025',
     organisme: 'Amazon Web Services',
+    categorie: 'Cloud',
     status: true,
     important: true,
   },
@@ -45,6 +69,7 @@ const initialCertificates: CertificateItem[] = [
     url: 'https://coursera.org/verify/meta-frontend',
     dateObtention: '2024',
     organisme: 'Meta',
+    categorie: 'Web',
     status: true,
     important: false,
   },
@@ -55,6 +80,7 @@ const initialCertificates: CertificateItem[] = [
     url: 'https://djangoproject.com',
     dateObtention: '2024',
     organisme: 'Python Software Foundation',
+    categorie: 'Web',
     status: false,
     important: false,
   },
@@ -64,6 +90,7 @@ export default function Certificates() {
   const toast = useToast();
   const [certificates, setCertificates] = useState<CertificateItem[]>(initialCertificates);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedImportance, setSelectedImportance] = useState<string>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -76,6 +103,7 @@ export default function Certificates() {
   const [organisme, setOrganisme] = useState('');
   const [dateObtention, setDateObtention] = useState('');
   const [image, setImage] = useState('');
+  const [formCategorie, setFormCategorie] = useState<string>('Web');
   const [formStatus, setFormStatus] = useState<boolean>(true);
   const [formImportant, setFormImportant] = useState<boolean>(false);
 
@@ -85,6 +113,7 @@ export default function Certificates() {
         cert.titre.toLowerCase().includes(searchQuery.toLowerCase()) ||
         cert.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (cert.organisme && cert.organisme.toLowerCase().includes(searchQuery.toLowerCase()));
+      const matchesCategory = selectedCategory === 'all' || cert.categorie === selectedCategory;
       const matchesStatus =
         selectedStatus === 'all' ||
         (selectedStatus === 'published' && cert.status) ||
@@ -93,7 +122,7 @@ export default function Certificates() {
         selectedImportance === 'all' ||
         (selectedImportance === 'important' && cert.important) ||
         (selectedImportance === 'normal' && !cert.important);
-      return matchesSearch && matchesStatus && matchesImportance;
+      return matchesSearch && matchesCategory && matchesStatus && matchesImportance;
     })
     // Tri : certifications importantes d'abord, puis publiées avant brouillons
     .sort((a, b) => {
@@ -110,6 +139,7 @@ export default function Certificates() {
     setOrganisme('');
     setDateObtention('');
     setImage('');
+    setFormCategorie('Web');
     setFormStatus(true);
     setFormImportant(false);
     setIsModalOpen(true);
@@ -123,6 +153,7 @@ export default function Certificates() {
     setOrganisme(cert.organisme || '');
     setDateObtention(cert.dateObtention || '');
     setImage(cert.image || '');
+    setFormCategorie(cert.categorie);
     setFormStatus(cert.status);
     setFormImportant(cert.important);
     setIsModalOpen(true);
@@ -138,7 +169,7 @@ export default function Certificates() {
       setCertificates((prev) =>
         prev.map((c) =>
           c.id === editingCert.id
-            ? { ...c, titre: titre.trim(), description: description.trim(), url: url.trim(), organisme: organisme.trim(), dateObtention: dateObtention.trim(), image, status: formStatus, important: formImportant }
+            ? { ...c, titre: titre.trim(), description: description.trim(), url: url.trim(), organisme: organisme.trim(), dateObtention: dateObtention.trim(), image, categorie: formCategorie, status: formStatus, important: formImportant }
             : c
         )
       );
@@ -152,6 +183,7 @@ export default function Certificates() {
         organisme: organisme.trim() || 'Organisme de certification',
         dateObtention: dateObtention.trim() || new Date().getFullYear().toString(),
         image,
+        categorie: formCategorie,
         status: formStatus,
         important: formImportant,
       };
@@ -213,6 +245,18 @@ export default function Certificates() {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
+
+        {/* Filtre par Catégorie */}
+        <select
+          value={selectedCategory}
+          onChange={(e) => setSelectedCategory(e.target.value)}
+          className="field-select"
+        >
+          <option value="all">Toutes les catégories</option>
+          {CERTIFICATION_CATEGORIES.map((cat) => (
+            <option key={cat.value} value={cat.value}>{cat.label}</option>
+          ))}
+        </select>
 
         {/* Filtre par Statut */}
         <select
@@ -280,6 +324,7 @@ export default function Certificates() {
               </div>
 
               <div className="cert-meta-row">
+                <span className="badge badge-accent">{categoryLabel(cert.categorie)}</span>
                 <span className="badge badge-neutral">
                   {cert.status ? '● Publié' : '○ Brouillon'}
                 </span>
@@ -359,7 +404,7 @@ export default function Certificates() {
                 />
               </div>
 
-              <div className="field-row-dual">
+              <div className="field-row-triple">
                 <div className="field">
                   <label htmlFor="corganisme">Organisme / Émetteur</label>
                   <input
@@ -380,6 +425,20 @@ export default function Certificates() {
                     value={dateObtention}
                     onChange={(e) => setDateObtention(e.target.value)}
                   />
+                </div>
+
+                <div className="field">
+                  <label htmlFor="ccategorie">Catégorie</label>
+                  <select
+                    id="ccategorie"
+                    value={formCategorie}
+                    onChange={(e) => setFormCategorie(e.target.value)}
+                    className="field-select"
+                  >
+                    {CERTIFICATION_CATEGORIES.map((cat) => (
+                      <option key={cat.value} value={cat.value}>{cat.label}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
