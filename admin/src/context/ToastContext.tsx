@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { LuCircleCheck, LuCircleAlert, LuInfo, LuX } from 'react-icons/lu';
-import './Toast.css';
+import '../css/Toast.css';
 
 export type ToastType = 'success' | 'error' | 'info';
 
