@@ -12,12 +12,13 @@ import {
   LuUserRound,
   LuX,
   LuSearch,
-  LuBell,
+  // LuBell,
   LuAward,
   LuChartColumn,
-  LuCheck,
-  LuLogOut
+  // LuCheck,
+  LuLogOut,
 } from 'react-icons/lu';
+import { CgMoreVertical } from "react-icons/cg";
 import { ImParagraphLeft } from 'react-icons/im';
 import { useTheme } from '../context/ThemeContext';
 import { useToast } from '../context/ToastContext';
@@ -44,37 +45,76 @@ export default function DashboardLayout() {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isCmdOpen, setIsCmdOpen] = useState(false);
-  const [isNotifOpen, setIsNotifOpen] = useState(false);
+  // const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const notifications = [
-    { id: '1', title: 'Nouveau message reçu', time: 'Il y a 10 min', read: false },
-    { id: '2', title: 'Projet Portfolio V2 mis à jour', time: 'Il y a 2h', read: false },
-    { id: '3', title: 'Nouveau certificat AWS ajouté', time: 'Hier à 18:40', read: true },
-  ];
+  // const notifications = [
+  //   { id: '1', title: 'Nouveau message reçu', time: 'Il y a 10 min', read: false },
+  //   { id: '2', title: 'Projet Portfolio V2 mis à jour', time: 'Il y a 2h', read: false },
+  //   { id: '3', title: 'Nouveau certificat AWS ajouté', time: 'Hier à 18:40', read: true },
+  // ];
 
   const currentNav = useMemo(() => {
     return navigation.find((item) => item.to === location.pathname) ?? { label: 'Vue d’ensemble', to: '/dashboard' };
   }, [location.pathname]);
 
+  // Fermer les menus lors du changement de page
   useEffect(() => {
     setIsMobileNavOpen(false);
+    setIsMobileMenuOpen(false);
+    // setIsNotifOpen(false);
   }, [location.pathname]);
 
+  // Gestion de la touche Escape et overflow body pour mobile
   useEffect(() => {
-    if (!isMobileNavOpen) return;
+    const shouldLockScroll = isMobileNavOpen || isMobileMenuOpen;
+    if (!shouldLockScroll) {
+      document.body.style.overflow = '';
+      return;
+    }
+    
     document.body.style.overflow = 'hidden';
+    
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setIsMobileNavOpen(false);
+      if (event.key === 'Escape') {
+        setIsMobileNavOpen(false);
+        setIsMobileMenuOpen(false);
+        // setIsNotifOpen(false);
+      }
     };
+    
     window.addEventListener('keydown', handleKeyDown);
     return () => {
       document.body.style.overflow = '';
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isMobileNavOpen]);
+  }, [isMobileNavOpen, isMobileMenuOpen]);
+
+  // Fermer le menu mobile quand on clique en dehors
+  useEffect(() => {
+    if (!isMobileMenuOpen) return;
+    
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.mobile-actions-menu') && !target.closest('.mobile-dropdown-menu')) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+    
+    // Petit délai pour éviter la fermeture immédiate lors du clic d'ouverture
+    const timer = setTimeout(() => {
+      document.addEventListener('click', handleClickOutside);
+    }, 0);
+    
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [isMobileMenuOpen]);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
+    setIsMobileMenuOpen(false);
     toast.info('Déconnexion en cours...', 'À très bientôt sur l’administration.');
     try {
       localStorage.removeItem('authToken');
@@ -85,8 +125,14 @@ export default function DashboardLayout() {
     }
   };
 
+  const handleMobileMenuAction = (action: () => void) => {
+    action();
+    setIsMobileMenuOpen(false);
+  };
+
   return (
     <div className={`dashboard-shell ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
+      {/* Overlay pour le menu mobile de navigation */}
       <div
         className={`mobile-nav-overlay ${isMobileNavOpen ? 'is-visible' : ''}`}
         onClick={() => setIsMobileNavOpen(false)}
@@ -123,7 +169,7 @@ export default function DashboardLayout() {
             {!isCollapsed && (
               <div className="sidebar-brand-text">
                 <span className="sidebar-label">Admin Console</span>
-                <h2>Gédéon Dupont</h2>
+                <h2>JihrelDev</h2>
               </div>
             )}
           </div>
@@ -160,7 +206,7 @@ export default function DashboardLayout() {
           </div>
           {!isCollapsed && (
             <div className="sidebar-user-info">
-              <p className="user-name">Gédéon Dupont</p>
+              <p className="user-name">JihrelDev</p>
               <p className="user-role">Administrateur</p>
             </div>
           )}
@@ -191,15 +237,13 @@ export default function DashboardLayout() {
             <div>
               <div className="dashboard-breadcrumbs">
                 <span>Espace Administrateur</span>
-                <span className="crumb-sep">/</span>
-                <span className="crumb-active">{currentNav.label}</span>
               </div>
               <h1>{currentNav.label}</h1>
             </div>
           </div>
 
-          <div className="header-actions">
-            {/* Bouton Recherche / Command Palette */}
+          {/* Actions desktop (visibles uniquement sur grand écran) */}
+          <div className="header-actions desktop-actions">
             <button
               type="button"
               className="header-cmd-trigger"
@@ -211,8 +255,7 @@ export default function DashboardLayout() {
               <kbd className="cmd-shortcut-tag">⌘K</kbd>
             </button>
 
-            {/* Notifications Popover Trigger */}
-            <div className="notif-wrapper">
+            {/* <div className="notif-wrapper">
               <button
                 type="button"
                 className={`header-icon-btn ${isNotifOpen ? 'active' : ''}`}
@@ -248,9 +291,8 @@ export default function DashboardLayout() {
                   </div>
                 </div>
               )}
-            </div>
+            </div> */}
 
-            {/* Bouton Déconnexion rapide */}
             <button
               type="button"
               className="btn btn-danger header-logout-cta"
@@ -261,6 +303,67 @@ export default function DashboardLayout() {
               {isLoggingOut ? <span className="spinner" /> : <LuLogOut className="btn-icon" />}
               <span className="logout-text">Déconnexion</span>
             </button>
+          </div>
+
+          {/* Actions mobile (visibles uniquement sur petit écran) */}
+          <div className="mobile-actions-menu">
+            <button
+              type="button"
+              className="header-icon-btn"
+              onClick={() => setIsCmdOpen(true)}
+              title="Recherche rapide"
+            >
+              <LuSearch />
+            </button>
+
+            <div style={{ position: 'relative' }}>
+              <button
+                type="button"
+                className={`header-icon-btn ${isMobileMenuOpen ? 'active' : ''}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsMobileMenuOpen((prev) => !prev);
+                }}
+                title="Menu"
+              >
+                <CgMoreVertical />
+              </button>
+
+              {isMobileMenuOpen && (
+                <div className="mobile-dropdown-menu" onClick={(e) => e.stopPropagation()}>
+                  {/* <button
+                    type="button"
+                    className="mobile-dropdown-item"
+                    onClick={() => handleMobileMenuAction(() => setIsNotifOpen((prev) => !prev))}
+                  >
+                    <LuBell />
+                    <span>Notifications</span>
+                    <span className="mobile-badge">3</span>
+                  </button> */}
+                  
+                  <button
+                    type="button"
+                    className="mobile-dropdown-item"
+                    onClick={() => handleMobileMenuAction(toggleTheme)}
+                  >
+                    {theme === 'light' ? <LuMoon /> : <LuSun />}
+                    <span>{theme === 'light' ? 'Mode sombre' : 'Mode clair'}</span>
+                  </button>
+                  
+                  <div className="mobile-dropdown-divider" />
+                  
+                  <button
+                    type="button"
+                    className="mobile-dropdown-item mobile-logout-item"
+                    onClick={handleLogout}
+                    disabled={isLoggingOut}
+                  >
+                    {isLoggingOut ? <span className="spinner" /> : <LuLogOut />}
+                    <span>Déconnexion</span>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </header>
 
