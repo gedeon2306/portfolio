@@ -50,7 +50,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         return self.username
 
 
-class dashboard(models.Model):
+class Dashboard(models.Model):
     # Informations sur la page
     path = models.CharField(max_length=500, db_index=True, help_text="URL consultée (ex: /projects/my-app/)")
     method = models.CharField(max_length=10, default="GET")
@@ -172,7 +172,7 @@ class Skills_list(models.Model):
         verbose_name_plural = "Listes de compétences"
 
 
-class Projets(models.Model):
+class Projects(models.Model):
     PROJECT_CATEGORIES = [
         ('Web', 'Web'),
         ('Mobile', 'Mobile'),
@@ -204,7 +204,7 @@ class Projets(models.Model):
 
 class Technologies(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    project = models.ForeignKey(Projets, on_delete=models.CASCADE, related_name='tec_projets')
+    project = models.ForeignKey(Projects, on_delete=models.CASCADE, related_name='tec_projets')
     technologie = models.ForeignKey(Skills_list, on_delete=models.CASCADE, related_name='tec_skills')
 
     def __str__(self):
@@ -215,7 +215,7 @@ class Technologies(models.Model):
         verbose_name_plural = "Technologies"
 
 
-class certifications(models.Model):
+class Certificates(models.Model):
     CERTIFICATION_CATEGORIES = [
         ('IA', 'Intelligence Artificielle'),
         ('Web', 'Développement Web'),
@@ -268,11 +268,10 @@ class Journal(models.Model):
         verbose_name_plural = "Journaux"
 
 
-class settings(models.Model):
+class Settings(models.Model):
     titre_app = models.CharField(max_length=100)
     mode_maintenance = models.BooleanField(default=False)
     notification_email = models.EmailField(blank=True, null=True)
-    cle_api_portfolio = models.CharField(max_length=100, blank=True, null=True)
 
     def __str__(self):
         return self.titre_app
