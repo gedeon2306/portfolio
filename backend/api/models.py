@@ -1,6 +1,53 @@
 import uuid
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+
+class UserManager(BaseUserManager):
+    def create_user(self, username, password=None, **extra_fields):
+        if not username:
+            raise ValueError("L'utilisateur doit avoir un nom d'utilisateur (username).")
+
+        user = self.model(username=username, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, username, password=None, **extra_fields):
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault('is_active', True)
+        extra_fields.setdefault('role', 'Administrateur')
+
+        if extra_fields.get('is_staff') is not True:
+            raise ValueError("Le superutilisateur doit avoir is_staff=True.")
+        if extra_fields.get('is_superuser') is not True:
+            raise ValueError("Le superutilisateur doit avoir is_superuser=True.")
+
+        return self.create_user(username, password, **extra_fields)
+
+
+class User(AbstractBaseUser, PermissionsMixin):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    username = models.CharField(max_length=255, unique=True)
+    
+    role = models.CharField(max_length=50, default='Utilisateur')
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    is_active = models.BooleanField(default=False)
+    is_staff = models.BooleanField(default=False)
+    dfa = models.BooleanField(default=True)
+    
+    validate_code = models.CharField(max_length=6, blank=True, null=True)
+    
+    objects = UserManager()
+
+    USERNAME_FIELD = 'username'
+    REQUIRED_FIELDS = []
+
+    def __str__(self):
+        return self.username
 
 
 class dashboard(models.Model):
@@ -225,9 +272,7 @@ class settings(models.Model):
     titre_app = models.CharField(max_length=100)
     mode_maintenance = models.BooleanField(default=False)
     notification_email = models.EmailField(blank=True, null=True)
-    dfa = models.BooleanField(default=False)
-    utilisateur = models.CharField(max_length=100)
-    mdp = models.CharField(max_length=100)
+    cle_api_portfolio = models.CharField(max_length=100, blank=True, null=True)
 
     def __str__(self):
         return self.titre_app
