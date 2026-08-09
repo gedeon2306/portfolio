@@ -33,3 +33,14 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             'dfa', 'validate_code', 'created_at'
         ]
         read_only_fields = ['id', 'created_at']
+
+
+class DashboardSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Dashboard
+        fields = [
+            'id', 'path', 'method', 'referrer', 'ip_address', 
+            'user_agent', 'session_key', 'device_type', 'timestamp'
+        ]
+        read_only_fields = ['id', 'timestamp']
+
