@@ -157,3 +157,23 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+
+
+# Email settings
+
+EMAIL_SSL_CERTFILE = "/path/to/CERTFILE.crt"
+EMAIL_SSL_KEYFILE = "/path/to/private/KEYFILE.key" # make sure it is accessible by the executing user
+CA_PATH = '/path/to/cert/folder/' # e.g. '/etc/ssl/certs/' on ubuntu linux - this one is new 
+
+# Configuration de l'email
+EMAIL_BACKEND = 'mailapp.backends.custom_email_backend.CustomEmailBackend'
+EMAIL_HOST = env('EMAIL_HOST')
+EMAIL_PORT = env('EMAIL_PORT')
+EMAIL_USE_SSL = True
+EMAIL_USE_TLS = False
+EMAIL_HOST_USER = env('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
+EMAIL_CHECK_HOSTNAME = False
+EMAIL_VERIFY_MODE = ssl.CERT_NONE
+EMAIL_USER = env('EMAIL_USER')
+
