@@ -113,3 +113,21 @@ class ProjectsListSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'created_at']
 
+
+class CertificatesSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Certificates
+        fields = [
+            'id', 'titre', 'categorie', 'organisme', 'annee', 
+            'url', 'description', 'image', 'status', 'important', 
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class JournalSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Journal
+        fields = ['id', 'action']
+        read_only_fields = ['id']
+
