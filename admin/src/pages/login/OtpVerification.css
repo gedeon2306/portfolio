@@ -117,6 +117,7 @@
   transition: all 160ms var(--ease);
   outline: none;
   box-shadow: var(--shadow-sm);
+  box-sizing: border-box;
 }
 
 /* Focus and Filled states */
@@ -234,6 +235,49 @@
 
 .otp-footer {
   margin-top: var(--space-6);
-  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
   color: var(--text-tertiary);
+}
+
+.footer-icon {
+  font-size: 0.85rem;
+  color: var(--accent);
+}
+
+/* Responsive : petits écrans */
+@media (max-width: 420px) {
+  .otp-card {
+    padding: 28px 16px;
+  }
+
+  .otp-inputs-row {
+    gap: 6px;
+  }
+
+  .otp-field {
+    width: 100%;
+    max-width: 44px;
+    height: 50px;
+    font-size: var(--text-xl);
+  }
+}
+
+@media (max-width: 360px) {
+  .otp-card {
+    padding: 24px 12px;
+  }
+
+  .otp-inputs-row {
+    gap: 4px;
+  }
+
+  .otp-field {
+    max-width: 38px;
+    height: 46px;
+    font-size: var(--text-lg);
+  }
 }
