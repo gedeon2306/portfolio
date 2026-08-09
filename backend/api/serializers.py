@@ -79,3 +79,37 @@ class SkillsSerializer(serializers.ModelSerializer):
         fields = ['id', 'competence', 'skills_list']
         read_only_fields = ['id']
 
+
+class TechnologiesSerializer(serializers.ModelSerializer):
+    technologie_details = SkillsListSerializer(source='technologie', read_only=True)
+    project_titre = serializers.ReadOnlyField(source='project.titre')
+    
+    class Meta:
+        model = Technologies
+        fields = ['id', 'project', 'project_titre', 'technologie', 'technologie_details']
+        read_only_fields = ['id']
+
+
+class ProjectsSerializer(serializers.ModelSerializer):
+    tec_projets = TechnologiesSerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = Projects
+        fields = [
+            'id', 'titre', 'categorie', 'status', 'important', 
+            'description', 'image', 'url', 'doc', 'code_source', 
+            'created_at', 'updated_at', 'tec_projets'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class ProjectsListSerializer(serializers.ModelSerializer):
+    """Serializer léger pour les listes de projets"""
+    class Meta:
+        model = Projects
+        fields = [
+            'id', 'titre', 'categorie', 'status', 'important', 
+            'image', 'created_at'
+        ]
+        read_only_fields = ['id', 'created_at']
+
