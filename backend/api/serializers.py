@@ -56,3 +56,26 @@ class MyInfoSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id']
 
+
+class LanguesSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Langues
+        fields = ['id', 'langue', 'niveau']
+        read_only_fields = ['id']
+
+
+class SkillsListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Skills_list
+        fields = ['id', 'skill', 'libelle', 'pourcentage']
+        read_only_fields = ['id']
+
+
+class SkillsSerializer(serializers.ModelSerializer):
+    skills_list = SkillsListSerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = Skills
+        fields = ['id', 'competence', 'skills_list']
+        read_only_fields = ['id']
+
