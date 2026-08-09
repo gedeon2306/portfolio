@@ -131,3 +131,22 @@ class JournalSerializer(serializers.ModelSerializer):
         fields = ['id', 'action']
         read_only_fields = ['id']
 
+
+class SettingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Settings
+        fields = ['id', 'titre_app', 'mode_maintenance', 'notification_email']
+        read_only_fields = ['id']
+
+
+class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        
+        # Ajout de claims personnalisés dans le token JWT
+        # token['role'] = user.role
+        token['username'] = user.username
+        
+        return token
+
