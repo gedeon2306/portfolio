@@ -33,12 +33,12 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      // Simule la vérification JWT
+      // Simule la vérification JWT (Étape 1/2)
       await new Promise((r) => setTimeout(r, 1200));
 
-      localStorage.setItem('authToken', 'demo_jwt_token_12345');
-      toast.success('Bienvenue !', 'Connexion réussie à l’administration.');
-      navigate('/dashboard');
+      sessionStorage.setItem('otp_pending', 'true');
+      toast.success('Identifiants valides !', 'Étape 1/2 réussie. Veuillez saisir le code de sécurité.');
+      navigate('/connexion/otp');
     } catch (err) {
       setErrorMessage('Identifiants incorrects. Veuillez réessayer.');
       toast.error('Échec de la connexion', 'Identifiants invalides.');

@@ -1,0 +1,239 @@
+.otp-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6);
+  background: var(--bg);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Ambient glow effect */
+.otp-glow {
+  position: absolute;
+  width: 450px;
+  height: 450px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(124, 58, 237, 0.18) 0%, transparent 70%);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  filter: blur(40px);
+}
+
+.otp-card {
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  padding: 36px 32px;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  position: relative;
+  z-index: 10;
+  backdrop-filter: blur(12px);
+  animation: otpCardAppear 380ms var(--ease-spring) forwards;
+}
+
+@keyframes otpCardAppear {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.otp-header {
+  margin-bottom: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.otp-badge {
+  margin-bottom: 4px;
+}
+
+.otp-title {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--text);
+  font-family: var(--font-display);
+}
+
+.otp-subtitle {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  max-width: 32ch;
+  line-height: 1.4;
+}
+
+.otp-alert-error {
+  width: 100%;
+  background: var(--color-black);
+  color: var(--color-white);
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  margin-bottom: var(--space-4);
+  text-align: left;
+  border-left: 3px solid var(--accent);
+}
+
+[data-theme='dark'] .otp-alert-error {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Les 6 champs de saisie */
+.otp-inputs-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  width: 100%;
+  margin-bottom: var(--space-6);
+}
+
+.otp-field {
+  width: 52px;
+  height: 56px;
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  font-family: var(--font-mono);
+  text-align: center;
+  background: var(--bg);
+  color: var(--text);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  transition: all 160ms var(--ease);
+  outline: none;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Focus and Filled states */
+.otp-field:focus {
+  border-color: var(--accent);
+  box-shadow: var(--focus-ring) 0px 0px 0px 3px, var(--shadow-accent);
+  transform: scale(1.04);
+}
+
+/* Custom animation on value entrance */
+.otp-field.filled {
+  border-color: var(--border-strong);
+  animation: digitPop 180ms var(--ease-bounce) forwards;
+}
+
+@keyframes digitPop {
+  0% {
+    transform: scale(0.95);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Shake feedback on error */
+.otp-inputs-row.shake {
+  animation: shakeInputs 400ms ease-in-out;
+}
+
+.otp-inputs-row.shake .otp-field {
+  border-color: #ef4444;
+  box-shadow: rgba(239, 68, 68, 0.25) 0px 0px 0px 3px;
+}
+
+@keyframes shakeInputs {
+  0%, 100% { transform: translateX(0); }
+  15%, 55%, 85% { transform: translateX(-6px); }
+  35%, 72% { transform: translateX(6px); }
+}
+
+.otp-options-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: var(--space-4);
+}
+
+.back-to-login-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  font-weight: 500;
+  transition: all var(--duration) var(--ease);
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+}
+
+.back-to-login-btn:hover {
+  color: var(--text);
+  background: var(--surface-hover);
+}
+
+.back-to-login-btn:active {
+  transform: scale(0.97);
+}
+
+.btn-icon-left {
+  font-size: 0.9rem;
+}
+
+.otp-submit {
+  width: 100%;
+  padding-block: 0.75rem;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.otp-submit:active {
+  transform: scale(0.97);
+}
+
+.otp-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.otp-submit .btn-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* Spinner custom */
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: spin 600ms linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.otp-footer {
+  margin-top: var(--space-6);
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+}
