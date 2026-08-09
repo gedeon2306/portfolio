@@ -44,3 +44,15 @@ class DashboardSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'timestamp']
 
+
+class MyInfoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MyInfo
+        fields = [
+            'id', 'nom', 'prenom', 'email', 'telephone', 'localisation', 
+            'profession', 'description1', 'description2', 'image', 'cv', 
+            'formation', 'experience', 'passions', 'github', 'linkedin', 
+            'instagram', 'twitter_x', 'tik_tok'
+        ]
+        read_only_fields = ['id']
+
