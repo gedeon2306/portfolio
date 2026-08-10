@@ -166,7 +166,7 @@ EMAIL_SSL_KEYFILE = "/path/to/private/KEYFILE.key" # make sure it is accessible 
 CA_PATH = '/path/to/cert/folder/' # e.g. '/etc/ssl/certs/' on ubuntu linux - this one is new 
 
 # Configuration de l'email
-EMAIL_BACKEND = 'mailapp.backends.custom_email_backend.CustomEmailBackend'
+EMAIL_BACKEND = 'api.backends.custom_email_backend.CustomEmailBackend'
 EMAIL_HOST = env('EMAIL_HOST')
 EMAIL_PORT = env('EMAIL_PORT')
 EMAIL_USE_SSL = True

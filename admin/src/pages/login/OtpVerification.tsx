@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 import { useToast } from '../../context/ToastContext';
-import { LuShieldAlert, LuArrowLeft, LuMoon, LuSun } from 'react-icons/lu';
+import { LuShieldAlert, LuArrowLeft, LuMoon, LuSun, LuCircleHelp } from 'react-icons/lu';
 import './OtpVerification.css';
 import logo from '../../assets/logo_jd_blanc_sbg.png';
 
@@ -244,7 +244,8 @@ export default function OtpVerification() {
         </button>
 
         <div className="otp-footer">
-          <span>Besoin d'aide ? Contactez l'administrateur.</span>
+          <LuCircleHelp className="footer-icon" />
+          <span>Portfolio Admin v2.0</span>
         </div>
       </div>
     </div>

@@ -7,7 +7,7 @@ def send_login_email(user):
 
     subject = "Connexion à votre Portfolio"
     message = (
-        f"Bonjour {user.name},\n\n"
+        f"Bonjour JihrelDev,\n\n"
         f"Votre code de connexion est : {code}\n\n"
         "Ce code expire dans 10 minutes.\n\n"
         "Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet email."
