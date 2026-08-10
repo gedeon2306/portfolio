@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 import { useToast } from '../../context/ToastContext';
+import { confirmLogin, storeAuthTokens } from '../../api/Auth';
+import { useCheckCookies } from '../../utils/CheckCookies';
 import { LuShieldAlert, LuArrowLeft, LuMoon, LuSun, LuCircleHelp } from 'react-icons/lu';
 import './OtpVerification.css';
 import logo from '../../assets/logo_jd_blanc_sbg.png';
@@ -10,6 +12,11 @@ export default function OtpVerification() {
   const { theme, toggleTheme } = useTheme();
   const toast = useToast();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  const uid = searchParams.get('uid');
+  const token = searchParams.get('token');
+  const rememberMe = searchParams.get('remember') === '1';
 
   // Code OTP à 6 chiffres
   const [otp, setOtp] = useState<string[]>(new Array(6).fill(''));
@@ -20,10 +27,12 @@ export default function OtpVerification() {
   // Refs pour chaque input
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
+  // Si un token est déjà présent (cookie), inutile de repasser par l'OTP
+  useCheckCookies({ redirectIfAuthenticated: '/dashboard' });;
+
   // S'assurer que l'utilisateur provient bien de la page de login
   useEffect(() => {
-    const isPending = sessionStorage.getItem('otp_pending');
-    if (!isPending) {
+    if (!uid || !token) {
       toast.error("Accès refusé", "Veuillez d'abord vous identifier.");
       navigate('/connexion');
     }
@@ -56,7 +65,7 @@ export default function OtpVerification() {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
     if (e.key === 'Backspace') {
       const newOtp = [...otp];
-      
+
       if (otp[index] !== '') {
         // Supprime le contenu actuel
         newOtp[index] = '';
@@ -75,12 +84,12 @@ export default function OtpVerification() {
   const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
     e.preventDefault();
     const pastedData = e.clipboardData.getData('text').trim();
-    
+
     // On ne garde que les 6 premiers chiffres
     if (/^\d{1,6}$/.test(pastedData)) {
       const pastedChars = pastedData.split('');
       const newOtp = [...otp];
-      
+
       for (let i = 0; i < 6; i++) {
         if (pastedChars[i] !== undefined) {
           newOtp[i] = pastedChars[i];
@@ -111,24 +120,25 @@ export default function OtpVerification() {
     setIsError(false);
     setErrorMessage(null);
 
-    try {
-      // Simulation d'une vérification
-      await new Promise((r) => setTimeout(r, 1500));
+    if (!uid || !token) {
+      toast.error('Erreur de session', 'Votre session de confirmation est expirée. Reconnectez-vous.');
+      navigate('/connexion');
+      return;
+    }
 
-      if (code === '123456') {
-        sessionStorage.removeItem('otp_pending');
-        localStorage.setItem('authToken', 'demo_jwt_token_12345');
-        toast.success('Accès autorisé !', 'Double facteur validé. Bienvenue sur la dashboard.');
-        navigate('/dashboard');
-      } else {
-        throw new Error('Code incorrect');
-      }
-    } catch (err) {
+    try {
+      const response = await confirmLogin({ uid, token, code });
+
+      storeAuthTokens(response.access, response.refresh, rememberMe ? 30 : 1);
+
+      toast.success('Accès autorisé !', 'Double facteur validé. Bienvenue sur la dashboard.');
+      navigate('/dashboard');
+    } catch (err: any) {
+      const errorText = err?.response?.data?.error || 'Code de sécurité invalide. Veuillez réessayer.';
       setIsError(true);
-      setErrorMessage('Code de sécurité invalide. Veuillez réessayer.');
-      toast.error('Code incorrect', 'Veuillez saisir le code de démo 123456.');
-      
-      // Vider les inputs après échec et refocaliser le premier
+      setErrorMessage(errorText);
+      toast.error('Code incorrect', errorText);
+
       setTimeout(() => {
         setOtp(new Array(6).fill(''));
         inputRefs.current[0]?.focus();
@@ -205,10 +215,7 @@ export default function OtpVerification() {
           <button
             type="button"
             className="back-to-login-btn"
-            onClick={() => {
-              sessionStorage.removeItem('otp_pending');
-              navigate('/connexion');
-            }}
+            onClick={() => navigate('/connexion')}
             disabled={isLoading}
           >
             <LuArrowLeft className="btn-icon-left" />
