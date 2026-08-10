@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 import { useToast } from '../../context/ToastContext';
+import { loginUser, storeAuthTokens } from '../../api/Auth';
+import { useCheckCookies } from '../../utils/CheckCookies';
 import { LuLogIn, LuSun, LuMoon, LuEye, LuEyeOff, LuLock, LuUser, LuSparkles, LuCircleHelp } from 'react-icons/lu';
 import './Login.css';
 import logo from '../../assets/logo_jd_blanc_sbg.png';
@@ -11,12 +13,15 @@ export default function Login() {
   const toast = useToast();
   const navigate = useNavigate();
 
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Si un token est déjà présent (cookie), inutile de repasser par le login
+  useCheckCookies({ redirectIfAuthenticated: '/dashboard' });
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -24,31 +29,47 @@ export default function Login() {
 
     setErrorMessage(null);
 
-    if (!username.trim() || !password.trim()) {
+    if (!email.trim() || !password.trim()) {
       setErrorMessage('Veuillez remplir tous les champs obligatoires.');
-      toast.error('Erreur de connexion', 'Nom d’utilisateur et mot de passe requis.');
+      toast.error('Erreur de connexion', 'Email et mot de passe requis.');
       return;
     }
 
     setIsLoading(true);
 
     try {
-      // Simule la vérification JWT (Étape 1/2)
-      await new Promise((r) => setTimeout(r, 1200));
+      const response = await loginUser({
+        email: email.trim().toLowerCase(),
+        password,
+      });
 
-      sessionStorage.setItem('otp_pending', 'true');
-      toast.success('Identifiants valides !', 'Étape 1/2 réussie. Veuillez saisir le code de sécurité.');
-      navigate('/connexion/otp');
-    } catch (err) {
-      setErrorMessage('Identifiants incorrects. Veuillez réessayer.');
-      toast.error('Échec de la connexion', 'Identifiants invalides.');
+      const persistDays = rememberMe ? 30 : 1;
+
+      if (response.dfa) {
+        const params = new URLSearchParams({
+          uid: response.uid,
+          token: response.token,
+          remember: rememberMe ? '1' : '0',
+        }).toString();
+
+        toast.success('Identifiants valides !', 'Un email de confirmation vient d’être envoyé.');
+        navigate(`/connexion/otp?${params}`);
+      } else {
+        storeAuthTokens(response.access, response.refresh, persistDays);
+        toast.success('Connexion réussie', 'Bienvenue sur l’administration.');
+        navigate('/dashboard');
+      }
+    } catch (err: any) {
+      const errorText = err?.response?.data?.error || 'Identifiants incorrects. Veuillez réessayer.';
+      setErrorMessage(errorText);
+      toast.error('Échec de la connexion', errorText);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleDemoFill = () => {
-    setUsername('admin');
+    setEmail('admin@example.com');
     setPassword('portfolio2026');
     toast.info('Démo préremplie', 'Cliquez sur "Se connecter" pour accéder.');
   };
@@ -93,16 +114,16 @@ export default function Login() {
 
         <form className="login-form" onSubmit={handleSubmit}>
           <div className="field">
-            <label htmlFor="username">Identifiant / Email</label>
+            <label htmlFor="email">Email</label>
             <div className="input-icon-wrap">
               <LuUser className="input-icon" />
               <input
-                id="username"
-                name="username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Ex: admin"
+                id="email"
+                name="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Ex: admin@exemple.com"
                 autoComplete="username"
                 required
               />
