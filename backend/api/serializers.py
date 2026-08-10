@@ -11,14 +11,14 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            'id', 'username', 'role', 'is_active', 'is_staff', 
+            'id', 'email', 'role', 'is_active', 'is_staff', 
             'dfa', 'validate_code', 'created_at', 'password'
         ]
         extra_kwargs = {
             'password': {'write_only': True},
             'validate_code': {'write_only': True}
         }
-        read_only_fields = ['id', 'created_at']
+        read_only_fields = ['id', 'email', 'created_at']
 
     def create(self, validated_data):
         return User.objects.create_user(**validated_data)
@@ -29,10 +29,10 @@ class UserUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            'id', 'username', 'role', 'is_active', 'is_staff', 
+            'id', 'email', 'role', 'is_active', 'is_staff', 
             'dfa', 'validate_code', 'created_at'
         ]
-        read_only_fields = ['id', 'created_at']
+        read_only_fields = ['id', 'email', 'created_at']
 
 
 class DashboardSerializer(serializers.ModelSerializer):
@@ -146,7 +146,7 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         
         # Ajout de claims personnalisés dans le token JWT
         # token['role'] = user.role
-        token['username'] = user.username
+        token['username'] = 'Jihreldev'
         
         return token
 

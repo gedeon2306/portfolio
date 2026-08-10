@@ -114,26 +114,20 @@ def login(request):
     password = request.data.get('password', '')
 
     if not email or not password:
-        return Response(
-            _bad_request("Email ou mot de passe")
-        )
+        return _bad_request("Email ou mot de passe")
 
     try:
         user = User.objects.get(email=email)
     except User.DoesNotExist:
-        return Response(
-            _bad_request("Email ou mot de passe")
-        )
+        return _bad_request("Email ou mot de passe")
 
     if not user.check_password(password):
-        return Response(
-            _bad_request("Email ou mot de passe")
-        )
+        return _bad_request("Email ou mot de passe")
     
     if not user.dfa:
         refresh = MyTokenObtainPairSerializer.get_token(user)
         return Response({
-            "message": f"Connexion réussie, bienvenue {user.name} .",
+            "message": f"Connexion réussie, bienvenue JihrelDev .",
             "dfa": user.dfa,
             "access": str(refresh.access_token),
             "refresh": str(refresh)
@@ -149,8 +143,8 @@ def login(request):
     # Envoi de l'email de notification
     try:
         send_login_email(user)
-    except:
-        _error_server()
+    except Exception:
+        return _error_server()
 
     return Response({
         "message": "Connexion réussie. Un email de confirmation a été envoyé.",
@@ -197,34 +191,26 @@ def confirm_login(request):
     code = request.data.get('code', '')
     
     if not uidb64 or not token or not code:
-        return Response(
-            _bad_request("Données de confirmation manquantes.")
-        )
+        return  _bad_request("Données de confirmation manquantes.")
 
     try:
         uid = force_str(urlsafe_base64_decode(uidb64))
         user = User.objects.get(pk=uid)
     except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-        return Response(
-            _bad_request("Utilisateur introuvable.")
-        )
+        return _bad_request("Utilisateur introuvable.")
 
     if not email_confirmation_token_generator.check_token(user, token):
-        return Response(
-            _bad_request("Lien de confirmation invalide ou expiré.")
-        )
+        return _bad_request("Lien de confirmation invalide ou expiré.")
 
-    if user.validate_code != code:
-        return Response(
-            _bad_request("Code de confirmation incorrect.")
-        )
+    if user.validate_code != str(code):
+        return _bad_request("Code de confirmation incorrect.")
     
     user.validate_code = ''
     user.save()
 
     refresh = MyTokenObtainPairSerializer.get_token(user)
     return Response({
-        "message": f"Connexion réussie, bienvenue {user.name} .",
+        "message": f"Connexion réussie, bienvenue JihrelDev.",
         "access": str(refresh.access_token),
         "refresh": str(refresh)
     }, status=status.HTTP_200_OK)
