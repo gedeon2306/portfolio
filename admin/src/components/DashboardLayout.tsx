@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
+import { clearAuthTokens } from '../api/Auth';
+import { useCheckCookies } from '../utils/CheckCookies';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   LuChevronLeft,
@@ -57,6 +59,8 @@ export default function DashboardLayout() {
   const currentNav = useMemo(() => {
     return navigation.find((item) => item.to === location.pathname) ?? { label: 'Vue d’ensemble', to: '/dashboard' };
   }, [location.pathname]);
+
+  useCheckCookies({ redirectIfNotAuthenticated: '/connexion' });
 
   // Fermer les menus lors du changement de page
   useEffect(() => {
@@ -117,7 +121,7 @@ export default function DashboardLayout() {
     setIsMobileMenuOpen(false);
     toast.info('Déconnexion en cours...', 'À très bientôt sur l’administration.');
     try {
-      localStorage.removeItem('authToken');
+      clearAuthTokens();
       await new Promise((r) => setTimeout(r, 700));
       navigate('/connexion');
     } finally {
