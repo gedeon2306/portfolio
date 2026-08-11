@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   LuPlus,
   LuTrash2,
@@ -14,31 +14,14 @@ import {
   LuTwitter
 } from 'react-icons/lu';
 import { useToast } from '../../context/ToastContext';
+import { fetchMyInfo, saveMyInfo } from '../../api/Actions';
+import type { LangueItem, MyInfoTextFields, NiveauChoice } from '../../types/Types';
 import './MyInfo.css';
 
-type MyInfoForm = {
-  nom: string;
-  prenom: string;
-  email: string;
-  telephone: string;
-  localisation: string;
-  profession: string;
-  description1: string;
-  description2: string;
-  image: string;
-  cv: string;
-  formation: string;
-  experience: string;
-  passions: string;
-  github: string;
-  linkedin: string;
-  instagram: string;
-  twitter_x: string;
-  tik_tok: string;
+type MyInfoForm = MyInfoTextFields & {
+  image: string; // URL (existante) ou aperçu local (dataURL) affiché à l'écran
+  cv: string;    // nom de fichier affiché (existant ou nouvellement choisi)
 };
-
-// Basé exactement sur le modèle Django `Langues` (niveau: choices A1, A2, B1, B2, C1, C2)
-export type NiveauChoice = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2';
 
 export const NIVEAUX_OPTIONS: { value: NiveauChoice; label: string }[] = [
   { value: 'A1', label: 'A1 - Élémentaire (Débutant)' },
@@ -63,46 +46,88 @@ export const LANGUES_PRESETS = [
   'Autre...',
 ];
 
-type LanguageItem = {
-  id: string;
-  langue: string;
-  niveau: NiveauChoice;
-};
-
-const initialData: MyInfoForm = {
-  nom: 'Dupont',
-  prenom: 'Gédéon',
-  email: 'gedeon.dupont@example.com',
-  telephone: '+33 6 12 34 56 78',
-  localisation: 'Paris, France',
-  profession: 'Développeur Fullstack React & Django',
-  description1: 'Développeur passionné par le web moderne, l’architecture logicielle et les interfaces fluides.',
-  description2: 'Conception d’applications haute performance avec React 19, Vite, TypeScript et Django REST.',
+const emptyForm: MyInfoForm = {
+  nom: '',
+  prenom: '',
+  email: '',
+  telephone: '',
+  localisation: '',
+  profession: '',
+  description1: '',
+  description2: '',
   image: '',
-  cv: 'CV_Gedeon_Dupont_2026.pdf',
-  formation: 'Master II Informatique & Génie Logiciel',
-  experience: '5 ans d’expérience',
-  passions: 'UI/UX Design, Open Source, Musique',
-  github: 'https://github.com/gedeon2306',
-  linkedin: 'https://www.linkedin.com/in/gedeon-dupont',
-  instagram: 'https://instagram.com/gedeon.dev',
-  twitter_x: 'https://x.com/gedeon_dev',
+  cv: '',
+  formation: '',
+  experience: '',
+  passions: '',
+  github: '',
+  linkedin: '',
+  instagram: '',
+  twitter_x: '',
   tik_tok: '',
 };
 
+function extractFileName(url: string): string {
+  try {
+    return decodeURIComponent(url.split('/').pop() || url);
+  } catch {
+    return url;
+  }
+}
+
 export default function MyInfo() {
   const toast = useToast();
-  const [form, setForm] = useState<MyInfoForm>(initialData);
+  const [form, setForm] = useState<MyInfoForm>(emptyForm);
+  const [languages, setLanguages] = useState<LangueItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<'general' | 'bio' | 'social' | 'languages'>('general');
-  const [languages, setLanguages] = useState<LanguageItem[]>([
-    { id: 'lang-1', langue: 'Français', niveau: 'C2' },
-    { id: 'lang-2', langue: 'Anglais', niveau: 'C1' },
-    { id: 'lang-3', langue: 'Espagnol', niveau: 'B1' },
-  ]);
+
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [removeImageFlag, setRemoveImageFlag] = useState(false);
+  const [cvFile, setCvFile] = useState<File | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const cvInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Chargement initial des informations existantes
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadMyInfo() {
+      setLoading(true);
+      try {
+        const data = await fetchMyInfo();
+        if (cancelled) return;
+
+        if (data.info) {
+          const { image, cv, ...rest } = data.info;
+          setForm({
+            ...rest,
+            github: rest.github ?? '',
+            linkedin: rest.linkedin ?? '',
+            instagram: rest.instagram ?? '',
+            twitter_x: rest.twitter_x ?? '',
+            tik_tok: rest.tik_tok ?? '',
+            image: image ?? '',
+            cv: cv ? extractFileName(cv) : '',
+          });
+        }
+        setLanguages(data.langues);
+      } catch (err) {
+        if (!cancelled) {
+          toast.error('Erreur', err instanceof Error ? err.message : 'Impossible de charger vos informations.');
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    loadMyInfo();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -112,6 +137,8 @@ export default function MyInfo() {
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setImageFile(file);
+    setRemoveImageFlag(false);
     const reader = new FileReader();
     reader.onload = () => {
       setForm((s) => ({ ...s, image: reader.result as string }));
@@ -120,9 +147,16 @@ export default function MyInfo() {
     reader.readAsDataURL(file);
   };
 
+  const handleRemovePhoto = () => {
+    setForm((s) => ({ ...s, image: '' }));
+    setImageFile(null);
+    setRemoveImageFlag(true);
+  };
+
   const handleCvChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setCvFile(file);
     setForm((s) => ({ ...s, cv: file.name }));
     toast.success('CV sélectionné', `Fichier "${file.name}" attaché.`);
   };
@@ -138,7 +172,7 @@ export default function MyInfo() {
     toast.info('Langue retirée', 'La compétence a été supprimée de la liste.');
   };
 
-  const handleLanguageChange = (id: string, field: keyof Omit<LanguageItem, 'id'>, value: string) => {
+  const handleLanguageChange = (id: string, field: keyof Omit<LangueItem, 'id'>, value: string) => {
     setLanguages((prev) => prev.map((item) => (item.id === id ? { ...item, [field]: value } : item)));
   };
 
@@ -146,14 +180,55 @@ export default function MyInfo() {
     if (e) e.preventDefault();
     setSaving(true);
     try {
-      await new Promise((r) => setTimeout(r, 800));
+      const { image, cv, ...textFields } = form;
+
+      const response = await saveMyInfo({
+        fields: textFields,
+        imageFile,
+        removeImage: removeImageFlag,
+        cvFile,
+        langues: languages.map(({ id, langue, niveau }) => ({ id, langue, niveau })),
+      });
+
+      if (response.info) {
+        const { image: newImage, cv: newCv, ...rest } = response.info;
+        setForm({
+          ...rest,
+          github: rest.github ?? '',
+          linkedin: rest.linkedin ?? '',
+          instagram: rest.instagram ?? '',
+          twitter_x: rest.twitter_x ?? '',
+          tik_tok: rest.tik_tok ?? '',
+          image: newImage ?? '',
+          cv: newCv ? extractFileName(newCv) : '',
+        });
+      }
+      setLanguages(response.langues);
+      setImageFile(null);
+      setCvFile(null);
+      setRemoveImageFlag(false);
+
       toast.success('Modifications enregistrées !', 'Vos informations de profil sont désormais à jour.');
     } catch (err) {
-      toast.error('Erreur', 'Impossible d’enregistrer le profil.');
+      toast.error('Erreur', err instanceof Error ? err.message : "Impossible d'enregistrer le profil.");
     } finally {
       setSaving(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="myinfo-page">
+        <div className="section-header">
+          <div>
+            <p className="section-eyebrow">Profil public & coordonnées</p>
+            <h2>Mes Informations</h2>
+          </div>
+        </div>
+        <p>Chargement de vos informations...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="myinfo-page">
@@ -240,7 +315,7 @@ export default function MyInfo() {
                   <button
                     type="button"
                     className="btn btn-ghost btn-xs"
-                    onClick={() => setForm((s) => ({ ...s, image: '' }))}
+                    onClick={handleRemovePhoto}
                   >
                     Supprimer la photo
                   </button>
@@ -433,63 +508,67 @@ export default function MyInfo() {
             </div>
 
             <div className="languages-list">
-              {languages.map((item) => (
-                <div key={item.id} className="language-item-row">
-                  {/* Sélection de la langue via liste déroulante */}
-                  <div className="field flex-1">
-                    <label>Langue</label>
-                    <select
-                      value={LANGUES_PRESETS.includes(item.langue) ? item.langue : 'Autre...'}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (val !== 'Autre...') {
-                          handleLanguageChange(item.id, 'langue', val);
-                        }
-                      }}
-                      className="field-select"
+              {languages.length === 0 ? (
+                <p className="text-secondary">Aucune langue enregistrée pour le moment.</p>
+              ) : (
+                languages.map((item) => (
+                  <div key={item.id} className="language-item-row">
+                    {/* Sélection de la langue via liste déroulante */}
+                    <div className="field flex-1">
+                      <label>Langue</label>
+                      <select
+                        value={LANGUES_PRESETS.includes(item.langue) ? item.langue : 'Autre...'}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val !== 'Autre...') {
+                            handleLanguageChange(item.id, 'langue', val);
+                          }
+                        }}
+                        className="field-select"
+                      >
+                        {LANGUES_PRESETS.map((lang) => (
+                          <option key={lang} value={lang}>{lang}</option>
+                        ))}
+                      </select>
+
+                      {(!LANGUES_PRESETS.includes(item.langue) || item.langue === 'Autre...') && (
+                        <input
+                          type="text"
+                          placeholder="Précisez la langue..."
+                          value={item.langue === 'Autre...' ? '' : item.langue}
+                          onChange={(e) => handleLanguageChange(item.id, 'langue', e.target.value)}
+                          style={{ marginTop: '6px' }}
+                        />
+                      )}
+                    </div>
+
+                    {/* Sélection du Niveau (Django NIVEAUX_CHOICES A1, A2, B1, B2, C1, C2) */}
+                    <div className="field flex-1">
+                      <label>Niveau (Django Choices)</label>
+                      <select
+                        value={item.niveau}
+                        onChange={(e) => handleLanguageChange(item.id, 'niveau', e.target.value as NiveauChoice)}
+                        className="field-select"
+                      >
+                        {NIVEAUX_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-icon-only remove-lang-btn"
+                      onClick={() => handleRemoveLanguage(item.id)}
+                      title="Supprimer la langue"
                     >
-                      {LANGUES_PRESETS.map((lang) => (
-                        <option key={lang} value={lang}>{lang}</option>
-                      ))}
-                    </select>
-
-                    {(!LANGUES_PRESETS.includes(item.langue) || item.langue === 'Autre...') && (
-                      <input
-                        type="text"
-                        placeholder="Précisez la langue..."
-                        value={item.langue === 'Autre...' ? '' : item.langue}
-                        onChange={(e) => handleLanguageChange(item.id, 'langue', e.target.value)}
-                        style={{ marginTop: '6px' }}
-                      />
-                    )}
+                      <LuTrash2 />
+                    </button>
                   </div>
-
-                  {/* Sélection du Niveau (Django NIVEAUX_CHOICES A1, A2, B1, B2, C1, C2) */}
-                  <div className="field flex-1">
-                    <label>Niveau (Django Choices)</label>
-                    <select
-                      value={item.niveau}
-                      onChange={(e) => handleLanguageChange(item.id, 'niveau', e.target.value as NiveauChoice)}
-                      className="field-select"
-                    >
-                      {NIVEAUX_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-icon-only remove-lang-btn"
-                    onClick={() => handleRemoveLanguage(item.id)}
-                    title="Supprimer la langue"
-                  >
-                    <LuTrash2 />
-                  </button>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </section>
         )}
