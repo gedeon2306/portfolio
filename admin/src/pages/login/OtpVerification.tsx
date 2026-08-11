@@ -126,8 +126,16 @@ export default function OtpVerification() {
       return;
     }
 
+    const apiKey = import.meta.env.VITE_PUBLIC_ADMIN_API_KEY
+
+    if (!apiKey) {
+      setErrorMessage('Qui étes vous ?.');
+      toast.error('Désolé', 'Vous étes pas un JihrelDev.');
+      return;
+    }
+
     try {
-      const response = await confirmLogin({ uid, token, code });
+      const response = await confirmLogin({ uid, token, code, apiKey });
 
       storeAuthTokens(response.access, response.refresh, rememberMe ? 30 : 1);
 
