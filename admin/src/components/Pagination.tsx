@@ -1,5 +1,5 @@
 import { LuChevronLeft, LuChevronRight } from 'react-icons/lu';
-import './Pagination.css';
+import '../css/Pagination.css';
 
 interface PaginationProps {
   currentPage: number;
