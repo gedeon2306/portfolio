@@ -3,6 +3,7 @@ from rest_framework_simplejwt.views import TokenRefreshView
 from .views import (
     login,
     confirm_login,
+    dashboard_home,
 )
 
 urlpatterns = [
@@ -13,5 +14,8 @@ urlpatterns = [
     
     # Confirmation de la connexion (Génère le JWT Access et Refresh)
     path('auth/confirm-login/', confirm_login, name='confirm_login'),
+    
+    # Les routes dashboard
+    path('dashboard/home/', dashboard_home, name='dashboard_home'),
 
 ]
