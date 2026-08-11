@@ -3,6 +3,7 @@ import string
 import base64
 import io
 import json
+import logging
 from io import BytesIO
 from PIL import Image
 from decimal import Decimal, InvalidOperation
@@ -53,6 +54,7 @@ from django.db.models import Q, Case, When, Value, IntegerField, Count, Sum
 from django.utils import timezone
 from datetime import datetime, timedelta
 
+logger = logging.getLogger(__name__)
 
 def _error_server():
     return Response({
@@ -406,76 +408,9 @@ def dashboard_home(request):
 @permission_classes([IsAuthenticated])
 def my_info(request):
     try:
-        # --- Lecture ---
-        if request.method == 'GET':
-            instance = MyInfo.objects.first()
-            langues = Langues.objects.all()
-            return Response({
-                "info": MyInfoSerializer(instance, context={'request': request}).data if instance else None,
-                "langues": LanguesSerializer(langues, many=True).data,
-            }, status=status.HTTP_200_OK)
-
-        # --- Création / Mise à jour (upsert) ---
-        data = dict(request.data)
-
-        # 'langues' arrive en JSON stringifié (FormData ne transporte que des chaînes)
-        raw_langues = data.pop('langues', None)
-        try:
-            langues_payload = json.loads(raw_langues) if raw_langues else []
-        except (TypeError, ValueError):
-            return _bad_request("Liste des langues")
-
-        instance = MyInfo.objects.first()
-
-        with transaction.atomic():
-            if instance:
-                serializer = MyInfoSerializer(instance, data=data, partial=True, context={'request': request})
-                action_text = "Mise à jour des informations personnelles"
-            else:
-                serializer = MyInfoSerializer(data=data, context={'request': request})
-                action_text = "Création des informations personnelles"
-
-            if not serializer.is_valid():
-                return _bad_request("Informations personnelles")
-
-            saved_info = serializer.save()
-
-            if str(data.get('remove_image', '')).lower() == 'true' and saved_info.image:
-                saved_info.image.delete(save=True)
-            if str(data.get('remove_cv', '')).lower() == 'true' and saved_info.cv:
-                saved_info.cv.delete(save=True)
-
-            # --- Synchronisation des langues ---
-            valid_niveaux = dict(Langues.NIVEAUX_CHOICES)
-            existing_ids = set(str(i) for i in Langues.objects.values_list('id', flat=True))
-            kept_ids = set()
-
-            for item in langues_payload:
-                langue_id = str(item.get('id') or '')
-                langue_nom = (item.get('langue') or '').strip()
-                niveau = item.get('niveau') or ''
-
-                if not langue_nom or niveau not in valid_niveaux:
-                    continue
-
-                if langue_id and langue_id in existing_ids:
-                    Langues.objects.filter(id=langue_id).update(langue=langue_nom, niveau=niveau)
-                    kept_ids.add(langue_id)
-                else:
-                    new_langue = Langues.objects.create(langue=langue_nom, niveau=niveau)
-                    kept_ids.add(str(new_langue.id))
-
-            ids_to_delete = existing_ids - kept_ids
-            if ids_to_delete:
-                Langues.objects.filter(id__in=ids_to_delete).delete()
-
-            log_journal(action_text)
-
-        langues = Langues.objects.all()
-        return Response({
-            "info": MyInfoSerializer(saved_info, context={'request': request}).data,
-            "langues": LanguesSerializer(langues, many=True).data,
-        }, status=status.HTTP_200_OK)
-
-    except Exception:
+        # traitement
+        return
+        
+    except Exception as e:
+        logger.exception("Une erreur interne est survenue : %s", e)
         return _error_server()
