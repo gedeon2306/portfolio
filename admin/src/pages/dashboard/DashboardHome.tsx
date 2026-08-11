@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   LuArrowUpRight,
   LuAward,
@@ -17,122 +17,135 @@ import {
 } from 'react-icons/lu';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../context/ToastContext';
+import Pagination from '../../components/Pagination';
+import { fetchDashboardHome } from '../../api/Actions';
+import type {
+  DashboardStats,
+  DeviceType,
+  JournalEntry,
+  PageView,
+} from '../../types/Types';
 import './DashboardHome.css';
 
-interface PageView {
-  id: string;
-  path: string;
-  method: string;
-  referrer: string;
-  ip_address: string;
-  user_agent: string;
-  device_type: 'desktop' | 'mobile' | 'bot';
-  timestamp: string;
-}
+const PAGE_SIZE = 10;
 
-const samplePageViews: PageView[] = [
-  {
-    id: '1',
-    path: '/projects/awesome-app',
-    method: 'GET',
-    referrer: 'https://google.com',
-    ip_address: '192.0.2.1',
-    user_agent: 'Mozilla/5.0 (X11; Linux x86_64)',
-    device_type: 'desktop',
-    timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
-  },
-  {
-    id: '2',
-    path: '/contact',
-    method: 'GET',
-    referrer: 'Direct',
-    ip_address: '198.51.100.23',
-    user_agent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)',
-    device_type: 'mobile',
-    timestamp: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-  },
-  {
-    id: '3',
-    path: '/projects',
-    method: 'GET',
-    referrer: 'https://github.com/gedeon2306',
-    ip_address: '203.0.113.5',
-    user_agent: 'curl/7.68.0',
-    device_type: 'bot',
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
-  },
-  {
-    id: '4',
-    path: '/skills',
-    method: 'GET',
-    referrer: 'https://linkedin.com',
-    ip_address: '192.168.1.50',
-    user_agent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X)',
-    device_type: 'desktop',
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 8).toISOString(),
-  },
-  {
-    id: '5',
-    path: '/cv.pdf',
-    method: 'GET',
-    referrer: 'Direct',
-    ip_address: '82.124.45.10',
-    user_agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-    device_type: 'desktop',
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(),
-  },
-];
+function formatRelativeTime(dateString: string): string {
+  const date = new Date(dateString);
+  const diffMs = Date.now() - date.getTime();
+  const diffMinutes = Math.floor(diffMs / 60000);
+
+  if (diffMinutes < 1) return "À l'instant";
+  if (diffMinutes < 60) return `Il y a ${diffMinutes} minute${diffMinutes > 1 ? 's' : ''}`;
+
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `Il y a ${diffHours} heure${diffHours > 1 ? 's' : ''}`;
+
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays === 1) return 'Hier';
+  if (diffDays < 7) return `Il y a ${diffDays} jours`;
+
+  return date.toLocaleDateString();
+}
 
 export default function DashboardHome() {
   const navigate = useNavigate();
   const toast = useToast();
+
   const [searchQuery, setSearchQuery] = useState('');
-  const [deviceFilter, setDeviceFilter] = useState<'all' | 'desktop' | 'mobile' | 'bot'>('all');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [deviceFilter, setDeviceFilter] = useState<'all' | DeviceType>('all');
   const [selectedView, setSelectedView] = useState<PageView | null>(null);
+
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [recentActivity, setRecentActivity] = useState<JournalEntry[]>([]);
+  const [pageViews, setPageViews] = useState<PageView[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+
+  // Debounce de la recherche pour éviter un appel API à chaque frappe
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setCurrentPage(1);
+    }, 400);
+    return () => clearTimeout(timeout);
+  }, [searchQuery]);
+
+  // Reset de la page quand le filtre appareil change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [deviceFilter]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadDashboard() {
+      setLoading(true);
+      try {
+        const data = await fetchDashboardHome({
+          search: debouncedSearch,
+          device: deviceFilter,
+          page: currentPage,
+        });
+
+        if (cancelled) return;
+
+        setStats(data.stats);
+        setRecentActivity(data.recent_activity);
+        setPageViews(data.page_views.results);
+        setTotalCount(data.page_views.count);
+      } catch (error) {
+        if (!cancelled) {
+          toast.error('Erreur', error instanceof Error ? error.message : 'Impossible de charger le dashboard.');
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    loadDashboard();
+    return () => {
+      cancelled = true;
+    };
+  }, [debouncedSearch, deviceFilter, currentPage]);
+
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   const cards = [
     {
       title: 'Projets publics',
-      value: '12',
-      trend: '+2 ce mois',
+      value: stats?.projects.value ?? '—',
+      trend: stats?.projects.trend ?? '',
       caption: 'Mises à jour actives',
       icon: LuFolderKanban,
       action: () => navigate('/dashboard/projects'),
     },
     {
       title: 'Visites totales',
-      value: '1,428',
-      trend: '+24%',
+      value: stats?.visits.value ?? '—',
+      trend: stats?.visits.trend ?? '',
       caption: 'Sur les 30 derniers jours',
       icon: LuTrendingUp,
       action: () => navigate('/dashboard/analytics'),
     },
     {
       title: 'Compétences',
-      value: '18',
-      trend: '4 catégories',
+      value: stats?.skills.value ?? '—',
+      trend: stats?.skills.trend ?? '',
       caption: 'Expertises référencées',
       icon: LuUserCheck,
       action: () => navigate('/dashboard/skills'),
     },
     {
       title: 'Certifications',
-      value: '24',
-      trend: 'Encore plus',
+      value: stats?.certificates.value ?? '—',
+      trend: stats?.certificates.trend ?? '',
       caption: 'En constante évolution',
       icon: LuAward,
       action: () => navigate('/dashboard/certificates'),
     },
   ];
-
-  const filteredViews = samplePageViews.filter((view) => {
-    const matchesSearch =
-      view.path.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      view.referrer.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      view.ip_address.includes(searchQuery);
-    const matchesDevice = deviceFilter === 'all' || view.device_type === deviceFilter;
-    return matchesSearch && matchesDevice;
-  });
 
   return (
     <div className="dashboard-home">
@@ -174,7 +187,7 @@ export default function DashboardHome() {
               <div className="stat-icon-wrap">
                 <Icon className="stat-icon" />
               </div>
-              <span className="stat-trend badge badge-accent">{trend}</span>
+              {trend && <span className="stat-trend badge badge-accent">{trend}</span>}
             </div>
             <div className="stat-body">
               <p className="stat-value">{value}</p>
@@ -239,37 +252,26 @@ export default function DashboardHome() {
               <p className="panel-eyebrow">Journal</p>
               <h3>Activité récente</h3>
             </div>
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm"
-              onClick={() => toast.info('Activité', 'Journal complet actualisé.')}
-            >
-              Actualiser
-            </button>
           </div>
 
           <ul className="activity-list">
-            <li className="activity-item">
-              <span className="activity-pulse-dot" />
-              <div className="activity-content">
-                <p className="activity-text">Mise à jour du projet <strong>« Portfolio V2 »</strong></p>
-                <span className="activity-time"><LuClock /> Il y a 10 minutes</span>
-              </div>
-            </li>
-            <li className="activity-item">
-              <span className="activity-pulse-dot" />
-              <div className="activity-content">
-                <p className="activity-text">Modifications enregistrées sur la rubrique <strong>Mes Infos</strong></p>
-                <span className="activity-time"><LuClock /> Il y a 2 heures</span>
-              </div>
-            </li>
-            <li className="activity-item">
-              <span className="activity-pulse-dot" />
-              <div className="activity-content">
-                <p className="activity-text">Nouveau niveau renseigné pour la compétence <strong>React 19</strong></p>
-                <span className="activity-time"><LuClock /> Hier</span>
-              </div>
-            </li>
+            {recentActivity.length === 0 ? (
+              <li className="activity-item">
+                <div className="activity-content">
+                  <p className="activity-text">Aucune activité récente.</p>
+                </div>
+              </li>
+            ) : (
+              recentActivity.map((entry) => (
+                <li key={entry.id} className="activity-item">
+                  <span className="activity-pulse-dot" />
+                  <div className="activity-content">
+                    <p className="activity-text">{entry.action}</p>
+                    <span className="activity-time"><LuClock /> {formatRelativeTime(entry.created_at)}</span>
+                  </div>
+                </li>
+              ))
+            )}
           </ul>
         </section>
       </div>
@@ -341,14 +343,20 @@ export default function DashboardHome() {
               </tr>
             </thead>
             <tbody>
-              {filteredViews.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="table-empty">
+                    Chargement...
+                  </td>
+                </tr>
+              ) : pageViews.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="table-empty">
                     Aucune visite ne correspond à votre recherche.
                   </td>
                 </tr>
               ) : (
-                filteredViews.map((row) => (
+                pageViews.map((row) => (
                   <tr key={row.id}>
                     <td>
                       <span className="font-mono path-tag">{row.path}</span>
@@ -385,6 +393,14 @@ export default function DashboardHome() {
             </tbody>
           </table>
         </div>
+
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalCount={totalCount}
+          pageSize={PAGE_SIZE}
+          onPageChange={setCurrentPage}
+        />
       </section>
 
       {/* Modal de détail d'une page vue */}
