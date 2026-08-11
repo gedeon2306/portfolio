@@ -3,12 +3,14 @@ import api from './AxiosConfig';
 export interface LoginPayload {
   email: string;
   password: string;
+  apiKey: string;
 }
 
 export interface ConfirmLoginPayload {
   uid: string;
   token: string;
   code: string;
+  apiKey: string;
 }
 
 export async function loginUser(payload: LoginPayload) {

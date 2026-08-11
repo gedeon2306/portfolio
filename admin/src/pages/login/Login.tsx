@@ -35,12 +35,21 @@ export default function Login() {
       return;
     }
 
+    const apiKey = import.meta.env.VITE_PUBLIC_ADMIN_API_KEY
+
+    if (!apiKey) {
+      setErrorMessage('Qui étes vous ?.');
+      toast.error('Désolé', 'Vous étes pas un JihrelDev.');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       const response = await loginUser({
         email: email.trim().toLowerCase(),
         password,
+        apiKey,
       });
 
       const persistDays = rememberMe ? 30 : 1;
