@@ -2,6 +2,7 @@ import random
 import string
 import base64
 import io
+import json
 from io import BytesIO
 from PIL import Image
 from decimal import Decimal, InvalidOperation
@@ -410,30 +411,39 @@ def my_info(request):
             instance = MyInfo.objects.first()
             langues = Langues.objects.all()
             return Response({
-                "info": MyInfoSerializer(instance).data if instance else None,
+                "info": MyInfoSerializer(instance, context={'request': request}).data if instance else None,
                 "langues": LanguesSerializer(langues, many=True).data,
             }, status=status.HTTP_200_OK)
 
         # --- Création / Mise à jour (upsert) ---
         data = dict(request.data)
-        langues_payload = data.pop('langues', [])
-        # request.data.copy() via QueryDict renvoie des listes ; on aplatit si besoin
-        data = {k: (v[0] if isinstance(v, list) and len(v) == 1 else v) for k, v in data.items()}
+
+        # 'langues' arrive en JSON stringifié (FormData ne transporte que des chaînes)
+        raw_langues = data.pop('langues', None)
+        try:
+            langues_payload = json.loads(raw_langues) if raw_langues else []
+        except (TypeError, ValueError):
+            return _bad_request("Liste des langues")
 
         instance = MyInfo.objects.first()
 
         with transaction.atomic():
             if instance:
-                serializer = MyInfoSerializer(instance, data=data, partial=True)
+                serializer = MyInfoSerializer(instance, data=data, partial=True, context={'request': request})
                 action_text = "Mise à jour des informations personnelles"
             else:
-                serializer = MyInfoSerializer(data=data)
+                serializer = MyInfoSerializer(data=data, context={'request': request})
                 action_text = "Création des informations personnelles"
 
             if not serializer.is_valid():
                 return _bad_request("Informations personnelles")
 
             saved_info = serializer.save()
+
+            if str(data.get('remove_image', '')).lower() == 'true' and saved_info.image:
+                saved_info.image.delete(save=True)
+            if str(data.get('remove_cv', '')).lower() == 'true' and saved_info.cv:
+                saved_info.cv.delete(save=True)
 
             # --- Synchronisation des langues ---
             valid_niveaux = dict(Langues.NIVEAUX_CHOICES)
@@ -455,7 +465,6 @@ def my_info(request):
                     new_langue = Langues.objects.create(langue=langue_nom, niveau=niveau)
                     kept_ids.add(str(new_langue.id))
 
-            # Supprime les langues retirées côté frontend
             ids_to_delete = existing_ids - kept_ids
             if ids_to_delete:
                 Langues.objects.filter(id__in=ids_to_delete).delete()
@@ -464,10 +473,9 @@ def my_info(request):
 
         langues = Langues.objects.all()
         return Response({
-            "info": MyInfoSerializer(saved_info).data,
+            "info": MyInfoSerializer(saved_info, context={'request': request}).data,
             "langues": LanguesSerializer(langues, many=True).data,
         }, status=status.HTTP_200_OK)
 
     except Exception:
         return _error_server()
-        
