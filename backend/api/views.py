@@ -239,8 +239,197 @@ def confirm_login(request):
     }, status=status.HTTP_200_OK)
         
 
-# @api_view(["GET"])
-# @permission_classes([IsAuthenticated])
-# def dashboard_home(request):
+class DashboardPageViewsPagination(PageNumberPagination):
+    page_size = 10
+
+
+@extend_schema(
+    tags=["Dashboard"],
+    summary="Données de la page d'accueil du dashboard",
+    description="Retourne les statistiques globales, l'activité récente et le journal des pages vues (recherche, filtre par appareil, pagination).",
+    parameters=[
+        OpenApiParameter(name="search", type=OpenApiTypes.STR, required=False, description="Recherche par chemin, referrer ou IP"),
+        OpenApiParameter(name="device", type=OpenApiTypes.STR, required=False, description="Filtre : all | desktop | mobile | tablet | bot | other"),
+        OpenApiParameter(name="page", type=OpenApiTypes.INT, required=False, description="Numéro de page (pagination de 10)"),
+    ],
+    responses={
+        200: inline_serializer(
+            name="DashboardHomeSuccess",
+            fields={
+                "stats": drf_serializers.DictField(),
+                "recent_activity": JournalSerializer(many=True),
+                "page_views": drf_serializers.DictField(),
+            }
+        ),
+        401: inline_serializer(name="DashboardHomeError", fields={"error": drf_serializers.CharField()}),
+    },
+)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def dashboard_home(request):
+    try:
+        now = timezone.now()
+        last_30_days = now - timedelta(days=30)
+        previous_30_days = last_30_days - timedelta(days=30)
+        start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+        # --- Cartes statistiques ---
+        projects_count = Projects.objects.count()
+        projects_this_month = Projects.objects.filter(created_at__gte=start_of_month).count()
+
+        visits_last_30 = Dashboard.objects.filter(timestamp__gte=last_30_days).count()
+        visits_previous_30 = Dashboard.objects.filter(
+            timestamp__gte=previous_30_days, timestamp__lt=last_30_days
+        ).count()
+        if visits_previous_30 > 0:
+            visits_trend = round(((visits_last_30 - visits_previous_30) / visits_previous_30) * 100)
+        else:
+            visits_trend = 100 if visits_last_30 > 0 else 0
+
+        skills_count = Skills.objects.count()
+        skills_categories = Skills.objects.values('competence').distinct().count()
+
+        certificates_count = Certificates.objects.count()
+
+        stats = {
+            "projects": {
+                "value": projects_count,
+                "trend": f"+{projects_this_month} ce mois",
+            },
+            "visits": {
+                "value": visits_last_30,
+                "trend": f"{'+' if visits_trend >= 0 else ''}{visits_trend}%",
+            },
+            "skills": {
+                "value": skills_count,
+                "trend": f"{skills_categories} catégories",
+            },
+            "certificates": {
+                "value": certificates_count,
+                "trend": "Encore plus",
+            },
+        }
+
+        # --- Activité récente (Journal) ---
+        recent_activity = Journal.objects.all().order_by('-created_at')[:5]
+        activity_data = JournalSerializer(recent_activity, many=True).data
+
+        # --- Journal des pages vues (recherche + filtre + pagination) ---
+        search = request.query_params.get('search', '').strip()
+        device = request.query_params.get('device', 'all')
+
+        page_views_qs = Dashboard.objects.all()
+
+        if device and device != 'all':
+            page_views_qs = page_views_qs.filter(device_type=device)
+
+        if search:
+            page_views_qs = page_views_qs.filter(
+                Q(path__icontains=search) |
+                Q(referrer__icontains=search) |
+                Q(ip_address__icontains=search)
+            )
+
+        page_views_qs = page_views_qs.order_by('-timestamp')
+
+        paginator = DashboardPageViewsPagination()
+        paginated_views = paginator.paginate_queryset(page_views_qs, request)
+        page_views_data = {
+            "count": paginator.page.paginator.count,
+            "next": paginator.get_next_link(),
+            "previous": paginator.get_previous_link(),
+            "results": DashboardSerializer(paginated_views, many=True).data,
+        }
+
+        return Response({
+            "stats": stats,
+            "recent_activity": activity_data,
+            "page_views": page_views_data,
+        }, status=status.HTTP_200_OK)
+
+    except Exception:
+        return _error_server()
+    try:
+        now = timezone.now()
+        last_30_days = now - timedelta(days=30)
+        previous_30_days = last_30_days - timedelta(days=30)
+        start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+        # --- Cartes statistiques ---
+        projects_count = Projects.objects.count()
+        projects_this_month = Projects.objects.filter(created_at__gte=start_of_month).count()
+
+        visits_last_30 = Dashboard.objects.filter(timestamp__gte=last_30_days).count()
+        visits_previous_30 = Dashboard.objects.filter(
+            timestamp__gte=previous_30_days, timestamp__lt=last_30_days
+        ).count()
+        if visits_previous_30 > 0:
+            visits_trend = round(((visits_last_30 - visits_previous_30) / visits_previous_30) * 100)
+        else:
+            visits_trend = 100 if visits_last_30 > 0 else 0
+
+        skills_count = Skills.objects.count()
+        skills_categories = Skills.objects.values('competence').distinct().count()
+
+        certificates_count = Certificates.objects.count()
+
+        stats = {
+            "projects": {
+                "value": projects_count,
+                "trend": f"+{projects_this_month} ce mois",
+            },
+            "visits": {
+                "value": visits_last_30,
+                "trend": f"{'+' if visits_trend >= 0 else ''}{visits_trend}%",
+            },
+            "skills": {
+                "value": skills_count,
+                "trend": f"{skills_categories} catégories",
+            },
+            "certificates": {
+                "value": certificates_count,
+                "trend": "Encore plus",
+            },
+        }
+
+        # --- Activité récente (Journal) ---
+        recent_activity = Journal.objects.all().order_by('-created_at')[:5]
+        activity_data = JournalSerializer(recent_activity, many=True).data
+
+        # --- Journal des pages vues (recherche + filtre + pagination) ---
+        search = request.query_params.get('search', '').strip()
+        device = request.query_params.get('device', 'all')
+
+        page_views_qs = Dashboard.objects.all()
+
+        if device and device != 'all':
+            page_views_qs = page_views_qs.filter(device_type=device)
+
+        if search:
+            page_views_qs = page_views_qs.filter(
+                Q(path__icontains=search) |
+                Q(referrer__icontains=search) |
+                Q(ip_address__icontains=search)
+            )
+
+        page_views_qs = page_views_qs.order_by('-timestamp')
+
+        paginator = DashboardPageViewsPagination()
+        paginated_views = paginator.paginate_queryset(page_views_qs, request)
+        page_views_data = {
+            "count": paginator.page.paginator.count,
+            "next": paginator.get_next_link(),
+            "previous": paginator.get_previous_link(),
+            "results": DashboardSerializer(paginated_views, many=True).data,
+        }
+
+        return Response({
+            "stats": stats,
+            "recent_activity": activity_data,
+            "page_views": page_views_data,
+        }, status=status.HTTP_200_OK)
+
+    except Exception:
+        return _error_server()
     
         

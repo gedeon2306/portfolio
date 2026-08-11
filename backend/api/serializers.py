@@ -128,8 +128,8 @@ class CertificatesSerializer(serializers.ModelSerializer):
 class JournalSerializer(serializers.ModelSerializer):
     class Meta:
         model = Journal
-        fields = ['id', 'action']
-        read_only_fields = ['id']
+        fields = ['id', 'action', 'created_at']
+        read_only_fields = ['id', 'created_at']
 
 
 class SettingsSerializer(serializers.ModelSerializer):
