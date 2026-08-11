@@ -8,7 +8,7 @@ from decimal import Decimal, InvalidOperation
 
 from django.shortcuts import render, redirect
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.contrib.auth.models import BaseUserManager
@@ -92,6 +92,10 @@ def _check_api_key(cle):
     if cle != settings.ADMIN_API_KEY:
         return _unauthorized("utiliser cette ressource")
     return None
+
+
+def log_journal(action_text):
+    Journal.objects.create(action=action_text)
 
 
 @extend_schema(
@@ -311,89 +315,7 @@ def dashboard_home(request):
         }
 
         # --- Activité récente (Journal) ---
-        recent_activity = Journal.objects.all().order_by('-created_at')[:5]
-        activity_data = JournalSerializer(recent_activity, many=True).data
-
-        # --- Journal des pages vues (recherche + filtre + pagination) ---
-        search = request.query_params.get('search', '').strip()
-        device = request.query_params.get('device', 'all')
-
-        page_views_qs = Dashboard.objects.all()
-
-        if device and device != 'all':
-            page_views_qs = page_views_qs.filter(device_type=device)
-
-        if search:
-            page_views_qs = page_views_qs.filter(
-                Q(path__icontains=search) |
-                Q(referrer__icontains=search) |
-                Q(ip_address__icontains=search)
-            )
-
-        page_views_qs = page_views_qs.order_by('-timestamp')
-
-        paginator = DashboardPageViewsPagination()
-        paginated_views = paginator.paginate_queryset(page_views_qs, request)
-        page_views_data = {
-            "count": paginator.page.paginator.count,
-            "next": paginator.get_next_link(),
-            "previous": paginator.get_previous_link(),
-            "results": DashboardSerializer(paginated_views, many=True).data,
-        }
-
-        return Response({
-            "stats": stats,
-            "recent_activity": activity_data,
-            "page_views": page_views_data,
-        }, status=status.HTTP_200_OK)
-
-    except Exception:
-        return _error_server()
-    try:
-        now = timezone.now()
-        last_30_days = now - timedelta(days=30)
-        previous_30_days = last_30_days - timedelta(days=30)
-        start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-
-        # --- Cartes statistiques ---
-        projects_count = Projects.objects.count()
-        projects_this_month = Projects.objects.filter(created_at__gte=start_of_month).count()
-
-        visits_last_30 = Dashboard.objects.filter(timestamp__gte=last_30_days).count()
-        visits_previous_30 = Dashboard.objects.filter(
-            timestamp__gte=previous_30_days, timestamp__lt=last_30_days
-        ).count()
-        if visits_previous_30 > 0:
-            visits_trend = round(((visits_last_30 - visits_previous_30) / visits_previous_30) * 100)
-        else:
-            visits_trend = 100 if visits_last_30 > 0 else 0
-
-        skills_count = Skills.objects.count()
-        skills_categories = Skills.objects.values('competence').distinct().count()
-
-        certificates_count = Certificates.objects.count()
-
-        stats = {
-            "projects": {
-                "value": projects_count,
-                "trend": f"+{projects_this_month} ce mois",
-            },
-            "visits": {
-                "value": visits_last_30,
-                "trend": f"{'+' if visits_trend >= 0 else ''}{visits_trend}%",
-            },
-            "skills": {
-                "value": skills_count,
-                "trend": f"{skills_categories} catégories",
-            },
-            "certificates": {
-                "value": certificates_count,
-                "trend": "Encore plus",
-            },
-        }
-
-        # --- Activité récente (Journal) ---
-        recent_activity = Journal.objects.all().order_by('-created_at')[:5]
+        recent_activity = Journal.objects.all().order_by('-created_at')[:3]
         activity_data = JournalSerializer(recent_activity, many=True).data
 
         # --- Journal des pages vues (recherche + filtre + pagination) ---
@@ -432,4 +354,120 @@ def dashboard_home(request):
     except Exception:
         return _error_server()
     
+
+@extend_schema(
+    tags=["MyInfo"],
+    summary="Récupérer ou mettre à jour Mes Informations",
+    description=(
+        "GET : retourne les informations personnelles et la liste des langues. "
+        "POST : crée les informations si aucune n'existe, sinon les met à jour (upsert), "
+        "et synchronise la liste des langues envoyée (ajout / modification / suppression)."
+    ),
+    request=inline_serializer(
+        name="MyInfoUpdateRequest",
+        fields={
+            "nom": drf_serializers.CharField(required=False),
+            "prenom": drf_serializers.CharField(required=False),
+            "email": drf_serializers.EmailField(required=False),
+            "telephone": drf_serializers.CharField(required=False),
+            "localisation": drf_serializers.CharField(required=False),
+            "profession": drf_serializers.CharField(required=False),
+            "description1": drf_serializers.CharField(required=False),
+            "description2": drf_serializers.CharField(required=False),
+            "image": drf_serializers.CharField(required=False, allow_blank=True),
+            "cv": drf_serializers.CharField(required=False, allow_blank=True),
+            "formation": drf_serializers.CharField(required=False),
+            "experience": drf_serializers.CharField(required=False),
+            "passions": drf_serializers.CharField(required=False),
+            "github": drf_serializers.URLField(required=False, allow_blank=True),
+            "linkedin": drf_serializers.URLField(required=False, allow_blank=True),
+            "instagram": drf_serializers.URLField(required=False, allow_blank=True),
+            "twitter_x": drf_serializers.URLField(required=False, allow_blank=True),
+            "tik_tok": drf_serializers.URLField(required=False, allow_blank=True),
+            "langues": drf_serializers.ListField(
+                child=drf_serializers.DictField(), required=False,
+                help_text="Liste d'objets {id?, langue, niveau}"
+            ),
+        }
+    ),
+    responses={
+        200: inline_serializer(
+            name="MyInfoSuccess",
+            fields={
+                "info": MyInfoSerializer(),
+                "langues": LanguesSerializer(many=True),
+            }
+        ),
+        400: inline_serializer(name="MyInfoError", fields={"error": drf_serializers.CharField()}),
+    },
+)
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def my_info(request):
+    try:
+        # --- Lecture ---
+        if request.method == 'GET':
+            instance = MyInfo.objects.first()
+            langues = Langues.objects.all()
+            return Response({
+                "info": MyInfoSerializer(instance).data if instance else None,
+                "langues": LanguesSerializer(langues, many=True).data,
+            }, status=status.HTTP_200_OK)
+
+        # --- Création / Mise à jour (upsert) ---
+        data = dict(request.data)
+        langues_payload = data.pop('langues', [])
+        # request.data.copy() via QueryDict renvoie des listes ; on aplatit si besoin
+        data = {k: (v[0] if isinstance(v, list) and len(v) == 1 else v) for k, v in data.items()}
+
+        instance = MyInfo.objects.first()
+
+        with transaction.atomic():
+            if instance:
+                serializer = MyInfoSerializer(instance, data=data, partial=True)
+                action_text = "Mise à jour des informations personnelles"
+            else:
+                serializer = MyInfoSerializer(data=data)
+                action_text = "Création des informations personnelles"
+
+            if not serializer.is_valid():
+                return _bad_request("Informations personnelles")
+
+            saved_info = serializer.save()
+
+            # --- Synchronisation des langues ---
+            valid_niveaux = dict(Langues.NIVEAUX_CHOICES)
+            existing_ids = set(str(i) for i in Langues.objects.values_list('id', flat=True))
+            kept_ids = set()
+
+            for item in langues_payload:
+                langue_id = str(item.get('id') or '')
+                langue_nom = (item.get('langue') or '').strip()
+                niveau = item.get('niveau') or ''
+
+                if not langue_nom or niveau not in valid_niveaux:
+                    continue
+
+                if langue_id and langue_id in existing_ids:
+                    Langues.objects.filter(id=langue_id).update(langue=langue_nom, niveau=niveau)
+                    kept_ids.add(langue_id)
+                else:
+                    new_langue = Langues.objects.create(langue=langue_nom, niveau=niveau)
+                    kept_ids.add(str(new_langue.id))
+
+            # Supprime les langues retirées côté frontend
+            ids_to_delete = existing_ids - kept_ids
+            if ids_to_delete:
+                Langues.objects.filter(id__in=ids_to_delete).delete()
+
+            log_journal(action_text)
+
+        langues = Langues.objects.all()
+        return Response({
+            "info": MyInfoSerializer(saved_info).data,
+            "langues": LanguesSerializer(langues, many=True).data,
+        }, status=status.HTTP_200_OK)
+
+    except Exception:
+        return _error_server()
         
