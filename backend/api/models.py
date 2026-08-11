@@ -175,11 +175,17 @@ class Skills_list(models.Model):
 
 class Projects(models.Model):
     PROJECT_CATEGORIES = [
-        ('Web', 'Web'),
-        ('Mobile', 'Mobile'),
-        ('Productivité', 'Productivité'),
-        ('Marketing', 'Marketing'),
-        ('Backend', 'Backend'),
+        ('Web', 'Application Web'),
+        ('Mobile', 'Application Mobile'),
+        ('Desktop', 'Application Desktop'),
+        ('Data base', 'Base de Données'),
+        ('IA', 'Intelligence Artificielle'),
+        ('DevOps', 'DevOps'),
+        ('UI/UX', 'UI/UX Design'),
+        ('Réseaux', 'Réseaux et Télécommunications'),
+        ('Cybersécurité', 'Cybersécurité'),
+        ('API', 'API'),
+        ('Autre', 'Autre'),
     ]
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
