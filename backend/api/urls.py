@@ -4,6 +4,7 @@ from .views import (
     login,
     confirm_login,
     dashboard_home,
+    my_info,
 )
 
 urlpatterns = [
@@ -16,6 +17,10 @@ urlpatterns = [
     path('auth/confirm-login/', confirm_login, name='confirm_login'),
     
     # Les routes dashboard
+    # Home
     path('dashboard/home/', dashboard_home, name='dashboard_home'),
+    
+    # A propos
+    path('myinfo/', my_info, name='my_info'),
 
 ]
