@@ -81,6 +81,19 @@ def _bad_request(texte):
     )
 
 
+def _unauthorized(texte):
+    return Response(
+        {"error": f"Vous n'êtes pas autorisé à {texte}."},
+        status=status.HTTP_401_UNAUTHORIZED,
+    )
+
+
+def _check_api_key(cle):
+    if cle != settings.ADMIN_API_KEY:
+        return _unauthorized("utiliser cette ressource")
+    return None
+
+
 @extend_schema(
     tags=["Auth"],
     summary="Connexion utilisateur avec envoi d'email",
@@ -112,9 +125,14 @@ def _bad_request(texte):
 def login(request):
     email = request.data.get('email', '').strip().lower()
     password = request.data.get('password', '')
+    api_key = request.data.get('apiKey', '')
 
     if not email or not password:
         return _bad_request("Email ou mot de passe")
+
+    api_key_error = _check_api_key(api_key)
+    if api_key_error:
+        return api_key_error
 
     try:
         user = User.objects.get(email=email)
@@ -189,9 +207,14 @@ def confirm_login(request):
     uidb64 = request.data.get('uid', '')
     token = request.data.get('token', '')
     code = request.data.get('code', '')
+    api_key = request.data.get('apiKey', '')
     
     if not uidb64 or not token or not code:
         return  _bad_request("Données de confirmation manquantes.")
+    
+    api_key_error = _check_api_key(api_key)
+    if api_key_error:
+        return api_key_error
 
     try:
         uid = force_str(urlsafe_base64_decode(uidb64))
