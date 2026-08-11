@@ -8,8 +8,10 @@ const api = axios.create({
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    const payload = error.response?.data;
     const message =
-      error.response?.data?.error ?? "Une erreur est survenue, réessayez plus tard.";
+      payload?.error ??
+      (payload?.details ? JSON.stringify(payload.details) : "Une erreur est survenue, réessayez plus tard.");
     return Promise.reject(new Error(message));
   }
 );
