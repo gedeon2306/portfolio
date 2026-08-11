@@ -55,6 +55,13 @@ class MyInfoSerializer(serializers.ModelSerializer):
             'instagram', 'twitter_x', 'tik_tok'
         ]
         read_only_fields = ['id']
+        extra_kwargs = {
+            'github': {'required': False, 'allow_blank': True, 'allow_null': True},
+            'linkedin': {'required': False, 'allow_blank': True, 'allow_null': True},
+            'instagram': {'required': False, 'allow_blank': True, 'allow_null': True},
+            'twitter_x': {'required': False, 'allow_blank': True, 'allow_null': True},
+            'tik_tok': {'required': False, 'allow_blank': True, 'allow_null': True},
+        }
 
 
 class LanguesSerializer(serializers.ModelSerializer):
