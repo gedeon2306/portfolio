@@ -177,3 +177,6 @@ EMAIL_CHECK_HOSTNAME = False
 EMAIL_VERIFY_MODE = ssl.CERT_NONE
 EMAIL_USER = env('EMAIL_USER')
 
+# Clé API pour la communication avec les frontend
+ADMIN_API_KEY = env('ADMIN_API_KEY')
+PORTFOLIO_API_KEY = env('PORTFOLIO_API_KEY')
