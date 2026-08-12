@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   LuArrowUpRight,
   LuAward,
+  LuChartColumn,
   LuFolderKanban,
   LuSparkles,
   LuTrendingUp,
@@ -240,6 +241,28 @@ export default function DashboardHome() {
               <div className="shortcut-info">
                 <p className="shortcut-title">Publier un nouveau projet</p>
                 <p className="shortcut-desc">Ajouter des maquettes ou dépôts Git</p>
+              </div>
+            </button>
+            <button
+              type="button"
+              className="shortcut-btn"
+              onClick={() => navigate('/dashboard/projects')}
+            >
+              <div className="shortcut-icon"><LuAward /></div>
+              <div className="shortcut-info">
+                <p className="shortcut-title">Publier un nouveau certificat</p>
+                <p className="shortcut-desc">Ajouter vos nouveaux certificat obtenu</p>
+              </div>
+            </button>
+            <button
+              type="button"
+              className="shortcut-btn"
+              onClick={() => navigate('/dashboard/projects')}
+            >
+              <div className="shortcut-icon"><LuChartColumn /></div>
+              <div className="shortcut-info">
+                <p className="shortcut-title">Voir les stats</p>
+                <p className="shortcut-desc">Consultez vos statistiques</p>
               </div>
             </button>
           </div>
