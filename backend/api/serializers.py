@@ -46,6 +46,8 @@ class DashboardSerializer(serializers.ModelSerializer):
 
 
 class MyInfoSerializer(serializers.ModelSerializer):
+    image = serializers.SerializerMethodField()
+    cv = serializers.SerializerMethodField()
     class Meta:
         model = MyInfo
         fields = [
@@ -62,6 +64,22 @@ class MyInfoSerializer(serializers.ModelSerializer):
             'twitter_x': {'required': False, 'allow_blank': True, 'allow_null': True},
             'tik_tok': {'required': False, 'allow_blank': True, 'allow_null': True},
         }
+    
+    def get_image(self, obj):
+        if obj.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        return None
+    
+    def get_cv(self, obj):
+        if obj.cv:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.cv.url)
+            return obj.cv.url
+        return None
 
 
 class LanguesSerializer(serializers.ModelSerializer):
