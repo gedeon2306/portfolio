@@ -19,8 +19,8 @@ import type { LangueItem, MyInfoTextFields, NiveauChoice } from '../../types/Typ
 import './MyInfo.css';
 
 type MyInfoForm = MyInfoTextFields & {
-  image: string; // URL (existante) ou aperçu local (dataURL) affiché à l'écran
-  cv: string;    // nom de fichier affiché (existant ou nouvellement choisi)
+  image: string;
+  cv: string;
 };
 
 export const NIVEAUX_OPTIONS: { value: NiveauChoice; label: string }[] = [
@@ -75,6 +75,17 @@ function extractFileName(url: string): string {
   }
 }
 
+function getFullImageUrl(url: string | null): string {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  const baseUrl = import.meta.env.VITE_PUBLIC_API_URL || '';
+  const cleanBase = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+  const cleanPath = url.startsWith('/') ? url : `/${url}`;
+  return `${cleanBase}${cleanPath}`;
+}
+
 export default function MyInfo() {
   const toast = useToast();
   const [form, setForm] = useState<MyInfoForm>(emptyForm);
@@ -90,7 +101,6 @@ export default function MyInfo() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const cvInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Chargement initial des informations existantes
   useEffect(() => {
     let cancelled = false;
 
@@ -109,7 +119,7 @@ export default function MyInfo() {
             instagram: rest.instagram ?? '',
             twitter_x: rest.twitter_x ?? '',
             tik_tok: rest.tik_tok ?? '',
-            image: image ?? '',
+            image: getFullImageUrl(image),
             cv: cv ? extractFileName(cv) : '',
           });
         }
@@ -199,7 +209,7 @@ export default function MyInfo() {
           instagram: rest.instagram ?? '',
           twitter_x: rest.twitter_x ?? '',
           tik_tok: rest.tik_tok ?? '',
-          image: newImage ?? '',
+          image: getFullImageUrl(newImage),
           cv: newCv ? extractFileName(newCv) : '',
         });
       }
@@ -232,7 +242,6 @@ export default function MyInfo() {
 
   return (
     <div className="myinfo-page">
-      {/* Sub-header de navigation interne */}
       <div className="section-header">
         <div>
           <p className="section-eyebrow">Profil public & coordonnées</p>
@@ -249,7 +258,6 @@ export default function MyInfo() {
         </button>
       </div>
 
-      {/* Onglets de sections */}
       <div className="myinfo-tabs">
         <button
           type="button"
@@ -282,7 +290,6 @@ export default function MyInfo() {
       </div>
 
       <form className="myinfo-form" onSubmit={handleSubmit}>
-        {/* TAB 1: IDENTITE GENERALE */}
         {activeTab === 'general' && (
           <section className="panel-card tab-content">
             <div className="panel-header">
@@ -293,7 +300,6 @@ export default function MyInfo() {
             </div>
 
             <div className="profile-identity-grid">
-              {/* Uploader Avatar */}
               <div className="avatar-uploader-card">
                 <span>Photo de profil</span>
                 <div
@@ -329,7 +335,6 @@ export default function MyInfo() {
                 />
               </div>
 
-              {/* Champs texte */}
               <div className="identity-fields-grid">
                 <div className="field">
                   <label htmlFor="prenom">Prénom</label>
@@ -360,7 +365,6 @@ export default function MyInfo() {
           </section>
         )}
 
-        {/* TAB 2: BIO, CV & EXPERIENCES */}
         {activeTab === 'bio' && (
           <section className="panel-card tab-content">
             <div className="panel-header">
@@ -397,7 +401,7 @@ export default function MyInfo() {
                 <input id="formation" name="formation" value={form.formation} onChange={handleChange} />
               </div>
               <div className="field">
-                <label htmlFor="experience">Années d’expérience</label>
+                <label htmlFor="experience">Années d'expérience</label>
                 <input id="experience" name="experience" value={form.experience} onChange={handleChange} />
               </div>
               <div className="field">
@@ -436,7 +440,6 @@ export default function MyInfo() {
           </section>
         )}
 
-        {/* TAB 3: RESEAUX SOCIAUX */}
         {activeTab === 'social' && (
           <section className="panel-card tab-content">
             <div className="panel-header">
@@ -490,7 +493,6 @@ export default function MyInfo() {
           </section>
         )}
 
-        {/* TAB 4: LANGUES (Basé sur le modèle Django `Langues`) */}
         {activeTab === 'languages' && (
           <section className="panel-card tab-content">
             <div className="panel-header">
@@ -513,7 +515,6 @@ export default function MyInfo() {
               ) : (
                 languages.map((item) => (
                   <div key={item.id} className="language-item-row">
-                    {/* Sélection de la langue via liste déroulante */}
                     <div className="field flex-1">
                       <label>Langue</label>
                       <select
@@ -542,7 +543,6 @@ export default function MyInfo() {
                       )}
                     </div>
 
-                    {/* Sélection du Niveau (Django NIVEAUX_CHOICES A1, A2, B1, B2, C1, C2) */}
                     <div className="field flex-1">
                       <label>Niveau (Django Choices)</label>
                       <select
