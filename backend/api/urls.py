@@ -5,22 +5,20 @@ from .views import (
     confirm_login,
     dashboard_home,
     my_info,
+    skills_management,
 )
 
 urlpatterns = [
     ## Auth routes
- 
-    # Connexion (envoi du mail avec le code de connexion)
     path('auth/login/', login, name='login'),
-    
-    # Confirmation de la connexion (Génère le JWT Access et Refresh)
     path('auth/confirm-login/', confirm_login, name='confirm_login'),
     
-    # Les routes dashboard
-    # Home
+    ## Dashboard routes
     path('dashboard/home/', dashboard_home, name='dashboard_home'),
     
-    # A propos
+    ## MyInfo routes
     path('myinfo/', my_info, name='my_info'),
-
+    
+    ## Skills routes (ajouter)
+    path('skills/', skills_management, name='skills_management'),
 ]
