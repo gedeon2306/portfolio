@@ -318,7 +318,7 @@ def dashboard_home(request):
         }
 
         # --- Activité récente (Journal) ---
-        recent_activity = Journal.objects.all().order_by('-created_at')[:3]
+        recent_activity = Journal.objects.all().order_by('-created_at')[:5]
         activity_data = JournalSerializer(recent_activity, many=True).data
 
         # --- Journal des pages vues (recherche + filtre + pagination) ---
@@ -408,9 +408,150 @@ def dashboard_home(request):
 @permission_classes([IsAuthenticated])
 def my_info(request):
     try:
-        # traitement
-        return
+        if request.method == 'GET':
+            info = MyInfo.objects.first()
+            langues = Langues.objects.all().order_by('langue')
+
+            return Response({
+                "info": MyInfoSerializer(info).data if info else None,
+                "langues": LanguesSerializer(langues, many=True).data,
+            }, status=status.HTTP_200_OK)
+
+        # --- POST : upsert MyInfo + synchronisation des langues ---
+        info = MyInfo.objects.first()
+        is_creation = info is None
+
+        # Récupération des données texte
+        text_fields = [
+            'nom', 'prenom', 'email', 'telephone', 'localisation', 'profession',
+            'description1', 'description2', 'formation', 'experience', 'passions',
+            'github', 'linkedin', 'instagram', 'twitter_x', 'tik_tok',
+        ]
         
+        data = {}
+        for field in text_fields:
+            if field in request.data:
+                value = request.data.get(field)
+                # S'assurer que les valeurs None deviennent des chaînes vides pour éviter les erreurs
+                data[field] = value if value is not None else ''
+            elif field in request.POST:
+                value = request.POST.get(field)
+                data[field] = value if value is not None else ''
+
+        # Gestion image
+        if 'image' in request.FILES:
+            data['image'] = request.FILES['image']
+        elif request.data.get('remove_image') == 'true' or request.POST.get('remove_image') == 'true':
+            if info and info.image:
+                # Supprimer l'ancien fichier
+                info.image.delete(save=False)
+            data['image'] = None
+
+        # Gestion cv
+        if 'cv' in request.FILES:
+            data['cv'] = request.FILES['cv']
+        elif request.data.get('remove_cv') == 'true' or request.POST.get('remove_cv') == 'true':
+            if info and info.cv:
+                # Supprimer l'ancien fichier
+                info.cv.delete(save=False)
+            data['cv'] = None
+
+        # Validation et sauvegarde avec transaction
+        with transaction.atomic():
+            # Création ou mise à jour
+            if info is None:
+                serializer = MyInfoSerializer(data=data)
+            else:
+                serializer = MyInfoSerializer(info, data=data, partial=True)
+
+            if not serializer.is_valid():
+                logger.error(f"Erreurs de validation MyInfo: {serializer.errors}")
+                return Response(
+                    {"error": "Données invalides", "details": serializer.errors},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            info = serializer.save()
+            log_journal("Ajout de vos informations" if is_creation else "Mise à jour de vos informations")
+
+            # --- Synchronisation des langues ---
+            langues_payload = []
+            
+            # Récupération des langues depuis différents endroits possibles
+            langues_raw = request.data.get('langues')
+            if langues_raw is None:
+                langues_raw = request.POST.get('langues')
+            
+            if langues_raw:
+                try:
+                    # Si c'est une chaîne JSON, la parser
+                    if isinstance(langues_raw, str):
+                        langues_payload = json.loads(langues_raw)
+                    # Si c'est déjà une liste, l'utiliser directement
+                    elif isinstance(langues_raw, list):
+                        langues_payload = langues_raw
+                except (json.JSONDecodeError, TypeError) as e:
+                    logger.warning(f"Erreur de parsing des langues: {e}")
+                    langues_payload = []
+
+            # Si ce n'est pas une liste valide, on ignore
+            if not isinstance(langues_payload, list):
+                langues_payload = []
+
+            existing = {str(l.id): l for l in Langues.objects.all()}
+            sent_ids = set()
+            valid_niveaux = dict(Langues.NIVEAUX_CHOICES)
+
+            added, updated = 0, 0
+
+            for item in langues_payload:
+                if not isinstance(item, dict):
+                    continue
+                    
+                item_id = item.get('id')
+                langue_val = (item.get('langue') or '').strip()
+                niveau_val = item.get('niveau')
+
+                # Validation des données
+                if not langue_val or niveau_val not in valid_niveaux:
+                    continue
+
+                # Mise à jour ou création
+                if item_id and item_id in existing:
+                    sent_ids.add(item_id)
+                    langue_obj = existing[item_id]
+                    if langue_obj.langue != langue_val or langue_obj.niveau != niveau_val:
+                        langue_obj.langue = langue_val
+                        langue_obj.niveau = niveau_val
+                        langue_obj.save()
+                        updated += 1
+                else:
+                    # Création (id absent ou "lang-..." temporaire)
+                    Langues.objects.create(langue=langue_val, niveau=niveau_val)
+                    added += 1
+
+            # Suppression des langues qui n'ont pas été envoyées
+            removed_ids = set(existing.keys()) - sent_ids
+            removed = len(removed_ids)
+            if removed_ids:
+                Langues.objects.filter(id__in=removed_ids).delete()
+
+            # Journalisation
+            if added:
+                log_journal(f"Ajout de {added} langue(s)")
+            if updated:
+                log_journal(f"Modification de {updated} langue(s)")
+            if removed:
+                log_journal(f"Suppression de {removed} langue(s)")
+
+        # Récupération des données mises à jour
+        langues = Langues.objects.all().order_by('langue')
+        return Response({
+            "info": MyInfoSerializer(info).data,
+            "langues": LanguesSerializer(langues, many=True).data,
+        }, status=status.HTTP_200_OK)
+
     except Exception as e:
-        logger.exception("Une erreur interne est survenue : %s", e)
+        logger.exception(f"Erreur interne dans my_info: {str(e)}")
         return _error_server()
+    
