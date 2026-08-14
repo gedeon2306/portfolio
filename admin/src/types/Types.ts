@@ -122,3 +122,39 @@ export interface MyInfoSavePayload {
   removeCv?: boolean;
   langues: LangueInput[];
 }
+
+// Skills
+
+export interface SkillItem {
+  id: string;
+  libelle: string;
+  pourcentage: number;
+}
+
+export interface SkillCategory {
+  id: string;
+  title: string;
+  skills: SkillItem[];
+}
+
+export interface SkillsResponse {
+  categories: SkillCategory[];
+}
+
+// Compétence/catégorie envoyée au serveur : id absent ou temporaire (nouvelle)
+// = création, id correspondant à un UUID existant = mise à jour
+export interface SkillItemInput {
+  id?: string;
+  libelle: string;
+  pourcentage: number;
+}
+
+export interface SkillCategoryInput {
+  id?: string;
+  title: string;
+  skills: SkillItemInput[];
+}
+
+export interface SkillsSavePayload {
+  categories: SkillCategoryInput[];
+}

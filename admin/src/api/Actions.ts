@@ -4,6 +4,8 @@ import type {
   DashboardHomeResponse,
   MyInfoResponse,
   MyInfoSavePayload,
+  SkillsResponse,
+  SkillsSavePayload,
 } from '../types/Types';
  
 // Dashboard
@@ -51,5 +53,17 @@ export async function saveMyInfo(payload: MyInfoSavePayload): Promise<MyInfoResp
     headers: { 'Content-Type': 'multipart/form-data' },
   });
  
+  return data;
+}
+
+// Skills
+
+export async function fetchSkills(): Promise<SkillsResponse> {
+  const { data } = await api.get<SkillsResponse>('skills/');
+  return data;
+}
+
+export async function saveSkills(payload: SkillsSavePayload): Promise<SkillsResponse> {
+  const { data } = await api.post<SkillsResponse>('skills/', payload);
   return data;
 }
