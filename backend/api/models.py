@@ -2,6 +2,7 @@ import uuid
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.utils.timezone import now
 
 class UserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -246,7 +247,7 @@ class Certificates(models.Model):
     titre = models.CharField(max_length=100)
     categorie = models.CharField(max_length=100, choices=CERTIFICATION_CATEGORIES)
     organisme = models.CharField(max_length=100)
-    annee = models.IntegerField(validators=[MinValueValidator(1900), MaxValueValidator(2100)])
+    date = models.DateField(default=now)
     url = models.URLField(blank=True, null=True)
     description = models.TextField()
     image = models.ImageField(upload_to='certifications/images/', null=True, blank=True)

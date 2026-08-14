@@ -143,7 +143,7 @@ class CertificatesSerializer(serializers.ModelSerializer):
     class Meta:
         model = Certificates
         fields = [
-            'id', 'titre', 'categorie', 'organisme', 'annee', 
+            'id', 'titre', 'categorie', 'organisme', 'date', 
             'url', 'description', 'image', 'status', 'important', 
             'created_at', 'updated_at'
         ]
