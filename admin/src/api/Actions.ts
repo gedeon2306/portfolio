@@ -9,6 +9,9 @@ import type {
   Project,
   ProjectListResponse,
   ProjectCreatePayload,
+  Certificate,
+  CertificateListResponse,
+  CertificateCreatePayload,
 } from '../types/Types';
  
 // Dashboard
@@ -226,4 +229,101 @@ export async function fetchProjectCategories(): Promise<string[]> {
 export async function fetchProjectTechnologies(): Promise<string[]> {
   const { data } = await api.get<{ technologies: string[] }>('projects/technologies/');
   return data.technologies;
+}
+
+// CERTIFICATES
+
+export async function fetchCertificates(params: {
+  page?: number;
+  page_size?: number;
+  search?: string;
+  category?: string;
+  status?: string;
+  important?: string;
+} = {}): Promise<CertificateListResponse> {
+  const query: Record<string, string | number> = {};
+
+  if (params.page) query.page = params.page;
+  if (params.page_size) query.page_size = params.page_size;
+  if (params.search) query.search = params.search;
+  if (params.category && params.category !== 'all') query.category = params.category;
+  if (params.status && params.status !== 'all') query.status = params.status;
+  if (params.important && params.important !== 'all') query.important = params.important;
+
+  const { data } = await api.get<CertificateListResponse>('certificates/', { params: query });
+  return data;
+}
+
+export async function fetchCertificate(id: string): Promise<Certificate> {
+  const { data } = await api.get<Certificate>(`certificates/${id}/`);
+  return data;
+}
+
+export async function createCertificate(payload: CertificateCreatePayload): Promise<Certificate> {
+  const formData = new FormData();
+
+  if (payload.titre) formData.append('titre', payload.titre);
+  if (payload.description) formData.append('description', payload.description);
+  if (payload.categorie) formData.append('categorie', payload.categorie);
+  if (payload.organisme) formData.append('organisme', payload.organisme);
+  if (payload.date) formData.append('date', payload.date);
+  if (payload.url) formData.append('url', payload.url);
+  if (payload.status !== undefined) formData.append('status', String(payload.status));
+  if (payload.important !== undefined) formData.append('important', String(payload.important));
+  if (payload.image) formData.append('image', payload.image);
+
+  const { data } = await api.post<Certificate>('certificates/create/', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+
+  return data;
+}
+
+export async function updateCertificate(id: string, payload: CertificateCreatePayload): Promise<Certificate> {
+  const formData = new FormData();
+
+  if (payload.titre) formData.append('titre', payload.titre);
+  if (payload.description) formData.append('description', payload.description);
+  if (payload.categorie) formData.append('categorie', payload.categorie);
+  if (payload.organisme) formData.append('organisme', payload.organisme);
+  if (payload.date) formData.append('date', payload.date);
+  if (payload.url) formData.append('url', payload.url);
+  if (payload.status !== undefined) formData.append('status', String(payload.status));
+  if (payload.important !== undefined) formData.append('important', String(payload.important));
+  if (payload.image) formData.append('image', payload.image);
+
+  const { data } = await api.put<Certificate>(`certificates/${id}/update/`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+
+  return data;
+}
+
+export async function patchCertificate(id: string, payload: Partial<CertificateCreatePayload>): Promise<Certificate> {
+  const formData = new FormData();
+
+  if (payload.titre !== undefined) formData.append('titre', payload.titre);
+  if (payload.description !== undefined) formData.append('description', payload.description);
+  if (payload.categorie !== undefined) formData.append('categorie', payload.categorie);
+  if (payload.organisme !== undefined) formData.append('organisme', payload.organisme);
+  if (payload.date !== undefined) formData.append('date', payload.date);
+  if (payload.url !== undefined) formData.append('url', payload.url);
+  if (payload.status !== undefined) formData.append('status', String(payload.status));
+  if (payload.important !== undefined) formData.append('important', String(payload.important));
+  if (payload.image) formData.append('image', payload.image);
+
+  const { data } = await api.patch<Certificate>(`certificates/${id}/update/`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+
+  return data;
+}
+
+export async function deleteCertificate(id: string): Promise<void> {
+  await api.delete(`certificates/${id}/delete/`);
+}
+
+export async function fetchCertificateCategories(): Promise<string[]> {
+  const { data } = await api.get<{ categories: string[] }>('certificates/categories/');
+  return data.categories;
 }
