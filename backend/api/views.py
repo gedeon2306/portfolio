@@ -35,13 +35,9 @@ from .models import (
 )
 
 from .serializers import (
-    UserSerializer, 
-    UserUpdateSerializer,
     DashboardSerializer,
     MyInfoSerializer,
     LanguesSerializer,
-    SkillsSerializer,
-    SkillsListSerializer,
     ProjectsSerializer,
     TechnologiesSerializer,
     CertificatesSerializer,
@@ -539,35 +535,166 @@ def my_info(request):
         return _error_server()
 
 
+def _serialize_skill_categories():
+    """Formate les catégories + compétences dans le format attendu par le frontend
+    (SkillCategory { id, title, skills: SkillItem[] })."""
+    categories = Skills.objects.all().order_by('competence')
+    data = []
+    for cat in categories:
+        skills_qs = cat.skills_list.all().order_by('libelle')
+        data.append({
+            "id": str(cat.id),
+            "title": cat.competence,
+            "skills": [
+                {
+                    "id": str(s.id),
+                    "libelle": s.libelle,
+                    "pourcentage": s.pourcentage,
+                }
+                for s in skills_qs
+            ],
+        })
+    return data
+
+
 @extend_schema(
     tags=["Skills"],
     summary="Récupérer ou mettre à jour les compétences",
     description=(
         "GET : retourne toutes les catégories avec leurs compétences. "
-        "POST : crée ou met à jour les catégories et compétences."
+        "POST : synchronise les catégories et compétences envoyées "
+        "(ajout / modification / suppression), à la manière des langues dans MyInfo."
+    ),
+    request=inline_serializer(
+        name="SkillsUpdateRequest",
+        fields={
+            "categories": drf_serializers.ListField(
+                child=drf_serializers.DictField(),
+                required=True,
+                help_text="Liste de catégories {id?, title, skills: [{id?, libelle, pourcentage}]}",
+            ),
+        }
     ),
     responses={
         200: inline_serializer(
             name="SkillsSuccess",
-            fields={
-                "categories": SkillsSerializer(many=True),
-            }
+            fields={"categories": drf_serializers.ListField()},
         ),
+        400: inline_serializer(name="SkillsError", fields={"error": drf_serializers.CharField()}),
     },
 )
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def skills_management(request):
     try:
-        return
+        if request.method == 'GET':
+            return Response({"categories": _serialize_skill_categories()}, status=status.HTTP_200_OK)
+
+        # --- POST : synchronisation complète des catégories et de leurs compétences ---
+        categories_payload = request.data.get('categories', [])
+        if isinstance(categories_payload, str):
+            try:
+                categories_payload = json.loads(categories_payload)
+            except (json.JSONDecodeError, TypeError):
+                categories_payload = []
+
+        if not isinstance(categories_payload, list):
+            return _bad_request("Format des catégories")
+
+        existing_categories = {str(c.id): c for c in Skills.objects.all()}
+        sent_cat_ids = set()
+        cat_added, cat_updated = 0, 0
+        skill_added, skill_updated, skill_removed = 0, 0, 0
+
+        with transaction.atomic():
+            for cat_item in categories_payload:
+                if not isinstance(cat_item, dict):
+                    continue
+
+                cat_id = cat_item.get('id')
+                title = (cat_item.get('title') or '').strip()
+                skills_payload = cat_item.get('skills', [])
+
+                if not title:
+                    continue
+
+                if cat_id and str(cat_id) in existing_categories:
+                    sent_cat_ids.add(str(cat_id))
+                    category = existing_categories[str(cat_id)]
+                    if category.competence != title:
+                        category.competence = title
+                        category.save()
+                        cat_updated += 1
+                else:
+                    category = Skills.objects.create(competence=title)
+                    sent_cat_ids.add(str(category.id))
+                    cat_added += 1
+
+                # --- Synchronisation des compétences de cette catégorie ---
+                if not isinstance(skills_payload, list):
+                    skills_payload = []
+
+                existing_skills = {str(s.id): s for s in category.skills_list.all()}
+                sent_skill_ids = set()
+
+                for skill_item in skills_payload:
+                    if not isinstance(skill_item, dict):
+                        continue
+
+                    skill_id = skill_item.get('id')
+                    libelle = (skill_item.get('libelle') or '').strip()
+
+                    try:
+                        pourcentage = int(skill_item.get('pourcentage'))
+                    except (TypeError, ValueError):
+                        continue
+
+                    if not libelle or pourcentage < 0 or pourcentage > 100:
+                        continue
+
+                    if skill_id and str(skill_id) in existing_skills:
+                        sent_skill_ids.add(str(skill_id))
+                        skill_obj = existing_skills[str(skill_id)]
+                        if skill_obj.libelle != libelle or skill_obj.pourcentage != pourcentage:
+                            skill_obj.libelle = libelle
+                            skill_obj.pourcentage = pourcentage
+                            skill_obj.save()
+                            skill_updated += 1
+                    else:
+                        Skills_list.objects.create(
+                            skill=category, libelle=libelle, pourcentage=pourcentage
+                        )
+                        skill_added += 1
+
+                removed_skill_ids = set(existing_skills.keys()) - sent_skill_ids
+                if removed_skill_ids:
+                    Skills_list.objects.filter(id__in=removed_skill_ids).delete()
+                    skill_removed += len(removed_skill_ids)
+
+            # Catégories envoyées côté frontend = source de vérité -> on supprime celles absentes
+            removed_cat_ids = set(existing_categories.keys()) - sent_cat_ids
+            cat_removed = len(removed_cat_ids)
+            if removed_cat_ids:
+                Skills.objects.filter(id__in=removed_cat_ids).delete()
+
+            if cat_added:
+                log_journal(f"Ajout de {cat_added} catégorie(s) de compétences")
+            if cat_updated:
+                log_journal(f"Modification de {cat_updated} catégorie(s) de compétences")
+            if cat_removed:
+                log_journal(f"Suppression de {cat_removed} catégorie(s) de compétences")
+            if skill_added:
+                log_journal(f"Ajout de {skill_added} compétence(s)")
+            if skill_updated:
+                log_journal(f"Modification de {skill_updated} compétence(s)")
+            if skill_removed:
+                log_journal(f"Suppression de {skill_removed} compétence(s)")
+
+        return Response({"categories": _serialize_skill_categories()}, status=status.HTTP_200_OK)
 
     except Exception as e:
         logger.exception(f"Erreur dans skills_management: {str(e)}")
         return _error_server()
-
-
-
-
 
 
 
