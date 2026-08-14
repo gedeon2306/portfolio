@@ -14,6 +14,10 @@ import type {
   CertificateCreatePayload,
   AnalyticsRange,
   AnalyticsResponse,
+  SettingsResponse,
+  SettingsUpdatePayload,
+  SecurityResponse,
+  ChangePasswordPayload,
 } from '../types/Types';
  
 // Dashboard
@@ -337,4 +341,51 @@ export async function fetchAnalytics(range: AnalyticsRange = '30d'): Promise<Ana
     params: { range },
   });
   return data;
+}
+
+// Settings
+
+export async function fetchSettings(): Promise<SettingsResponse> {
+  const { data } = await api.get<SettingsResponse>('settings/');
+  return data;
+}
+
+export async function saveSettings(payload: SettingsUpdatePayload): Promise<SettingsResponse> {
+  const { data } = await api.post<SettingsResponse>('settings/', payload);
+  return data;
+}
+
+export async function fetchSecuritySettings(): Promise<SecurityResponse> {
+  const { data } = await api.get<SecurityResponse>('settings/security/');
+  return data;
+}
+
+export async function updateSecuritySettings(twoFactorAuth: boolean): Promise<SecurityResponse> {
+  const { data } = await api.patch<SecurityResponse>('settings/security/', {
+    two_factor_auth: twoFactorAuth,
+  });
+  return data;
+}
+
+export async function changePassword(payload: ChangePasswordPayload): Promise<{ message: string }> {
+  const { data } = await api.post<{ message: string }>('settings/change-password/', payload);
+  return data;
+}
+
+export async function downloadBackup(): Promise<void> {
+  const response = await api.get('settings/backup/', { responseType: 'blob' });
+
+  const contentDisposition = response.headers['content-disposition'] as string | undefined;
+  const match = contentDisposition?.match(/filename="?([^"]+)"?/);
+  const filename = match?.[1] || `backup_portfolio_${new Date().toISOString().slice(0, 10)}.json`;
+
+  const blob = new Blob([response.data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }

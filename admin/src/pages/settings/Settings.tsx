@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   LuSettings,
   LuLock,
@@ -11,38 +11,126 @@ import {
 } from 'react-icons/lu';
 import { useToast } from '../../context/ToastContext';
 import { useTheme } from '../../context/ThemeContext';
+import {
+  fetchSettings,
+  saveSettings,
+  fetchSecuritySettings,
+  updateSecuritySettings,
+  changePassword,
+  downloadBackup,
+} from '../../api/Actions';
 import './Settings.css';
 
 export default function Settings() {
   const toast = useToast();
   const { theme, toggleTheme } = useTheme();
   const [activeTab, setActiveTab] = useState<'general' | 'security' | 'appearance' | 'api'>('general');
+  const [loadingInitial, setLoadingInitial] = useState(true);
+  const [savingGeneral, setSavingGeneral] = useState(false);
 
   // Form State
-  const [siteName, setSiteName] = useState('Portfolio Gédéon Dupont');
+  const [siteName, setSiteName] = useState('');
   const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [emailNotifs, setEmailNotifs] = useState(true);
   const [twoFactorAuth, setTwoFactorAuth] = useState(false);
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [passwordSubmitting, setPasswordSubmitting] = useState(false);
 
+  const [backupLoading, setBackupLoading] = useState(false);
+
+  // Onglet API : laissé tel quel, sans backend
   const [apiKey] = useState('pk_live_99a8b7c6d5e4f3a2b1_2026');
   const [copiedKey, setCopiedKey] = useState(false);
 
-  const handleSaveGeneral = () => {
-    toast.success('Paramètres enregistrés', 'Configuration du site mise à jour.');
+  useEffect(() => {
+    (async () => {
+      try {
+        const [settingsRes, securityRes] = await Promise.all([
+          fetchSettings(),
+          fetchSecuritySettings(),
+        ]);
+
+        if (settingsRes.settings) {
+          setSiteName(settingsRes.settings.titre_app);
+          setMaintenanceMode(settingsRes.settings.mode_maintenance);
+          setEmailNotifs(settingsRes.settings.notification_email);
+        }
+        setTwoFactorAuth(securityRes.two_factor_auth);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Impossible de charger les paramètres.';
+        toast.error('Erreur', message);
+      } finally {
+        setLoadingInitial(false);
+      }
+    })();
+  }, [toast]);
+
+  const handleSaveGeneral = async () => {
+    if (!siteName.trim()) {
+      toast.error('Champ requis', 'Le titre du site ne peut pas être vide.');
+      return;
+    }
+
+    setSavingGeneral(true);
+    try {
+      await saveSettings({
+        titre_app: siteName.trim(),
+        mode_maintenance: maintenanceMode,
+        notification_email: emailNotifs,
+      });
+      toast.success('Paramètres enregistrés', 'Configuration du site mise à jour.');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Impossible d'enregistrer les paramètres.";
+      toast.error('Erreur', message);
+    } finally {
+      setSavingGeneral(false);
+    }
   };
 
-  const handlePasswordChange = (e: React.FormEvent) => {
+  const handleMaintenanceToggle = (checked: boolean) => {
+    setMaintenanceMode(checked);
+    toast.info(checked ? 'Mode Maintenance activé' : 'Site public en ligne');
+  };
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentPassword || !newPassword) {
       toast.error('Champs manquants', 'Veuillez saisir votre mot de passe actuel et le nouveau.');
       return;
     }
-    toast.success('Mot de passe mis à jour', 'Vos identifiants ont été modifiés avec succès.');
-    setCurrentPassword('');
-    setNewPassword('');
+
+    setPasswordSubmitting(true);
+    try {
+      await changePassword({ current_password: currentPassword, new_password: newPassword });
+      toast.success('Mot de passe mis à jour', 'Vos identifiants ont été modifiés avec succès.');
+      setCurrentPassword('');
+      setNewPassword('');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Impossible de mettre à jour le mot de passe.';
+      toast.error('Erreur', message);
+    } finally {
+      setPasswordSubmitting(false);
+    }
+  };
+
+  const handleTwoFactorToggle = async (checked: boolean) => {
+    const previous = twoFactorAuth;
+    setTwoFactorAuth(checked);
+    try {
+      await updateSecuritySettings(checked);
+      toast.success(
+        checked ? '2FA activée' : '2FA désactivée',
+        checked
+          ? 'Un code de confirmation sera demandé à chaque connexion.'
+          : 'La connexion se fera désormais sans code de confirmation.'
+      );
+    } catch (err) {
+      setTwoFactorAuth(previous);
+      const message = err instanceof Error ? err.message : 'Impossible de modifier la 2FA.';
+      toast.error('Erreur', message);
+    }
   };
 
   const handleCopyApiKey = () => {
@@ -52,11 +140,18 @@ export default function Settings() {
     setTimeout(() => setCopiedKey(false), 2000);
   };
 
-  const handleExportBackup = () => {
-    toast.info('Sauvegarde en cours', 'Génération de l’archive JSON de la base de données...');
-    setTimeout(() => {
-      toast.success('Sauvegarde terminée', 'Fichier backup_portfolio_2026.json téléchargé.');
-    }, 1200);
+  const handleExportBackup = async () => {
+    setBackupLoading(true);
+    toast.info('Sauvegarde en cours', 'Génération de l\u2019archive JSON de la base de données...');
+    try {
+      await downloadBackup();
+      toast.success('Sauvegarde terminée', 'Le fichier JSON a été téléchargé.');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Impossible de générer la sauvegarde.';
+      toast.error('Erreur', message);
+    } finally {
+      setBackupLoading(false);
+    }
   };
 
   return (
@@ -67,8 +162,13 @@ export default function Settings() {
           <h2>Paramètres de l’Application</h2>
         </div>
 
-        <button type="button" className="btn btn-primary" onClick={handleSaveGeneral}>
-          <LuSave className="btn-icon" /> Enregistrer les paramètres
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={handleSaveGeneral}
+          disabled={savingGeneral || loadingInitial}
+        >
+          <LuSave className="btn-icon" /> {savingGeneral ? 'Enregistrement...' : 'Enregistrer les paramètres'}
         </button>
       </div>
 
@@ -114,46 +214,47 @@ export default function Settings() {
             </div>
           </div>
 
-          <div className="settings-form-grid">
-            <div className="field">
-              <label htmlFor="sitename">Titre global du Portfolio</label>
-              <input
-                id="sitename"
-                type="text"
-                value={siteName}
-                onChange={(e) => setSiteName(e.target.value)}
-              />
-            </div>
-
-            <div className="toggle-row">
-              <div className="toggle-info">
-                <p className="toggle-title">Mode Maintenance</p>
-                <p className="toggle-desc">Affiche une page en construction pour les visiteurs du site public.</p>
+          {loadingInitial ? (
+            <p>Chargement des paramètres...</p>
+          ) : (
+            <div className="settings-form-grid">
+              <div className="field">
+                <label htmlFor="sitename">Titre global du Portfolio</label>
+                <input
+                  id="sitename"
+                  type="text"
+                  value={siteName}
+                  onChange={(e) => setSiteName(e.target.value)}
+                />
               </div>
-              <input
-                type="checkbox"
-                className="switch-checkbox"
-                checked={maintenanceMode}
-                onChange={(e) => {
-                  setMaintenanceMode(e.target.checked);
-                  toast.info(e.target.checked ? 'Mode Maintenance activé' : 'Site public en ligne');
-                }}
-              />
-            </div>
 
-            <div className="toggle-row">
-              <div className="toggle-info">
-                <p className="toggle-title">Notifications par Email</p>
-                <p className="toggle-desc">Recevez une alerte lorsqu’un visiteur soumet le formulaire de contact.</p>
+              <div className="toggle-row">
+                <div className="toggle-info">
+                  <p className="toggle-title">Mode Maintenance</p>
+                  <p className="toggle-desc">Affiche une page en construction pour les visiteurs du site public.</p>
+                </div>
+                <input
+                  type="checkbox"
+                  className="switch-checkbox"
+                  checked={maintenanceMode}
+                  onChange={(e) => handleMaintenanceToggle(e.target.checked)}
+                />
               </div>
-              <input
-                type="checkbox"
-                className="switch-checkbox"
-                checked={emailNotifs}
-                onChange={(e) => setEmailNotifs(e.target.checked)}
-              />
+
+              <div className="toggle-row">
+                <div className="toggle-info">
+                  <p className="toggle-title">Notifications par Email</p>
+                  <p className="toggle-desc">Recevez une alerte lorsqu’un visiteur soumet le formulaire de contact.</p>
+                </div>
+                <input
+                  type="checkbox"
+                  className="switch-checkbox"
+                  checked={emailNotifs}
+                  onChange={(e) => setEmailNotifs(e.target.checked)}
+                />
+              </div>
             </div>
-          </div>
+          )}
         </section>
       )}
 
@@ -190,8 +291,8 @@ export default function Settings() {
               />
             </div>
 
-            <button type="submit" className="btn btn-secondary self-start">
-              Mettre à jour le mot de passe
+            <button type="submit" className="btn btn-secondary self-start" disabled={passwordSubmitting}>
+              {passwordSubmitting ? 'Mise à jour...' : 'Mettre à jour le mot de passe'}
             </button>
 
             <hr className="settings-divider" />
@@ -205,7 +306,8 @@ export default function Settings() {
                 type="checkbox"
                 className="switch-checkbox"
                 checked={twoFactorAuth}
-                onChange={(e) => setTwoFactorAuth(e.target.checked)}
+                disabled={loadingInitial}
+                onChange={(e) => handleTwoFactorToggle(e.target.checked)}
               />
             </div>
           </form>
@@ -278,8 +380,13 @@ export default function Settings() {
                 <h4>Sauvegarder les données du portfolio</h4>
                 <p>Exporte l’ensemble des projets, compétences et configurations dans un fichier JSON réutilisable.</p>
               </div>
-              <button type="button" className="btn btn-secondary" onClick={handleExportBackup}>
-                <LuDownload className="btn-icon" /> Télécharger l'archive JSON
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={handleExportBackup}
+                disabled={backupLoading}
+              >
+                <LuDownload className="btn-icon" /> {backupLoading ? 'Génération...' : "Télécharger l'archive JSON"}
               </button>
             </div>
           </div>

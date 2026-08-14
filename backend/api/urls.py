@@ -20,6 +20,10 @@ from .views import (
     certificate_delete,
     certificate_categories,
     analytics_data,
+    settings_view,
+    security_settings,
+    change_password,
+    backup_export,
 )
 
 urlpatterns = [
@@ -55,4 +59,10 @@ urlpatterns = [
     
     # Analytics routes
     path('analytics/', analytics_data, name='analytics_data'),
+    
+    ## Settings routes
+    path('settings/', settings_view, name='settings_view'),
+    path('settings/security/', security_settings, name='security_settings'),
+    path('settings/change-password/', change_password, name='change_password'),
+    path('settings/backup/', backup_export, name='backup_export'),
 ]

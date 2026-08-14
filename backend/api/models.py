@@ -280,7 +280,7 @@ class Journal(models.Model):
 class Settings(models.Model):
     titre_app = models.CharField(max_length=100)
     mode_maintenance = models.BooleanField(default=False)
-    notification_email = models.EmailField(blank=True, null=True)
+    notification_email = models.BooleanField(default=True)
 
     def __str__(self):
         return self.titre_app

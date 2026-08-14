@@ -299,3 +299,33 @@ export interface AnalyticsResponse {
   top_pages: TopPageStat[];
   top_countries: TopCountryStat[];
 }
+
+// Settings
+
+// Settings
+
+export interface SettingsData {
+  id: number;
+  titre_app: string;
+  mode_maintenance: boolean;
+  notification_email: boolean;
+}
+
+export interface SettingsResponse {
+  settings: SettingsData | null;
+}
+
+export interface SettingsUpdatePayload {
+  titre_app: string;
+  mode_maintenance: boolean;
+  notification_email: boolean;
+}
+
+export interface SecurityResponse {
+  two_factor_auth: boolean;
+}
+
+export interface ChangePasswordPayload {
+  current_password: string;
+  new_password: string;
+}
