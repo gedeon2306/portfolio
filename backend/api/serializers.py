@@ -130,13 +130,28 @@ class ProjectsSerializer(serializers.ModelSerializer):
 
 class ProjectsListSerializer(serializers.ModelSerializer):
     """Serializer léger pour les listes de projets"""
+    image = serializers.SerializerMethodField()
+    technologies = serializers.SerializerMethodField()
+    
     class Meta:
         model = Projects
         fields = [
             'id', 'titre', 'categorie', 'status', 'important', 
-            'image', 'created_at'
+            'description', 'image', 'url', 'code_source',
+            'created_at', 'updated_at', 'technologies'
         ]
-        read_only_fields = ['id', 'created_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+    
+    def get_image(self, obj):
+        if obj.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        return None
+    
+    def get_technologies(self, obj):
+        return [tech.technologie.libelle for tech in obj.tec_projets.all()]
 
 
 class CertificatesSerializer(serializers.ModelSerializer):

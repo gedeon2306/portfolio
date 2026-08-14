@@ -1,4 +1,4 @@
-import { useState, type KeyboardEvent } from 'react';
+import { useState, type KeyboardEvent, useEffect } from 'react';
 import {
   LuFolder,
   LuTrash2,
@@ -12,129 +12,201 @@ import {
   LuStar,
   LuGlobe,
   LuGlobeLock,
-  LuCode
+  LuCode,
+  LuImage,
 } from 'react-icons/lu';
 import { FiEdit3 } from 'react-icons/fi';
 import { useToast } from '../../context/ToastContext';
+import { Spinner } from '../../components/Spinner';
+import Pagination from '../../components/Pagination';
+import {
+  fetchProjects,
+  createProject,
+  updateProject,
+  patchProject,
+  deleteProject,
+  fetchProjectTechnologies,
+} from '../../api/Actions';
+import type { Project, Technology } from '../../types/Types';
 import './Projects.css';
 
-type Project = {
-  id: string;
-  name: string;
+type ProjectFormData = {
+  id?: string;
+  titre: string;
   description: string;
-  category: string;
-  status: boolean; // true = publié, false = brouillon
-  updatedAt: string;
+  categorie: string;
+  status: boolean;
   important: boolean;
-  githubUrl?: string;
-  demoUrl?: string;
-  image?: string;
-  doc?: string;
+  url: string;
+  code_source: string;
   technologies: string[];
 };
 
-const initialProjects: Project[] = [
-  {
-    id: 'p1',
-    name: 'Portfolio V2',
-    description: 'Refonte complète du portfolio personnel avec une identité visuelle moderne et animations Emiel Kowalski.',
-    category: 'Web',
-    status: true,
-    updatedAt: 'Il y a 2 jours',
-    important: true,
-    githubUrl: 'https://github.com/gedeon2306/portfolio',
-    demoUrl: 'https://gedeondupont.dev',
-    technologies: ['React', 'TypeScript', 'Vite'],
-  },
-  {
-    id: 'p2',
-    name: 'Dashboard Admin Console',
-    description: 'Interface d’administration complète pour la gestion des contenus, compétences et analytiques.',
-    category: 'Productivité',
-    status: true,
-    updatedAt: 'Il y a 5 jours',
-    important: true,
-    githubUrl: 'https://github.com/gedeon2306/admin-dashboard',
-    technologies: ['React', 'Django REST', 'PostgreSQL'],
-  },
-  {
-    id: 'p3',
-    name: 'Landing Agency Digital',
-    description: 'Landing page haute conversion pour une agence de création numérique avec design dark glass.',
-    category: 'Marketing',
-    status: false,
-    updatedAt: 'Il y a 1 semaine',
-    important: false,
-    technologies: ['Next.js', 'Tailwind CSS'],
-  },
-  {
-    id: 'p4',
-    name: 'Mobile Health Tracker',
-    description: 'Application mobile de suivi de santé et performances sportives temps réel.',
-    category: 'Mobile',
-    status: true,
-    updatedAt: 'Il y a 2 semaines',
-    important: false,
-    technologies: ['React Native', 'Expo'],
-  },
-  {
-    id: 'p5',
-    name: 'API REST Django Portfolio',
-    description: 'Backend sécurisé Django REST Framework avec gestion JWT et stockage des données.',
-    category: 'Backend',
-    status: true,
-    updatedAt: 'Il y a 3 semaines',
-    important: true,
-    technologies: ['Django', 'DRF', 'JWT'],
-  },
-];
+const initialFormData: ProjectFormData = {
+  titre: '',
+  description: '',
+  categorie: 'Web',
+  status: true,
+  important: false,
+  url: '',
+  code_source: '',
+  technologies: [],
+};
+
+// ✅ Fonction pour normaliser un projet
+const normalizeProject = (project: any): Project => {
+  // Gérer les technologies (peuvent être des objets ou des strings)
+  let technologies: Technology[] = [];
+  if (Array.isArray(project.technologies)) {
+    technologies = project.technologies.map((tech: any) => {
+      if (typeof tech === 'string') {
+        return { id: tech, libelle: tech, pourcentage: 0 };
+      }
+      return {
+        id: tech.id || tech.libelle,
+        libelle: tech.libelle || tech,
+        pourcentage: tech.pourcentage || 0,
+      };
+    });
+  }
+
+  return {
+    id: project.id,
+    titre: project.titre || project.name || '',
+    categorie: project.categorie || project.category || '',
+    status: project.status ?? false,
+    important: project.important ?? false,
+    description: project.description || '',
+    image: project.image || null,
+    url: project.url || project.demoUrl || null,
+    code_source: project.code_source || project.githubUrl || null,
+    created_at: project.created_at || project.createdAt || new Date().toISOString(),
+    updated_at: project.updated_at || project.updatedAt || new Date().toISOString(),
+    technologies: technologies,
+  };
+};
 
 export default function Projects() {
   const toast = useToast();
-  const [projects, setProjects] = useState<Project[]>(initialProjects);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedImportance, setSelectedImportance] = useState<string>('all');
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [pageSize] = useState(10);
+  const [isLoading, setIsLoading] = useState(false);
+
   // Modals state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [deleteConfirmProject, setDeleteConfirmProject] = useState<Project | null>(null);
 
   // Form State
-  const [formName, setFormName] = useState('');
-  const [formDesc, setFormDesc] = useState('');
-  const [formCat, setFormCat] = useState('Web');
-  const [formStatus, setFormStatus] = useState<boolean>(true);
+  const [formData, setFormData] = useState<ProjectFormData>(initialFormData);
   const [formImage, setFormImage] = useState<File | null>(null);
-  const [formUrl, setFormUrl] = useState('');
-  const [formCodeSource, setFormCodeSource] = useState('');
   const [formDoc, setFormDoc] = useState<File | null>(null);
-  const [formImportant, setFormImportant] = useState(false);
-  const [formTechnologies, setFormTechnologies] = useState<string[]>([]);
   const [techInput, setTechInput] = useState('');
+  const [isFormSubmitting, setIsFormSubmitting] = useState(false);
+  const [availableSkills, setAvailableSkills] = useState<string[]>([]);
 
-  const categories = ['all', 'Web', 'Mobile', 'Productivité', 'Marketing', 'Backend'];
-
-  const availableSkills = [
-    'React', 'Next.js', 'TypeScript', 'JavaScript', 'Vite',
-    'Django', 'Django REST', 'PostgreSQL', 'Node.js',
-    'Tailwind CSS', 'React Native', 'Expo', 'JWT',
+  // ✅ Catégories valides pour le backend
+  const categories = [
+    'Web',
+    'Mobile',
+    'Desktop',
+    'Data base',
+    'IA',
+    'DevOps',
+    'UI/UX',
+    'Réseaux',
+    'Cybersécurité',
+    'API',
+    'Productivité',
+    'Marketing',
+    'Backend',
+    'Autre',
   ];
 
+  // Chargement des données
+  const fetchProjectsData = async (page = 1) => {
+    setIsLoading(true);
+    try {
+      const params: {
+        page: number;
+        page_size: number;
+        search?: string;
+        category?: string;
+        status?: string;
+        important?: string;
+      } = {
+        page,
+        page_size: pageSize,
+      };
+
+      if (searchQuery) params.search = searchQuery;
+      if (selectedCategory !== 'all') params.category = selectedCategory;
+      if (selectedStatus !== 'all') params.status = selectedStatus;
+      if (selectedImportance !== 'all') params.important = selectedImportance;
+
+      const response = await fetchProjects(params);
+      
+      // ✅ Normaliser les projets
+      const normalizedProjects = response.results.map(normalizeProject);
+      setProjects(normalizedProjects);
+      setTotalCount(response.count);
+      setTotalPages(Math.ceil(response.count / pageSize));
+      setCurrentPage(page);
+    } catch (error: any) {
+      toast.error('Erreur', error.message || 'Impossible de charger les projets');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchTechnologies = async () => {
+    try {
+      const techs = await fetchProjectTechnologies();
+      setAvailableSkills(techs);
+    } catch (error) {
+      console.error('Erreur chargement technologies:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchProjectsData(1);
+    fetchTechnologies();
+  }, []);
+
+  // Recharger quand les filtres changent
+  useEffect(() => {
+    fetchProjectsData(1);
+  }, [searchQuery, selectedCategory, selectedStatus, selectedImportance]);
+
   const addTechnology = () => {
-    if (!techInput) return;
-    if (formTechnologies.includes(techInput)) {
+    if (!techInput.trim()) return;
+    if (formData.technologies.includes(techInput.trim())) {
       toast.error('Déjà ajoutée', `"${techInput}" est déjà dans la liste.`);
       return;
     }
-    setFormTechnologies((prev) => [...prev, techInput]);
+    setFormData((prev) => ({
+      ...prev,
+      technologies: [...prev.technologies, techInput.trim()],
+    }));
     setTechInput('');
   };
 
   const removeTechnology = (tech: string) => {
-    setFormTechnologies((prev) => prev.filter((t) => t !== tech));
+    setFormData((prev) => ({
+      ...prev,
+      technologies: prev.technologies.filter((t) => t !== tech),
+    }));
   };
 
   const handleTechInputKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -144,91 +216,281 @@ export default function Projects() {
     }
   };
 
-  const filteredProjects = projects
-    .filter((p) => {
-      const matchesSearch =
-        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.description.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory = selectedCategory === 'all' || p.category === selectedCategory;
-      const matchesStatus =
-        selectedStatus === 'all' ||
-        (selectedStatus === 'published' && p.status) ||
-        (selectedStatus === 'draft' && !p.status);
-      const matchesImportance =
-        selectedImportance === 'all' ||
-        (selectedImportance === 'important' && p.important) ||
-        (selectedImportance === 'normal' && !p.important);
-      return matchesSearch && matchesCategory && matchesStatus && matchesImportance;
-    })
-    // Tri : projets importants d'abord, puis publiés avant brouillons
-    .sort((a, b) => {
-      if (a.important !== b.important) return a.important ? -1 : 1;
-      if (a.status !== b.status) return a.status ? -1 : 1;
-      return 0;
-    });
+  const resetForm = () => {
+    setFormData(initialFormData);
+    setFormImage(null);
+    setFormDoc(null);
+    setTechInput('');
+    setEditingProject(null);
+  };
 
-  const handleCreateProject = () => {
-    if (!formName.trim() || !formDesc.trim()) {
+  const handleCreateProject = async () => {
+    if (!formData.titre.trim() || !formData.description.trim()) {
       toast.error('Champs manquants', 'Veuillez saisir un titre et une description.');
       return;
     }
 
-    const newProject: Project = {
-      id: `p-${Date.now()}`,
-      name: formName.trim(),
-      description: formDesc.trim(),
-      category: formCat,
-      status: formStatus,
-      updatedAt: 'À l’instant',
-      important: formImportant,
-      image: formImage ? URL.createObjectURL(formImage) : undefined,
-      githubUrl: formCodeSource || undefined,
-      demoUrl: formUrl || undefined,
-      doc: formDoc ? URL.createObjectURL(formDoc) : undefined,
-      technologies: formTechnologies,
-    };
+    setIsFormSubmitting(true);
+    try {
+      await createProject({
+        titre: formData.titre.trim(),
+        description: formData.description.trim(),
+        categorie: formData.categorie,
+        status: formData.status,
+        important: formData.important,
+        url: formData.url && formData.url.trim() !== '' ? formData.url.trim() : undefined,
+        code_source: formData.code_source && formData.code_source.trim() !== '' ? formData.code_source.trim() : undefined,
+        technologies: formData.technologies,
+        image: formImage || undefined,
+        doc: formDoc || undefined,
+      });
 
-    setProjects((prev) => [newProject, ...prev]);
-    setIsCreateModalOpen(false);
-    setFormName('');
-    setFormDesc('');
-    setFormCat('Web');
-    setFormStatus(true);
+      toast.success('Projet créé !', `Le projet "${formData.titre}" a été ajouté.`);
+      setIsCreateModalOpen(false);
+      resetForm();
+      fetchProjectsData(currentPage);
+    } catch (error: any) {
+      toast.error('Erreur', error.message || 'Impossible de créer le projet');
+    } finally {
+      setIsFormSubmitting(false);
+    }
+  };
+
+  const openEditModal = (project: Project) => {
+    setEditingProject(project);
+    setFormData({
+      id: project.id,
+      titre: project.titre,
+      description: project.description,
+      categorie: project.categorie,
+      status: project.status,
+      important: project.important,
+      url: project.url || '',
+      code_source: project.code_source || '',
+      technologies: (project.technologies as Technology[]).map((t) => t.libelle),
+    });
     setFormImage(null);
-    setFormUrl('');
-    setFormCodeSource('');
     setFormDoc(null);
-    setFormImportant(false);
-    setFormTechnologies([]);
-    setTechInput('');
-    toast.success('Projet créé !', `Le projet "${newProject.name}" a été ajouté.`);
+    setIsEditModalOpen(true);
   };
 
-  const handleDeleteProject = () => {
+  const handleUpdateProject = async () => {
+    if (!editingProject) return;
+    if (!formData.titre.trim() || !formData.description.trim()) {
+      toast.error('Champs manquants', 'Veuillez saisir un titre et une description.');
+      return;
+    }
+
+    setIsFormSubmitting(true);
+    try {
+      await updateProject(editingProject.id, {
+        titre: formData.titre.trim(),
+        description: formData.description.trim(),
+        categorie: formData.categorie,
+        status: formData.status,
+        important: formData.important,
+        url: formData.url && formData.url.trim() !== '' ? formData.url.trim() : undefined,
+        code_source: formData.code_source && formData.code_source.trim() !== '' ? formData.code_source.trim() : undefined,
+        technologies: formData.technologies,
+        image: formImage || undefined,
+        doc: formDoc || undefined,
+      });
+
+      toast.success('Projet mis à jour', `"${formData.titre}" a été modifié.`);
+      setIsEditModalOpen(false);
+      resetForm();
+      fetchProjectsData(currentPage);
+    } catch (error: any) {
+      toast.error('Erreur', error.message || 'Impossible de mettre à jour le projet');
+    } finally {
+      setIsFormSubmitting(false);
+    }
+  };
+
+  const handleDeleteProject = async () => {
     if (!deleteConfirmProject) return;
-    setProjects((prev) => prev.filter((p) => p.id !== deleteConfirmProject.id));
-    toast.info('Projet supprimé', `"${deleteConfirmProject.name}" a été retiré.`);
-    setDeleteConfirmProject(null);
+    try {
+      await deleteProject(deleteConfirmProject.id);
+      toast.info('Projet supprimé', `"${deleteConfirmProject.titre}" a été retiré.`);
+      setDeleteConfirmProject(null);
+      fetchProjectsData(currentPage);
+    } catch (error: any) {
+      toast.error('Erreur', error.message || 'Impossible de supprimer le projet');
+    }
   };
 
-  const toggleImportant = (id: string) => {
+  const toggleImportant = async (id: string) => {
     const target = projects.find((p) => p.id === id);
     if (!target) return;
     const next = !target.important;
-    setProjects((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, important: next } : p))
-    );
-    toast.info(next ? 'Projet mis en avant' : 'Projet retiré de la une');
+    try {
+      await patchProject(id, { important: next });
+      toast.info(next ? 'Projet mis en avant' : 'Projet retiré de la une');
+      fetchProjectsData(currentPage);
+    } catch (error: any) {
+      toast.error('Erreur', error.message || 'Impossible de mettre à jour');
+    }
   };
 
-  const toggleStatus = (id: string) => {
+  const toggleStatus = async (id: string) => {
     const target = projects.find((p) => p.id === id);
     if (!target) return;
     const next = !target.status;
-    setProjects((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, status: next } : p))
+    try {
+      await patchProject(id, { status: next });
+      toast.info(next ? 'Projet publié' : 'Projet passé en brouillon');
+      fetchProjectsData(currentPage);
+    } catch (error: any) {
+      toast.error('Erreur', error.message || 'Impossible de mettre à jour');
+    }
+  };
+
+  // ✅ Fonction de formatage de date robuste
+  const formatDate = (dateString: string | undefined | null): string => {
+    if (!dateString) return 'Date inconnue';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        return 'Date inconnue';
+      }
+      return date.toLocaleDateString('fr-FR', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      });
+    } catch {
+      return 'Date inconnue';
+    }
+  };
+
+  // ✅ Fonction pour supprimer une technologie existante du projet
+  const removeExistingTechnology = (techLibelle: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      technologies: prev.technologies.filter((t) => t !== techLibelle),
+    }));
+    toast.success('Technologie retirée', `"${techLibelle}" a été retirée du projet.`);
+  };
+
+  const renderProjectCard = (project: Project) => {
+    // ✅ Normaliser les technologies pour l'affichage
+    const techDisplay = project.technologies.map((tech) => {
+      if (typeof tech === 'string') {
+        return { id: tech, libelle: tech, pourcentage: 0 };
+      }
+      return tech;
+    });
+
+    return (
+      <article key={project.id} className="project-card">
+        <div className="project-card-header">
+          <div className="project-category-row">
+            <span className="badge badge-accent">{project.categorie || 'Non catégorisé'}</span>
+            <span className="badge badge-neutral">
+              {project.status ? '● Publié' : '○ Brouillon'}
+            </span>
+          </div>
+
+          <div className="project-quick-actions">
+            <button
+              type="button"
+              className={`status-btn ${project.status ? 'active' : ''}`}
+              onClick={() => toggleStatus(project.id)}
+              title={project.status ? 'Repasser en brouillon' : 'Publier'}
+            >
+              {project.status ? <LuGlobe /> : <LuGlobeLock />}
+            </button>
+            <button
+              type="button"
+              className={`star-btn ${project.important ? 'active' : ''}`}
+              onClick={() => toggleImportant(project.id)}
+              title={project.important ? 'Mis en avant' : 'Mettre en avant'}
+            >
+              <LuStar />
+            </button>
+          </div>
+        </div>
+
+        {/* ✅ Image du projet */}
+        {project.image && (
+          <div className="project-image-wrapper">
+            <img 
+              src={project.image} 
+              alt={project.titre} 
+              className="project-image"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = 'none';
+              }}
+            />
+          </div>
+        )}
+
+        <div className="project-body">
+          <h3>{project.titre}</h3>
+          <p className="project-desc">{project.description || 'Aucune description'}</p>
+          {techDisplay.length > 0 && (
+            <div className="project-tech-list">
+              {techDisplay.map((tech) => (
+                <span key={tech.id} className="tech-badge">
+                  <LuCode className="tech-icon" />
+                  {tech.libelle}
+                  {tech.pourcentage > 0 && (
+                    <span className="tech-percentage"> ({tech.pourcentage}%)</span>
+                  )}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="project-footer">
+          <span className="project-updated text-xs text-tertiary font-mono">
+            {formatDate(project.updated_at)}
+          </span>
+
+          <div className="project-actions">
+            {project.code_source && (
+              <a
+                href={project.code_source}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-ghost btn-icon-only"
+                title="Voir sur GitHub"
+              >
+                <LuGithub />
+              </a>
+            )}
+            {project.url && (
+              <a
+                href={project.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-ghost btn-icon-only"
+                title="Démonstration Live"
+              >
+                <LuExternalLink />
+              </a>
+            )}
+            <button
+              type="button"
+              className="btn btn-ghost btn-icon-only"
+              onClick={() => openEditModal(project)}
+              title="Modifier"
+            >
+              <FiEdit3 />
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost btn-icon-only danger"
+              onClick={() => setDeleteConfirmProject(project)}
+              title="Supprimer"
+            >
+              <LuTrash2 />
+            </button>
+          </div>
+        </div>
+      </article>
     );
-    toast.info(next ? 'Projet publié' : 'Projet passé en brouillon');
   };
 
   return (
@@ -244,7 +506,10 @@ export default function Projects() {
           <button
             type="button"
             className="btn btn-primary"
-            onClick={() => setIsCreateModalOpen(true)}
+            onClick={() => {
+              resetForm();
+              setIsCreateModalOpen(true);
+            }}
           >
             <LuPlus className="btn-icon" /> Nouveau Projet
           </button>
@@ -263,19 +528,17 @@ export default function Projects() {
           />
         </div>
 
-        {/* Filtre par catégorie */}
         <select
           value={selectedCategory}
           onChange={(e) => setSelectedCategory(e.target.value)}
           className="field-select"
         >
           <option value="all">Toutes les catégories</option>
-          {categories.filter((c) => c !== 'all').map((cat) => (
+          {categories.map((cat) => (
             <option key={cat} value={cat}>{cat}</option>
           ))}
         </select>
 
-        {/* Filtre par Statut */}
         <select
           value={selectedStatus}
           onChange={(e) => setSelectedStatus(e.target.value)}
@@ -286,7 +549,6 @@ export default function Projects() {
           <option value="draft">Brouillons</option>
         </select>
 
-        {/* Filtre par Importance */}
         <select
           value={selectedImportance}
           onChange={(e) => setSelectedImportance(e.target.value)}
@@ -297,7 +559,6 @@ export default function Projects() {
           <option value="normal">Normaux</option>
         </select>
 
-        {/* Toggle Vue Grille / Liste */}
         <div className="view-toggle-group">
           <button
             type="button"
@@ -318,8 +579,13 @@ export default function Projects() {
         </div>
       </div>
 
-      {/* Grille ou Liste de Projets */}
-      {filteredProjects.length === 0 ? (
+      {/* Contenu principal */}
+      {isLoading ? (
+        <div className="panel-card loading-panel">
+          <Spinner color="#6366f1" />
+          <p>Chargement des projets...</p>
+        </div>
+      ) : projects.length === 0 ? (
         <div className="panel-card empty-projects-panel">
           <LuFolder className="empty-icon" />
           <h3>Aucun projet trouvé</h3>
@@ -327,297 +593,89 @@ export default function Projects() {
           <button
             type="button"
             className="btn btn-primary"
-            onClick={() => setIsCreateModalOpen(true)}
+            onClick={() => {
+              resetForm();
+              setIsCreateModalOpen(true);
+            }}
           >
             <LuPlus className="btn-icon" /> Créer un projet
           </button>
         </div>
       ) : (
-        <div className={viewMode === 'grid' ? 'projects-grid' : 'projects-list-view'}>
-          {filteredProjects.map((project) => (
-            <article key={project.id} className="project-card">
-              <div className="project-card-header">
-                <div className="project-category-row">
-                  <span className="badge badge-accent">{project.category}</span>
-                  <span className="badge badge-neutral">
-                    {project.status ? '● Publié' : '○ Brouillon'}
-                  </span>
-                </div>
+        <>
+          <div className={viewMode === 'grid' ? 'projects-grid' : 'projects-list-view'}>
+            {projects.map(renderProjectCard)}
+          </div>
 
-                <div className="project-quick-actions">
-                  <button
-                    type="button"
-                    className={`status-btn ${project.status ? 'active' : ''}`}
-                    onClick={() => toggleStatus(project.id)}
-                    title={project.status ? 'Repasser en brouillon' : 'Publier'}
-                  >
-                    {project.status ? <LuGlobe /> : <LuGlobeLock />}
-                  </button>
-                  <button
-                    type="button"
-                    className={`star-btn ${project.important ? 'active' : ''}`}
-                    onClick={() => toggleImportant(project.id)}
-                    title={project.important ? 'Mis en avant' : 'Mettre en avant'}
-                  >
-                    <LuStar />
-                  </button>
-                </div>
-              </div>
-
-              <div className="project-body">
-                <h3>{project.name}</h3>
-                <p className="project-desc">{project.description}</p>
-                {project.technologies.length > 0 && (
-                  <div className="project-tech-list">
-                    {project.technologies.map((tech) => (
-                      <span key={tech} className="tech-badge">{tech}</span>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="project-footer">
-                <span className="project-updated text-xs text-tertiary font-mono">
-                  {project.updatedAt}
-                </span>
-
-                <div className="project-actions">
-                  {project.githubUrl && (
-                    <a
-                      href={project.githubUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn btn-ghost btn-icon-only"
-                      title="Voir sur GitHub"
-                    >
-                      <LuGithub />
-                    </a>
-                  )}
-                  {project.demoUrl && (
-                    <a
-                      href={project.demoUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn btn-ghost btn-icon-only"
-                      title="Démonstration Live"
-                    >
-                      <LuExternalLink />
-                    </a>
-                  )}
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-icon-only"
-                    onClick={() => toast.info('Édition', `Formulaire d'édition pour ${project.name}`)}
-                    title="Modifier"
-                  >
-                    <FiEdit3 />
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-icon-only danger"
-                    onClick={() => setDeleteConfirmProject(project)}
-                    title="Supprimer"
-                  >
-                    <LuTrash2 />
-                  </button>
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalCount={totalCount}
+            pageSize={pageSize}
+            onPageChange={(page) => fetchProjectsData(page)}
+          />
+        </>
       )}
 
       {/* Modal Création Projet */}
       {isCreateModalOpen && (
-        <div className="modal-overlay" onClick={() => setIsCreateModalOpen(false)}>
-          <div className="modal-card modal-lg" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Ajouter un Nouveau Projet</h3>
-              <button
-                type="button"
-                className="btn btn-ghost btn-icon-only"
-                onClick={() => setIsCreateModalOpen(false)}
-              >
-                <LuX />
-              </button>
-            </div>
+        <ProjectModal
+          title="Ajouter un Nouveau Projet"
+          submitLabel="Créer le projet"
+          isSubmitting={isFormSubmitting}
+          onClose={() => {
+            setIsCreateModalOpen(false);
+            resetForm();
+          }}
+          onSubmit={handleCreateProject}
+          formData={formData}
+          setFormData={setFormData}
+          formImage={formImage}
+          setFormImage={setFormImage}
+          formDoc={formDoc}
+          setFormDoc={setFormDoc}
+          techInput={techInput}
+          setTechInput={setTechInput}
+          addTechnology={addTechnology}
+          removeTechnology={removeTechnology}
+          handleTechInputKeyDown={handleTechInputKeyDown}
+          availableSkills={availableSkills}
+          categories={categories}
+          isEdit={false}
+          currentTechnologies={[]}
+        />
+      )}
 
-            <div className="modal-body">
-              <div className="field">
-                <label htmlFor="pname">Nom du projet</label>
-                <input
-                  id="pname"
-                  type="text"
-                  placeholder="Ex: App Web SaaS, Interface Mobile..."
-                  value={formName}
-                  onChange={(e) => setFormName(e.target.value)}
-                  autoFocus
-                />
-              </div>
-
-              <div className="field-row-triple">
-                <div className="field">
-                  <label htmlFor="pcat">Catégorie</label>
-                  <select
-                    id="pcat"
-                    value={formCat}
-                    onChange={(e) => setFormCat(e.target.value)}
-                    className="field-select"
-                  >
-                    <option value="Web">Web</option>
-                    <option value="Mobile">Mobile</option>
-                    <option value="Productivité">Productivité</option>
-                    <option value="Marketing">Marketing</option>
-                    <option value="Backend">Backend</option>
-                  </select>
-                </div>
-
-                <div className="field">
-                  <label htmlFor="pstatus">Statut de publication</label>
-                  <select
-                    id="pstatus"
-                    value={formStatus ? 'published' : 'draft'}
-                    onChange={(e) => setFormStatus(e.target.value === 'published')}
-                    className="field-select"
-                  >
-                    <option value="published">Publié</option>
-                    <option value="draft">Brouillon</option>
-                  </select>
-                </div>
-
-                <div className="field">
-                  <label htmlFor="pimportant">Importance</label>
-                  <select
-                    id="pimportant"
-                    value={formImportant ? 'important' : 'normal'}
-                    onChange={(e) => setFormImportant(e.target.value === 'important')}
-                    className="field-select"
-                  >
-                    <option value="normal">Normal</option>
-                    <option value="important">Important</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="field">
-                <label htmlFor="pdesc">Description détaillée</label>
-                <textarea
-                  id="pdesc"
-                  placeholder="Résumez l'objectif du projet, les technologies utilisées..."
-                  value={formDesc}
-                  onChange={(e) => setFormDesc(e.target.value)}
-                  rows={3}
-                />
-              </div>
-
-              <div className="field-row-dual">
-                <div className="field">
-                  <label htmlFor="purl">URL Démo</label>
-                  <input
-                    id="purl"
-                    type="text"
-                    placeholder="https://demo.exemple.com"
-                    value={formUrl}
-                    onChange={(e) => setFormUrl(e.target.value)}
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="psource">Code source (Git)</label>
-                  <input
-                    id="psource"
-                    type="text"
-                    placeholder="https://github.com/username/repo"
-                    value={formCodeSource}
-                    onChange={(e) => setFormCodeSource(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="field-row-dual">
-                <div className="field">
-                  <label htmlFor="pimage">Image (PNG/JPG) — optionnel</label>
-                  <input
-                    id="pimage"
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setFormImage(e.target.files ? e.target.files[0] : null)}
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="pdoc">Documentation (PDF, optionnel)</label>
-                  <input
-                    id="pdoc"
-                    type="file"
-                    accept="application/pdf"
-                    onChange={(e) => setFormDoc(e.target.files ? e.target.files[0] : null)}
-                  />
-                </div>
-              </div>
-
-              <div className="field">
-                <label htmlFor="ptech">Technologies</label>
-                <div className="tech-input-row">
-                  <select
-                    id="ptech"
-                    className="field-select"
-                    value={techInput}
-                    onChange={(e) => setTechInput(e.target.value)}
-                  >
-                    <option value="">Choisir une technologie...</option>
-                    {availableSkills
-                      .filter((skill) => !formTechnologies.includes(skill))
-                      .map((skill) => (
-                        <option key={skill} value={skill}>{skill}</option>
-                      ))}
-                  </select>
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={addTechnology}
-                  >
-                    <LuPlus className="btn-icon" /> Ajouter
-                  </button>
-                </div>
-                {formTechnologies.length > 0 && (
-                  <div className="tech-chips">
-                    {formTechnologies.map((tech) => (
-                      <span key={tech} className="tech-chip">
-                        <LuCode className="tech-chip-icon" />
-                        {tech}
-                        <button
-                          type="button"
-                          onClick={() => removeTechnology(tech)}
-                          title={`Retirer ${tech}`}
-                        >
-                          <LuX />
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="modal-actions">
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => setIsCreateModalOpen(false)}
-              >
-                Annuler
-              </button>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={handleCreateProject}
-              >
-                Créer le projet
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* Modal Édition Projet */}
+      {isEditModalOpen && editingProject && (
+        <ProjectModal
+          key={editingProject.id}
+          title={`Modifier : ${editingProject.titre}`}
+          submitLabel="Mettre à jour"
+          isSubmitting={isFormSubmitting}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            resetForm();
+          }}
+          onSubmit={handleUpdateProject}
+          formData={formData}
+          setFormData={setFormData}
+          formImage={formImage}
+          setFormImage={setFormImage}
+          formDoc={formDoc}
+          setFormDoc={setFormDoc}
+          techInput={techInput}
+          setTechInput={setTechInput}
+          addTechnology={addTechnology}
+          removeTechnology={removeTechnology}
+          handleTechInputKeyDown={handleTechInputKeyDown}
+          availableSkills={availableSkills}
+          categories={categories}
+          isEdit={true}
+          currentImage={editingProject.image}
+          currentTechnologies={editingProject.technologies.map((t) => typeof t === 'string' ? t : t.libelle)}
+          onRemoveExistingTechnology={removeExistingTechnology}
+        />
       )}
 
       {/* Modal Confirmation de Suppression */}
@@ -635,7 +693,15 @@ export default function Projects() {
               </button>
             </div>
             <div className="modal-body">
-              <p>Êtes-vous sûr de vouloir supprimer définitivement le projet <strong>« {deleteConfirmProject.name} »</strong> ?</p>
+              <p>
+                Êtes-vous sûr de vouloir supprimer définitivement le projet{' '}
+                <strong>« {deleteConfirmProject.titre} »</strong> ?
+              </p>
+              {deleteConfirmProject.image && (
+                <div className="delete-image-preview">
+                  <img src={deleteConfirmProject.image} alt="" />
+                </div>
+              )}
             </div>
             <div className="modal-actions">
               <button
@@ -656,6 +722,347 @@ export default function Projects() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// Composant Modal réutilisable pour Création et Édition
+interface ProjectModalProps {
+  title: string;
+  submitLabel: string;
+  isSubmitting: boolean;
+  onClose: () => void;
+  onSubmit: () => void;
+  formData: ProjectFormData;
+  setFormData: (data: ProjectFormData | ((prev: ProjectFormData) => ProjectFormData)) => void;
+  formImage: File | null;
+  setFormImage: (file: File | null) => void;
+  formDoc: File | null;
+  setFormDoc: (file: File | null) => void;
+  techInput: string;
+  setTechInput: (value: string) => void;
+  addTechnology: () => void;
+  removeTechnology: (tech: string) => void;
+  handleTechInputKeyDown: (e: KeyboardEvent<HTMLInputElement>) => void;
+  availableSkills: string[];
+  categories: string[];
+  isEdit?: boolean;
+  currentImage?: string | null;
+  currentTechnologies?: Technology[];
+  onRemoveExistingTechnology?: (techLibelle: string) => void;
+}
+
+function ProjectModal({
+  title,
+  submitLabel,
+  isSubmitting,
+  onClose,
+  onSubmit,
+  formData,
+  setFormData,
+  formImage,
+  setFormImage,
+  formDoc,
+  setFormDoc,
+  techInput,
+  setTechInput,
+  addTechnology,
+  removeTechnology,
+  handleTechInputKeyDown,
+  availableSkills,
+  categories,
+  isEdit = false,
+  currentImage,
+  currentTechnologies = [],
+  onRemoveExistingTechnology,
+}: ProjectModalProps) {
+  const updateField = <K extends keyof ProjectFormData>(
+    field: K,
+    value: ProjectFormData[K]
+  ) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-card modal-lg" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h3>{title}</h3>
+          <button
+            type="button"
+            className="btn btn-ghost btn-icon-only"
+            onClick={onClose}
+            disabled={isSubmitting}
+          >
+            <LuX />
+          </button>
+        </div>
+
+        <div className="modal-body">
+          <div className="field">
+            <label htmlFor="pname">Nom du projet *</label>
+            <input
+              id="pname"
+              type="text"
+              placeholder="Ex: App Web SaaS, Interface Mobile..."
+              value={formData.titre}
+              onChange={(e) => updateField('titre', e.target.value)}
+              autoFocus
+              disabled={isSubmitting}
+              required
+            />
+          </div>
+
+          <div className="field-row-triple">
+            <div className="field">
+              <label htmlFor="pcat">Catégorie *</label>
+              <select
+                id="pcat"
+                value={formData.categorie}
+                onChange={(e) => updateField('categorie', e.target.value)}
+                className="field-select"
+                disabled={isSubmitting}
+              >
+                {categories.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="field">
+              <label htmlFor="pstatus">Statut de publication</label>
+              <select
+                id="pstatus"
+                value={formData.status ? 'published' : 'draft'}
+                onChange={(e) => updateField('status', e.target.value === 'published')}
+                className="field-select"
+                disabled={isSubmitting}
+              >
+                <option value="published">Publié</option>
+                <option value="draft">Brouillon</option>
+              </select>
+            </div>
+
+            <div className="field">
+              <label htmlFor="pimportant">Importance</label>
+              <select
+                id="pimportant"
+                value={formData.important ? 'important' : 'normal'}
+                onChange={(e) => updateField('important', e.target.value === 'important')}
+                className="field-select"
+                disabled={isSubmitting}
+              >
+                <option value="normal">Normal</option>
+                <option value="important">Important</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="field">
+            <label htmlFor="pdesc">Description détaillée *</label>
+            <textarea
+              id="pdesc"
+              placeholder="Résumez l'objectif du projet, les technologies utilisées..."
+              value={formData.description}
+              onChange={(e) => updateField('description', e.target.value)}
+              rows={3}
+              disabled={isSubmitting}
+              required
+            />
+          </div>
+
+          <div className="field-row-dual">
+            <div className="field">
+              <label htmlFor="purl">URL Démo (optionnel)</label>
+              <input
+                id="purl"
+                type="url"
+                placeholder="https://demo.exemple.com"
+                value={formData.url}
+                onChange={(e) => updateField('url', e.target.value)}
+                disabled={isSubmitting}
+              />
+              <p className="field-hint text-xs text-tertiary">
+                Laissez vide si vous n'avez pas de démo en ligne
+              </p>
+            </div>
+
+            <div className="field">
+              <label htmlFor="psource">Code source (Git) (optionnel)</label>
+              <input
+                id="psource"
+                type="url"
+                placeholder="https://github.com/username/repo"
+                value={formData.code_source}
+                onChange={(e) => updateField('code_source', e.target.value)}
+                disabled={isSubmitting}
+              />
+              <p className="field-hint text-xs text-tertiary">
+                Laissez vide si le code n'est pas public
+              </p>
+            </div>
+          </div>
+
+          <div className="field-row-dual">
+            <div className="field">
+              <label htmlFor="pimage">Image (PNG/JPG) — optionnel</label>
+              {isEdit && currentImage && !formImage && (
+                <div className="current-image-preview">
+                  <img src={currentImage} alt="Image actuelle" />
+                  <p className="text-xs text-tertiary">Image actuelle</p>
+                </div>
+              )}
+              <input
+                id="pimage"
+                type="file"
+                accept="image/*"
+                onChange={(e) => setFormImage(e.target.files ? e.target.files[0] : null)}
+                disabled={isSubmitting}
+              />
+              {formImage && (
+                <p className="file-name text-xs text-tertiary">
+                  <LuImage className="file-icon" /> {formImage.name}
+                </p>
+              )}
+            </div>
+
+            <div className="field">
+              <label htmlFor="pdoc">Documentation (PDF, optionnel)</label>
+              <input
+                id="pdoc"
+                type="file"
+                accept="application/pdf"
+                onChange={(e) => setFormDoc(e.target.files ? e.target.files[0] : null)}
+                disabled={isSubmitting}
+              />
+              {formDoc && (
+                <p className="file-name text-xs text-tertiary">
+                  📎 {formDoc.name}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="field">
+            <label htmlFor="ptech">Technologies</label>
+            <p className="field-hint text-xs text-tertiary">
+              {isEdit 
+                ? 'Cliquez sur le X pour retirer une technologie existante, ou ajoutez-en une nouvelle'
+                : 'Sélectionnez une compétence existante ou tapez un nom pour l\'ajouter'
+              }
+            </p>
+
+            {/* ✅ Affichage des technologies existantes du projet (mode édition) */}
+            {isEdit && currentTechnologies.length > 0 && (
+              <div className="current-tech-list">
+                <p className="text-xs text-secondary">Technologies actuelles :</p>
+                <div className="tech-chips">
+                  {currentTechnologies.map((tech) => {
+                    const isStillInForm = formData.technologies.includes(tech.libelle);
+                    return (
+                      <span 
+                        key={tech.id} 
+                        className={`tech-chip ${!isStillInForm ? 'tech-chip-removed' : ''}`}
+                      >
+                        <LuCode className="tech-chip-icon" />
+                        {tech.libelle}
+                        {tech.pourcentage > 0 && (
+                          <span className="tech-percentage"> ({tech.pourcentage}%)</span>
+                        )}
+                        {isStillInForm && onRemoveExistingTechnology && (
+                          <button
+                            type="button"
+                            onClick={() => onRemoveExistingTechnology(tech.libelle)}
+                            title={`Retirer ${tech.libelle}`}
+                            disabled={isSubmitting}
+                            className="tech-remove-btn"
+                          >
+                            <LuX />
+                          </button>
+                        )}
+                        {!isStillInForm && (
+                          <span className="tech-removed-badge">(retirée)</span>
+                        )}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* ✅ Ajout de nouvelles technologies */}
+            <div className="tech-input-row">
+              <input
+                id="ptech"
+                type="text"
+                placeholder="Ex: React, Django, TypeScript..."
+                value={techInput}
+                onChange={(e) => setTechInput(e.target.value)}
+                onKeyDown={handleTechInputKeyDown}
+                list="tech-suggestions"
+                disabled={isSubmitting}
+              />
+              <datalist id="tech-suggestions">
+                {availableSkills
+                  .filter((skill) => !formData.technologies.includes(skill))
+                  .map((skill) => (
+                    <option key={skill} value={skill} />
+                  ))}
+              </datalist>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={addTechnology}
+                disabled={isSubmitting || !techInput.trim()}
+              >
+                <LuPlus className="btn-icon" /> Ajouter
+              </button>
+            </div>
+
+            {/* ✅ Technologies ajoutées dans cette session */}
+            {formData.technologies.length > 0 && (
+              <div className="tech-chips">
+                <p className="text-xs text-secondary">Technologies à ajouter :</p>
+                {formData.technologies.map((tech) => (
+                  <span key={tech} className="tech-chip tech-chip-new">
+                    <LuCode className="tech-chip-icon" />
+                    {tech}
+                    <button
+                      type="button"
+                      onClick={() => removeTechnology(tech)}
+                      title={`Retirer ${tech}`}
+                      disabled={isSubmitting}
+                    >
+                      <LuX />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="modal-actions">
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={onClose}
+            disabled={isSubmitting}
+          >
+            Annuler
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={onSubmit}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? <Spinner color="#ffffff" /> : submitLabel}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
