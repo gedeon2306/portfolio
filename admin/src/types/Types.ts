@@ -158,3 +158,45 @@ export interface SkillCategoryInput {
 export interface SkillsSavePayload {
   categories: SkillCategoryInput[];
 }
+
+// Projects
+export interface Technology {
+  id: string;
+  libelle: string;
+  pourcentage: number;
+}
+
+export interface Project {
+  id: string;
+  titre: string;
+  categorie: string;
+  status: boolean;
+  important: boolean;
+  description: string;
+  image: string | null;
+  url: string | null;
+  code_source: string | null;
+  created_at: string;
+  updated_at: string;
+  technologies: Technology[] | string[];
+}
+
+export interface ProjectListResponse {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: Project[];
+}
+
+export interface ProjectCreatePayload {
+  titre: string;
+  description: string;
+  categorie: string;
+  status?: boolean;
+  important?: boolean;
+  url?: string;
+  code_source?: string;
+  technologies?: string[];
+  image?: File | null;
+  doc?: File | null;
+}

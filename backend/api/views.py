@@ -14,6 +14,9 @@ from django.db import models, transaction
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.contrib.auth.models import BaseUserManager
+from django.db.models import Q, Case, When, Value, IntegerField, Count, Sum
+from django.utils import timezone
+from datetime import datetime, timedelta
 
 from .tokens import email_confirmation_token_generator
 from .email_utils import send_login_email
@@ -39,6 +42,7 @@ from .serializers import (
     MyInfoSerializer,
     LanguesSerializer,
     ProjectsSerializer,
+    ProjectsListSerializer,
     TechnologiesSerializer,
     CertificatesSerializer,
     JournalSerializer,
@@ -46,11 +50,12 @@ from .serializers import (
     MyTokenObtainPairSerializer
 )
 
-from django.db.models import Q, Case, When, Value, IntegerField, Count, Sum
-from django.utils import timezone
-from datetime import datetime, timedelta
-
 logger = logging.getLogger(__name__)
+
+
+# ============================================================================
+# UTILITAIRES
+# ============================================================================
 
 def _error_server():
     return Response({
@@ -95,6 +100,50 @@ def _check_api_key(cle):
 
 def log_journal(action_text):
     Journal.objects.create(action=action_text)
+
+
+def _serialize_technologies_for_frontend(project):
+    """Retourne la liste des technologies associées à un projet (format frontend)."""
+    return [
+        {
+            "id": str(tech.id),
+            "libelle": tech.technologie.libelle,
+            "pourcentage": tech.technologie.pourcentage,
+        }
+        for tech in project.tec_projets.all()
+    ]
+
+
+def _serialize_skill_categories():
+    """Formate les catégories + compétences dans le format attendu par le frontend
+    (SkillCategory { id, title, skills: SkillItem[] })."""
+    categories = Skills.objects.all().order_by('competence')
+    data = []
+    for cat in categories:
+        skills_qs = cat.skills_list.all().order_by('libelle')
+        data.append({
+            "id": str(cat.id),
+            "title": cat.competence,
+            "skills": [
+                {
+                    "id": str(s.id),
+                    "libelle": s.libelle,
+                    "pourcentage": s.pourcentage,
+                }
+                for s in skills_qs
+            ],
+        })
+    return data
+
+
+class DashboardPageViewsPagination(PageNumberPagination):
+    page_size = 10
+
+
+class ProjectsPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 100
 
 
 @extend_schema(
@@ -213,7 +262,7 @@ def confirm_login(request):
     api_key = request.data.get('apiKey', '')
     
     if not uidb64 or not token or not code:
-        return  _bad_request("Données de confirmation manquantes.")
+        return _bad_request("Données de confirmation manquantes.")
     
     api_key_error = _check_api_key(api_key)
     if api_key_error:
@@ -240,10 +289,6 @@ def confirm_login(request):
         "access": str(refresh.access_token),
         "refresh": str(refresh)
     }, status=status.HTTP_200_OK)
-        
-
-class DashboardPageViewsPagination(PageNumberPagination):
-    page_size = 10
 
 
 @extend_schema(
@@ -352,7 +397,7 @@ def dashboard_home(request):
 
     except Exception:
         return _error_server()
-    
+
 
 @extend_schema(
     tags=["MyInfo"],
@@ -535,28 +580,6 @@ def my_info(request):
         return _error_server()
 
 
-def _serialize_skill_categories():
-    """Formate les catégories + compétences dans le format attendu par le frontend
-    (SkillCategory { id, title, skills: SkillItem[] })."""
-    categories = Skills.objects.all().order_by('competence')
-    data = []
-    for cat in categories:
-        skills_qs = cat.skills_list.all().order_by('libelle')
-        data.append({
-            "id": str(cat.id),
-            "title": cat.competence,
-            "skills": [
-                {
-                    "id": str(s.id),
-                    "libelle": s.libelle,
-                    "pourcentage": s.pourcentage,
-                }
-                for s in skills_qs
-            ],
-        })
-    return data
-
-
 @extend_schema(
     tags=["Skills"],
     summary="Récupérer ou mettre à jour les compétences",
@@ -697,4 +720,370 @@ def skills_management(request):
         return _error_server()
 
 
+@extend_schema(
+    tags=["Projects"],
+    summary="Récupérer la liste des projets (paginated)",
+    description="Retourne la liste paginée des projets avec filtres (catégorie, statut, important, recherche).",
+    parameters=[
+        OpenApiParameter(name="search", type=OpenApiTypes.STR, required=False, 
+                        description="Recherche par titre ou description"),
+        OpenApiParameter(name="category", type=OpenApiTypes.STR, required=False,
+                        description="Filtrer par catégorie (Web, Mobile, Productivité, Marketing, Backend)"),
+        OpenApiParameter(name="status", type=OpenApiTypes.STR, required=False,
+                        description="Filtrer par statut (published | draft | all)"),
+        OpenApiParameter(name="important", type=OpenApiTypes.STR, required=False,
+                        description="Filtrer par importance (important | normal | all)"),
+        OpenApiParameter(name="page", type=OpenApiTypes.INT, required=False,
+                        description="Numéro de page (pagination de 10)"),
+    ],
+    responses={
+        200: inline_serializer(
+            name="ProjectsListSuccess",
+            fields={
+                "count": drf_serializers.IntegerField(),
+                "next": drf_serializers.CharField(allow_null=True),
+                "previous": drf_serializers.CharField(allow_null=True),
+                "results": drf_serializers.ListField(),
+            }
+        ),
+    },
+)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def projects_list(request):
+    try:
+        queryset = Projects.objects.all().order_by('-important', '-status', '-updated_at')
+
+        # Filtres
+        search = request.query_params.get('search', '').strip()
+        category = request.query_params.get('category', '').strip()
+        status_filter = request.query_params.get('status', '').strip()
+        important_filter = request.query_params.get('important', '').strip()
+
+        if search:
+            queryset = queryset.filter(
+                Q(titre__icontains=search) | Q(description__icontains=search)
+            )
+
+        if category and category != 'all':
+            queryset = queryset.filter(categorie=category)
+
+        if status_filter and status_filter != 'all':
+            if status_filter == 'published':
+                queryset = queryset.filter(status=True)
+            elif status_filter == 'draft':
+                queryset = queryset.filter(status=False)
+
+        if important_filter and important_filter != 'all':
+            if important_filter == 'important':
+                queryset = queryset.filter(important=True)
+            elif important_filter == 'normal':
+                queryset = queryset.filter(important=False)
+
+        paginator = ProjectsPagination()
+        paginated = paginator.paginate_queryset(queryset, request)
+        
+        serializer = ProjectsListSerializer(paginated, many=True, context={'request': request})
+        
+        return paginator.get_paginated_response(serializer.data)
+
+    except Exception as e:
+        logger.exception(f"Erreur dans projects_list: {str(e)}")
+        return _error_server()
+
+
+@extend_schema(
+    tags=["Projects"],
+    summary="Récupérer un projet par son ID",
+    responses={200: ProjectsSerializer(), 404: inline_serializer(name="NotFound", fields={"error": drf_serializers.CharField()})},
+)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def project_detail(request, pk):
+    try:
+        project = Projects.objects.get(pk=pk)
+        serializer = ProjectsSerializer(project, context={'request': request})
+        data = serializer.data
+        data['technologies'] = _serialize_technologies_for_frontend(project)
+        return Response(data, status=status.HTTP_200_OK)
+    except Projects.DoesNotExist:
+        return _not_found("Projet")
+
+
+@extend_schema(
+    tags=["Projects"],
+    summary="Créer un nouveau projet",
+    request=inline_serializer(
+        name="ProjectCreateRequest",
+        fields={
+            "titre": drf_serializers.CharField(),
+            "description": drf_serializers.CharField(),
+            "categorie": drf_serializers.CharField(),
+            "status": drf_serializers.BooleanField(default=False),
+            "important": drf_serializers.BooleanField(default=False),
+            "url": drf_serializers.URLField(required=False, allow_blank=True),
+            "code_source": drf_serializers.URLField(required=False, allow_blank=True),
+            "technologies": drf_serializers.ListField(
+                child=drf_serializers.CharField(),
+                required=False,
+                help_text="Liste des noms de technologies (libellé exact)",
+            ),
+        }
+    ),
+    responses={201: ProjectsSerializer()},
+)
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def project_create(request):
+    try:
+        data = request.data.copy()
+        
+        # Gestion des fichiers
+        if 'image' in request.FILES:
+            data['image'] = request.FILES['image']
+        if 'doc' in request.FILES:
+            data['doc'] = request.FILES['doc']
+
+        # Récupération de la liste des technologies
+        technologies_names = data.pop('technologies', [])
+        if isinstance(technologies_names, str):
+            try:
+                technologies_names = json.loads(technologies_names)
+            except json.JSONDecodeError:
+                technologies_names = []
+
+        if not isinstance(technologies_names, list):
+            technologies_names = []
+
+        # Mapping des champs frontend -> backend (pour compatibilité)
+        if 'titre' not in data and 'name' in data:
+            data['titre'] = data.pop('name')
+        if 'categorie' not in data and 'category' in data:
+            data['categorie'] = data.pop('category')
+        if 'url' not in data and 'demoUrl' in data:
+            data['url'] = data.pop('demoUrl')
+        if 'code_source' not in data and 'githubUrl' in data:
+            data['code_source'] = data.pop('githubUrl')
+
+        # Validation
+        if not data.get('titre') or not data.get('description'):
+            return _bad_request("Titre et description requis")
+
+        serializer = ProjectsSerializer(data=data, context={'request': request})
+        if not serializer.is_valid():
+            logger.error(f"Validation errors: {serializer.errors}")
+            return Response(
+                {"error": "Données invalides", "details": serializer.errors},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        with transaction.atomic():
+            project = serializer.save()
+            log_journal(f"Ajout du projet: {project.titre}")
+
+            # Ajout des technologies
+            for tech_name in technologies_names:
+                tech_name = tech_name.strip()
+                if not tech_name:
+                    continue
+                try:
+                    # Recherche du skill_list correspondant
+                    skill_list = Skills_list.objects.filter(libelle=tech_name).first()
+                    if skill_list:
+                        Technologies.objects.create(project=project, technologie=skill_list)
+                    else:
+                        logger.warning(f"Technologie non trouvée: {tech_name}")
+                except Exception as e:
+                    logger.warning(f"Erreur lors de l'ajout de la technologie {tech_name}: {e}")
+
+        # Recharger le projet avec ses relations
+        project.refresh_from_db()
+        response_data = ProjectsSerializer(project, context={'request': request}).data
+        response_data['technologies'] = _serialize_technologies_for_frontend(project)
+        return Response(response_data, status=status.HTTP_201_CREATED)
+
+    except Exception as e:
+        logger.exception(f"Erreur dans project_create: {str(e)}")
+        return _error_server()
+
+
+@extend_schema(
+    tags=["Projects"],
+    summary="Mettre à jour un projet existant",
+    request=inline_serializer(
+        name="ProjectUpdateRequest",
+        fields={
+            "titre": drf_serializers.CharField(required=False),
+            "description": drf_serializers.CharField(required=False),
+            "categorie": drf_serializers.CharField(required=False),
+            "status": drf_serializers.BooleanField(required=False),
+            "important": drf_serializers.BooleanField(required=False),
+            "url": drf_serializers.URLField(required=False, allow_blank=True),
+            "code_source": drf_serializers.URLField(required=False, allow_blank=True),
+            "remove_image": drf_serializers.BooleanField(required=False),
+            "remove_doc": drf_serializers.BooleanField(required=False),
+            "technologies": drf_serializers.ListField(
+                child=drf_serializers.CharField(),
+                required=False,
+                help_text="Liste des noms de technologies (remplace la liste existante)",
+            ),
+        }
+    ),
+    responses={200: ProjectsSerializer()},
+)
+@api_view(['PUT', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def project_update(request, pk):
+    try:
+        project = Projects.objects.get(pk=pk)
+
+        data = request.data.copy()
+        is_patch = request.method == 'PATCH'
+
+        # Gestion des fichiers
+        if 'image' in request.FILES:
+            data['image'] = request.FILES['image']
+        if 'doc' in request.FILES:
+            data['doc'] = request.FILES['doc']
+
+        # Suppression des fichiers
+        if data.get('remove_image') == 'true' or data.get('remove_image') is True:
+            if project.image:
+                project.image.delete(save=False)
+            data['image'] = None
+
+        if data.get('remove_doc') == 'true' or data.get('remove_doc') is True:
+            if project.doc:
+                project.doc.delete(save=False)
+            data['doc'] = None
+
+        # Mapping des champs frontend -> backend (pour compatibilité)
+        if 'titre' not in data and 'name' in data:
+            data['titre'] = data.pop('name')
+        if 'categorie' not in data and 'category' in data:
+            data['categorie'] = data.pop('category')
+        if 'url' not in data and 'demoUrl' in data:
+            data['url'] = data.pop('demoUrl')
+        if 'code_source' not in data and 'githubUrl' in data:
+            data['code_source'] = data.pop('githubUrl')
+
+        # Récupération des technologies
+        technologies_names = data.pop('technologies', None)
+        if technologies_names is not None:
+            if isinstance(technologies_names, str):
+                try:
+                    technologies_names = json.loads(technologies_names)
+                except json.JSONDecodeError:
+                    technologies_names = []
+            if not isinstance(technologies_names, list):
+                technologies_names = []
+
+        # Mise à jour du projet
+        serializer = ProjectsSerializer(
+            project, 
+            data=data, 
+            partial=is_patch, 
+            context={'request': request}
+        )
+        if not serializer.is_valid():
+            return Response(
+                {"error": "Données invalides", "details": serializer.errors},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        with transaction.atomic():
+            updated_project = serializer.save()
+            log_journal(f"Mise à jour du projet: {updated_project.titre}")
+
+            # Synchronisation des technologies
+            if technologies_names is not None:
+                # Supprimer les anciennes technologies
+                updated_project.tec_projets.all().delete()
+
+                # Ajouter les nouvelles technologies
+                for tech_name in technologies_names:
+                    tech_name = tech_name.strip()
+                    if not tech_name:
+                        continue
+                    skill_list = Skills_list.objects.filter(libelle=tech_name).first()
+                    if skill_list:
+                        Technologies.objects.create(project=updated_project, technologie=skill_list)
+
+        updated_project.refresh_from_db()
+        response_data = ProjectsSerializer(updated_project, context={'request': request}).data
+        response_data['technologies'] = _serialize_technologies_for_frontend(updated_project)
+        return Response(response_data, status=status.HTTP_200_OK)
+
+    except Projects.DoesNotExist:
+        return _not_found("Projet")
+    except Exception as e:
+        logger.exception(f"Erreur dans project_update: {str(e)}")
+        return _error_server()
+
+
+@extend_schema(
+    tags=["Projects"],
+    summary="Supprimer un projet",
+    responses={
+        204: None,
+        404: inline_serializer(name="NotFound", fields={"error": drf_serializers.CharField()}),
+    },
+)
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def project_delete(request, pk):
+    try:
+        project = Projects.objects.get(pk=pk)
+        project_name = project.titre
+
+        with transaction.atomic():
+            # Suppression des fichiers associés
+            if project.image:
+                project.image.delete(save=False)
+            if project.doc:
+                project.doc.delete(save=False)
+            project.delete()
+
+        log_journal(f"Suppression du projet: {project_name}")
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    except Projects.DoesNotExist:
+        return _not_found("Projet")
+    except Exception as e:
+        logger.exception(f"Erreur dans project_delete: {str(e)}")
+        return _error_server()
+
+
+@extend_schema(
+    tags=["Projects"],
+    summary="Récupérer les catégories disponibles",
+    responses={
+        200: inline_serializer(
+            name="CategoriesList",
+            fields={"categories": drf_serializers.ListField()}
+        )
+    },
+)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def project_categories(request):
+    categories = [cat[0] for cat in Projects.PROJECT_CATEGORIES]
+    return Response({"categories": categories}, status=status.HTTP_200_OK)
+
+
+@extend_schema(
+    tags=["Projects"],
+    summary="Récupérer toutes les technologies disponibles",
+    responses={
+        200: inline_serializer(
+            name="TechnologiesList",
+            fields={"technologies": drf_serializers.ListField()}
+        )
+    },
+)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def project_technologies(request):
+    techs = Skills_list.objects.all().values_list('libelle', flat=True).distinct().order_by('libelle')
+    return Response({"technologies": list(techs)}, status=status.HTTP_200_OK)
 
