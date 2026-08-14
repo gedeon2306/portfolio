@@ -19,6 +19,7 @@ from .views import (
     certificate_update,
     certificate_delete,
     certificate_categories,
+    analytics_data,
 )
 
 urlpatterns = [
@@ -51,4 +52,7 @@ urlpatterns = [
     path('certificates/<uuid:pk>/', certificate_detail, name='certificate_detail'),
     path('certificates/<uuid:pk>/update/', certificate_update, name='certificate_update'),
     path('certificates/<uuid:pk>/delete/', certificate_delete, name='certificate_delete'),
+    
+    # Analytics routes
+    path('analytics/', analytics_data, name='analytics_data'),
 ]

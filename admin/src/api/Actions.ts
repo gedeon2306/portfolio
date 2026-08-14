@@ -12,6 +12,8 @@ import type {
   Certificate,
   CertificateListResponse,
   CertificateCreatePayload,
+  AnalyticsRange,
+  AnalyticsResponse,
 } from '../types/Types';
  
 // Dashboard
@@ -326,4 +328,13 @@ export async function deleteCertificate(id: string): Promise<void> {
 export async function fetchCertificateCategories(): Promise<string[]> {
   const { data } = await api.get<{ categories: string[] }>('certificates/categories/');
   return data.categories;
+}
+
+// Analytics
+
+export async function fetchAnalytics(range: AnalyticsRange = '30d'): Promise<AnalyticsResponse> {
+  const { data } = await api.get<AnalyticsResponse>('analytics/', {
+    params: { range },
+  });
+  return data;
 }

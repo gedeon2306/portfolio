@@ -247,3 +247,55 @@ export interface CertificateCreatePayload {
   important?: boolean;
   image?: File | null;
 }
+
+// Analytics
+
+export type AnalyticsRange = '7d' | '30d' | '1y';
+
+export interface AnalyticsKpiTrend {
+  value: number;
+  trend_pct: number;
+}
+
+export interface AnalyticsDurationKpi {
+  value_seconds: number;
+  trend_seconds: number;
+}
+
+export interface AnalyticsBounceKpi {
+  value_pct: number;
+  trend_pct: number;
+}
+
+export interface AnalyticsKpis {
+  total_visits: AnalyticsKpiTrend;
+  unique_visitors: AnalyticsKpiTrend;
+  avg_session_duration: AnalyticsDurationKpi;
+  bounce_rate: AnalyticsBounceKpi;
+}
+
+export interface WeeklyTrafficPoint {
+  day: string;
+  date: string;
+  visits: number;
+}
+
+export interface TopPageStat {
+  path: string;
+  views: number;
+  pct: number;
+}
+
+export interface TopCountryStat {
+  country: string;
+  code: string | null;
+  pct: number;
+}
+
+export interface AnalyticsResponse {
+  range: AnalyticsRange;
+  kpis: AnalyticsKpis;
+  weekly_traffic: WeeklyTrafficPoint[];
+  top_pages: TopPageStat[];
+  top_countries: TopCountryStat[];
+}

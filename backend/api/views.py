@@ -14,7 +14,8 @@ from django.db import models, transaction
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.contrib.auth.models import BaseUserManager
-from django.db.models import Q, Case, When, Value, IntegerField, Count, Sum
+from django.core.cache import cache
+from django.db.models import Q, Case, When, Value, IntegerField, Count, Sum, Min, Max
 from django.utils import timezone
 from datetime import datetime, timedelta
 
@@ -1262,5 +1263,210 @@ def certificate_delete(request, pk):
 def certificate_categories(request):
     categories = [cat[0] for cat in Certificates.CERTIFICATION_CATEGORIES]
     return Response({"categories": categories}, status=status.HTTP_200_OK)
+
+
+FR_WEEKDAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
+
+ANALYTICS_RANGE_DAYS = {
+    '7d': 7,
+    '30d': 30,
+    '1y': 365,
+}
+
+
+def get_geo_country(ip_address):
+    """
+    Résout le pays d'une IP via ip-api.com (gratuit, ~45 req/min).
+    Mise en cache 7 jours pour éviter de spammer l'API.
+    Retourne (nom_pays, code_iso_alpha2 | None).
+    """
+    if not ip_address:
+        return ("Inconnu", None)
+
+    cache_key = f"geoip_country:{ip_address}"
+    cached = cache.get(cache_key)
+    if cached:
+        return cached
+
+    if ip_address in ('127.0.0.1', 'localhost', '::1') or ip_address.startswith(('10.', '192.168.', '172.16.')):
+        result = ("Local", None)
+    else:
+        try:
+            resp = requests.get(
+                f"http://ip-api.com/json/{ip_address}",
+                params={"fields": "status,country,countryCode"},
+                timeout=1.5,
+            )
+            payload = resp.json()
+            if payload.get('status') == 'success':
+                result = (payload.get('country') or "Inconnu", payload.get('countryCode'))
+            else:
+                result = ("Inconnu", None)
+        except Exception:
+            result = ("Inconnu", None)
+
+    cache.set(cache_key, result, 60 * 60 * 24 * 7)
+    return result
+
+
+def _session_stats(queryset):
+    """Retourne (taux_de_rebond_pct, duree_moyenne_session_secondes) pour un queryset Dashboard."""
+    sessions = list(
+        queryset.exclude(session_key__isnull=True)
+        .exclude(session_key='')
+        .values('session_key')
+        .annotate(cnt=Count('id'), first_ts=Min('timestamp'), last_ts=Max('timestamp'))
+    )
+
+    total_sessions = len(sessions)
+    if total_sessions == 0:
+        return 0.0, 0.0
+
+    bounce_sessions = sum(1 for s in sessions if s['cnt'] == 1)
+    bounce_rate = (bounce_sessions / total_sessions) * 100
+
+    total_duration = sum((s['last_ts'] - s['first_ts']).total_seconds() for s in sessions)
+    avg_duration = total_duration / total_sessions
+
+    return round(bounce_rate, 1), avg_duration
+
+
+def _trend_pct(current, previous):
+    if previous > 0:
+        return round(((current - previous) / previous) * 100, 1)
+    return 100.0 if current > 0 else 0.0
+
+
+@extend_schema(
+    tags=["Dashboard"],
+    summary="Statistiques d'analytics (trafic, pages, géographie)",
+    description="Retourne les KPIs, le trafic des 7 derniers jours, les pages les plus vues et la répartition géographique pour la période choisie.",
+    parameters=[
+        OpenApiParameter(name="range", type=OpenApiTypes.STR, required=False, description="7d | 30d | 1y (défaut: 30d)"),
+    ],
+    responses={
+        200: inline_serializer(
+            name="AnalyticsSuccess",
+            fields={
+                "range": drf_serializers.CharField(),
+                "kpis": drf_serializers.DictField(),
+                "weekly_traffic": drf_serializers.ListField(),
+                "top_pages": drf_serializers.ListField(),
+                "top_countries": drf_serializers.ListField(),
+            }
+        ),
+        401: inline_serializer(name="AnalyticsError", fields={"error": drf_serializers.CharField()}),
+    },
+)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def analytics_data(request):
+    try:
+        range_param = request.query_params.get('range', '30d')
+        days = ANALYTICS_RANGE_DAYS.get(range_param, 30)
+
+        now = timezone.now()
+        period_start = now - timedelta(days=days)
+        previous_start = period_start - timedelta(days=days)
+
+        current_qs = Dashboard.objects.filter(timestamp__gte=period_start, timestamp__lte=now)
+        previous_qs = Dashboard.objects.filter(timestamp__gte=previous_start, timestamp__lt=period_start)
+
+        # --- KPIs ---
+        total_visits = current_qs.count()
+        total_visits_prev = previous_qs.count()
+
+        unique_visitors = current_qs.exclude(ip_address__isnull=True).values('ip_address').distinct().count()
+        unique_visitors_prev = previous_qs.exclude(ip_address__isnull=True).values('ip_address').distinct().count()
+
+        bounce_rate, avg_duration = _session_stats(current_qs)
+        bounce_rate_prev, avg_duration_prev = _session_stats(previous_qs)
+
+        kpis = {
+            "total_visits": {
+                "value": total_visits,
+                "trend_pct": _trend_pct(total_visits, total_visits_prev),
+            },
+            "unique_visitors": {
+                "value": unique_visitors,
+                "trend_pct": _trend_pct(unique_visitors, unique_visitors_prev),
+            },
+            "avg_session_duration": {
+                "value_seconds": int(avg_duration),
+                "trend_seconds": int(avg_duration - avg_duration_prev),
+            },
+            "bounce_rate": {
+                "value_pct": bounce_rate,
+                "trend_pct": round(bounce_rate - bounce_rate_prev, 1),
+            },
+        }
+
+        # --- Trafic (toujours les 7 derniers jours, pour le graphique) ---
+        weekly_traffic = []
+        for i in range(6, -1, -1):
+            day_date = (now - timedelta(days=i)).date()
+            day_start = timezone.make_aware(datetime.combine(day_date, datetime.min.time()))
+            day_end = day_start + timedelta(days=1)
+            visits = Dashboard.objects.filter(timestamp__gte=day_start, timestamp__lt=day_end).count()
+            weekly_traffic.append({
+                "day": FR_WEEKDAYS[day_date.weekday()],
+                "date": day_date.isoformat(),
+                "visits": visits,
+            })
+
+        # --- Top pages ---
+        top_pages_qs = (
+            current_qs.values('path')
+            .annotate(views=Count('id'))
+            .order_by('-views')[:5]
+        )
+        top_pages = [
+            {
+                "path": row['path'],
+                "views": row['views'],
+                "pct": round((row['views'] / total_visits) * 100, 1) if total_visits else 0.0,
+            }
+            for row in top_pages_qs
+        ]
+
+        # --- Répartition géographique (résolue depuis les IPs de la période) ---
+        ip_counts_qs = (
+            current_qs.exclude(ip_address__isnull=True)
+            .exclude(ip_address='')
+            .values('ip_address')
+            .annotate(cnt=Count('id'))
+        )
+
+        country_counts = {}
+        country_codes = {}
+        resolved_total = 0
+        for row in ip_counts_qs:
+            country, code = get_geo_country(row['ip_address'])
+            country_counts[country] = country_counts.get(country, 0) + row['cnt']
+            country_codes[country] = code
+            resolved_total += row['cnt']
+
+        top_countries_sorted = sorted(country_counts.items(), key=lambda x: x[1], reverse=True)[:4]
+        top_countries = [
+            {
+                "country": name,
+                "code": country_codes.get(name),
+                "pct": round((count / resolved_total) * 100, 1) if resolved_total else 0.0,
+            }
+            for name, count in top_countries_sorted
+        ]
+
+        return Response({
+            "range": range_param,
+            "kpis": kpis,
+            "weekly_traffic": weekly_traffic,
+            "top_pages": top_pages,
+            "top_countries": top_countries,
+        }, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        logger.exception(f"Erreur dans analytics_data: {str(e)}")
+        return _error_server()
+
 
 
