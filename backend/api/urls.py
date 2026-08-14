@@ -13,6 +13,12 @@ from .views import (
     project_delete,
     project_categories,
     project_technologies,
+    certificates_list,
+    certificate_detail,
+    certificate_create,
+    certificate_update,
+    certificate_delete,
+    certificate_categories,
 )
 
 urlpatterns = [
@@ -37,4 +43,12 @@ urlpatterns = [
     path('projects/<uuid:pk>/', project_detail, name='project_detail'),
     path('projects/<uuid:pk>/update/', project_update, name='project_update'),
     path('projects/<uuid:pk>/delete/', project_delete, name='project_delete'),
+    
+    # Certificates routes
+    path('certificates/', certificates_list, name='certificates_list'),
+    path('certificates/create/', certificate_create, name='certificate_create'),
+    path('certificates/categories/', certificate_categories, name='certificate_categories'),
+    path('certificates/<uuid:pk>/', certificate_detail, name='certificate_detail'),
+    path('certificates/<uuid:pk>/update/', certificate_update, name='certificate_update'),
+    path('certificates/<uuid:pk>/delete/', certificate_delete, name='certificate_delete'),
 ]

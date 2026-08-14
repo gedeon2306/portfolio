@@ -1087,3 +1087,180 @@ def project_technologies(request):
     techs = Skills_list.objects.all().values_list('libelle', flat=True).distinct().order_by('libelle')
     return Response({"technologies": list(techs)}, status=status.HTTP_200_OK)
 
+
+class CertificatesPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
+
+@extend_schema(
+    tags=["Certificates"],
+    summary="Récupérer la liste des certificats (paginated)",
+    parameters=[
+        OpenApiParameter(name="search", type=OpenApiTypes.STR, required=False),
+        OpenApiParameter(name="category", type=OpenApiTypes.STR, required=False),
+        OpenApiParameter(name="status", type=OpenApiTypes.STR, required=False),
+        OpenApiParameter(name="important", type=OpenApiTypes.STR, required=False),
+        OpenApiParameter(name="page", type=OpenApiTypes.INT, required=False),
+    ],
+)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def certificates_list(request):
+    try:
+        queryset = Certificates.objects.all().order_by('-important', '-status', '-created_at')
+
+        search = request.query_params.get('search', '').strip()
+        category = request.query_params.get('category', '').strip()
+        status_filter = request.query_params.get('status', '').strip()
+        important_filter = request.query_params.get('important', '').strip()
+
+        if search:
+            queryset = queryset.filter(
+                Q(titre__icontains=search) | 
+                Q(description__icontains=search) |
+                Q(organisme__icontains=search)
+            )
+
+        if category and category != 'all':
+            queryset = queryset.filter(categorie=category)
+
+        if status_filter and status_filter != 'all':
+            if status_filter == 'published':
+                queryset = queryset.filter(status=True)
+            elif status_filter == 'draft':
+                queryset = queryset.filter(status=False)
+
+        if important_filter and important_filter != 'all':
+            if important_filter == 'important':
+                queryset = queryset.filter(important=True)
+            elif important_filter == 'normal':
+                queryset = queryset.filter(important=False)
+
+        paginator = CertificatesPagination()
+        paginated = paginator.paginate_queryset(queryset, request)
+        serializer = CertificatesSerializer(paginated, many=True, context={'request': request})
+
+        return paginator.get_paginated_response(serializer.data)
+
+    except Exception as e:
+        logger.exception(f"Erreur dans certificates_list: {str(e)}")
+        return _error_server()
+
+
+@extend_schema(tags=["Certificates"], summary="Récupérer un certificat par son ID")
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def certificate_detail(request, pk):
+    try:
+        cert = Certificates.objects.get(pk=pk)
+        serializer = CertificatesSerializer(cert, context={'request': request})
+        return Response(serializer.data)
+    except Certificates.DoesNotExist:
+        return _not_found("Certificat")
+
+
+@extend_schema(tags=["Certificates"], summary="Créer un nouveau certificat")
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def certificate_create(request):
+    try:
+        data = request.data.copy()
+
+        if 'image' in request.FILES:
+            data['image'] = request.FILES['image']
+
+        if not data.get('titre') or not data.get('description'):
+            return _bad_request("Titre et description requis")
+
+        serializer = CertificatesSerializer(data=data, context={'request': request})
+        if not serializer.is_valid():
+            return Response(
+                {"error": "Données invalides", "details": serializer.errors},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        cert = serializer.save()
+        log_journal(f"Ajout du certificat: {cert.titre}")
+
+        return Response(
+            CertificatesSerializer(cert, context={'request': request}).data,
+            status=status.HTTP_201_CREATED
+        )
+
+    except Exception as e:
+        logger.exception(f"Erreur dans certificate_create: {str(e)}")
+        return _error_server()
+
+
+@extend_schema(tags=["Certificates"], summary="Mettre à jour un certificat")
+@api_view(['PUT', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def certificate_update(request, pk):
+    try:
+        cert = Certificates.objects.get(pk=pk)
+        data = request.data.copy()
+        is_patch = request.method == 'PATCH'
+
+        if 'image' in request.FILES:
+            data['image'] = request.FILES['image']
+        elif data.get('remove_image') == 'true' or data.get('remove_image') is True:
+            if cert.image:
+                cert.image.delete(save=False)
+            data['image'] = None
+
+        serializer = CertificatesSerializer(
+            cert, data=data, partial=is_patch, context={'request': request}
+        )
+        if not serializer.is_valid():
+            return Response(
+                {"error": "Données invalides", "details": serializer.errors},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        updated = serializer.save()
+        log_journal(f"Mise à jour du certificat: {updated.titre}")
+
+        return Response(
+            CertificatesSerializer(updated, context={'request': request}).data,
+            status=status.HTTP_200_OK
+        )
+
+    except Certificates.DoesNotExist:
+        return _not_found("Certificat")
+    except Exception as e:
+        logger.exception(f"Erreur dans certificate_update: {str(e)}")
+        return _error_server()
+
+
+@extend_schema(tags=["Certificates"], summary="Supprimer un certificat")
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def certificate_delete(request, pk):
+    try:
+        cert = Certificates.objects.get(pk=pk)
+        cert_name = cert.titre
+
+        if cert.image:
+            cert.image.delete(save=False)
+        cert.delete()
+
+        log_journal(f"Suppression du certificat: {cert_name}")
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    except Certificates.DoesNotExist:
+        return _not_found("Certificat")
+    except Exception as e:
+        logger.exception(f"Erreur dans certificate_delete: {str(e)}")
+        return _error_server()
+
+
+@extend_schema(tags=["Certificates"], summary="Récupérer les catégories disponibles")
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def certificate_categories(request):
+    categories = [cat[0] for cat in Certificates.CERTIFICATION_CATEGORIES]
+    return Response({"categories": categories}, status=status.HTTP_200_OK)
+
+

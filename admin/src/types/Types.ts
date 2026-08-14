@@ -200,3 +200,50 @@ export interface ProjectCreatePayload {
   image?: File | null;
   doc?: File | null;
 }
+
+// CERTIFICATES
+export interface Certificate {
+  id: string;
+  titre: string;
+  description: string;
+  categorie: string;
+  organisme: string | null;
+  date: string | null;
+  url: string | null;
+  image: string | null;
+  status: boolean;
+  important: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CertificateListResponse {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: Certificate[];
+}
+
+export interface CertificateFormData {
+  id?: string;
+  titre: string;
+  description: string;
+  categorie: string;
+  organisme?: string;
+  date?: string;
+  url?: string;
+  status: boolean;
+  important: boolean;
+}
+
+export interface CertificateCreatePayload {
+  titre: string;
+  description: string;
+  categorie: string;
+  organisme?: string;
+  date?: string;
+  url?: string;
+  status?: boolean;
+  important?: boolean;
+  image?: File | null;
+}

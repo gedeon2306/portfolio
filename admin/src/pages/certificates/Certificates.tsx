@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type KeyboardEvent, useEffect } from 'react';
 import {
   LuPlus,
   LuSearch,
@@ -9,215 +9,342 @@ import {
   LuBadgeCheck,
   LuStar,
   LuGlobe,
-  LuGlobeLock
+  LuGlobeLock,
+  LuImage,
 } from 'react-icons/lu';
 import { FiEdit3 } from 'react-icons/fi';
 import { useToast } from '../../context/ToastContext';
+import { Spinner } from '../../components/Spinner';
+import Pagination from '../../components/Pagination';
+import {
+  fetchCertificates,
+  createCertificate,
+  updateCertificate,
+  patchCertificate,
+  deleteCertificate,
+  fetchCertificateCategories,
+} from '../../api/Actions';
+import type { Certificate, CertificateFormData, CertificateListResponse } from '../../types/Types';
 import './Certificates.css';
 
-export type CertificateItem = {
-  id: string;
-  titre: string;
-  description: string;
-  image?: string;
-  url?: string;
-  dateObtention?: string;
-  organisme?: string;
-  categorie: string;
-  status: boolean; // true = publié, false = brouillon
-  important: boolean;
+const initialFormData: CertificateFormData = {
+  titre: '',
+  description: '',
+  categorie: 'Web',
+  organisme: '',
+  date: '',
+  url: '',
+  status: true,
+  important: false,
 };
-
-export const CERTIFICATION_CATEGORIES: { value: string; label: string }[] = [
-  { value: 'IA', label: 'Intelligence Artificielle' },
-  { value: 'Web', label: 'Développement Web' },
-  { value: 'Mobile', label: 'Développement Mobile' },
-  { value: 'Data Base', label: 'Base de Données' },
-  { value: 'DevOps', label: 'DevOps' },
-  { value: 'UI/UX', label: 'UI/UX Design' },
-  { value: 'Réseaux', label: 'Réseaux et Télécommunications' },
-  { value: 'Cybersécurité', label: 'Cybersécurité' },
-  { value: 'Langue', label: 'Langue' },
-  { value: 'Gestion de Projet', label: 'Gestion de Projet' },
-  { value: 'Marketing Digital', label: 'Marketing Digital' },
-  { value: 'Linux', label: 'Administration Linux' },
-  { value: 'Data', label: 'Science des Données' },
-  { value: 'Cloud', label: 'Cloud Computing' },
-  { value: 'Langage de Programmation', label: 'Langage de Programmation' },
-  { value: 'Autre', label: 'Autre' },
-];
-
-const categoryLabel = (value: string) =>
-  CERTIFICATION_CATEGORIES.find((c) => c.value === value)?.label || value;
-
-const initialCertificates: CertificateItem[] = [
-  {
-    id: 'cert-1',
-    titre: 'AWS Certified Solutions Architect',
-    description: 'Certification validant la conception d’architectures distribuées et évolutives sur Amazon Web Services.',
-    url: 'https://aws.amazon.com/verification',
-    dateObtention: '2025',
-    organisme: 'Amazon Web Services',
-    categorie: 'Cloud',
-    status: true,
-    important: true,
-  },
-  {
-    id: 'cert-2',
-    titre: 'Meta Front-End Developer Professional',
-    description: 'Parcours complet couvrant React, JavaScript moderne, HTML5/CSS3, UX/UI et intégration d’APIs REST.',
-    url: 'https://coursera.org/verify/meta-frontend',
-    dateObtention: '2024',
-    organisme: 'Meta',
-    categorie: 'Web',
-    status: true,
-    important: false,
-  },
-  {
-    id: 'cert-3',
-    titre: 'Django Web Framework Specialist',
-    description: 'Maîtrise de l’ORM Django, de Django REST Framework, des signaux et de l’authentification JWT sécurisée.',
-    url: 'https://djangoproject.com',
-    dateObtention: '2024',
-    organisme: 'Python Software Foundation',
-    categorie: 'Web',
-    status: false,
-    important: false,
-  },
-];
 
 export default function Certificates() {
   const toast = useToast();
-  const [certificates, setCertificates] = useState<CertificateItem[]>(initialCertificates);
+  const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedImportance, setSelectedImportance] = useState<string>('all');
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [pageSize] = useState(10);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Modals state
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingCert, setEditingCert] = useState<CertificateItem | null>(null);
+  const [editingCert, setEditingCert] = useState<Certificate | null>(null);
+  const [deleteConfirmCert, setDeleteConfirmCert] = useState<Certificate | null>(null);
 
   // Form State
-  const [titre, setTitre] = useState('');
-  const [description, setDescription] = useState('');
-  const [url, setUrl] = useState('');
-  const [organisme, setOrganisme] = useState('');
-  const [dateObtention, setDateObtention] = useState('');
-  const [image, setImage] = useState('');
-  const [formCategorie, setFormCategorie] = useState<string>('Web');
-  const [formStatus, setFormStatus] = useState<boolean>(true);
-  const [formImportant, setFormImportant] = useState<boolean>(false);
+  const [formData, setFormData] = useState<CertificateFormData>(initialFormData);
+  const [formImage, setFormImage] = useState<File | null>(null);
+  const [isFormSubmitting, setIsFormSubmitting] = useState(false);
+  const [categories, setCategories] = useState<string[]>([]);
 
-  const filteredCertificates = certificates
-    .filter((cert) => {
-      const matchesSearch =
-        cert.titre.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        cert.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (cert.organisme && cert.organisme.toLowerCase().includes(searchQuery.toLowerCase()));
-      const matchesCategory = selectedCategory === 'all' || cert.categorie === selectedCategory;
-      const matchesStatus =
-        selectedStatus === 'all' ||
-        (selectedStatus === 'published' && cert.status) ||
-        (selectedStatus === 'draft' && !cert.status);
-      const matchesImportance =
-        selectedImportance === 'all' ||
-        (selectedImportance === 'important' && cert.important) ||
-        (selectedImportance === 'normal' && !cert.important);
-      return matchesSearch && matchesCategory && matchesStatus && matchesImportance;
-    })
-    // Tri : certifications importantes d'abord, puis publiées avant brouillons
-    .sort((a, b) => {
-      if (a.important !== b.important) return a.important ? -1 : 1;
-      if (a.status !== b.status) return a.status ? -1 : 1;
-      return 0;
-    });
+  // Chargement des données
+  const fetchCertificatesData = async (page = 1) => {
+    setIsLoading(true);
+    try {
+      const params: {
+        page: number;
+        page_size: number;
+        search?: string;
+        category?: string;
+        status?: string;
+        important?: string;
+      } = {
+        page,
+        page_size: pageSize,
+      };
+
+      if (searchQuery) params.search = searchQuery;
+      if (selectedCategory !== 'all') params.category = selectedCategory;
+      if (selectedStatus !== 'all') params.status = selectedStatus;
+      if (selectedImportance !== 'all') params.important = selectedImportance;
+
+      const response = await fetchCertificates(params);
+      setCertificates(response.results);
+      setTotalCount(response.count);
+      setTotalPages(Math.ceil(response.count / pageSize));
+      setCurrentPage(page);
+    } catch (error: any) {
+      toast.error('Erreur', error.message || 'Impossible de charger les certificats');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const cats = await fetchCertificateCategories();
+      setCategories(cats);
+    } catch (error) {
+      console.error('Erreur chargement catégories:', error);
+      // Fallback sur les catégories par défaut
+      setCategories([
+        'IA', 'Web', 'Mobile', 'Data Base', 'DevOps', 'UI/UX',
+        'Réseaux', 'Cybersécurité', 'Langue', 'Gestion de Projet',
+        'Marketing Digital', 'Linux', 'Data', 'Cloud',
+        'Langage de Programmation', 'Autre'
+      ]);
+    }
+  };
+
+  useEffect(() => {
+    fetchCertificatesData(1);
+    fetchCategories();
+  }, []);
+
+  // Recharger quand les filtres changent
+  useEffect(() => {
+    fetchCertificatesData(1);
+  }, [searchQuery, selectedCategory, selectedStatus, selectedImportance]);
+
+  const resetForm = () => {
+    setFormData(initialFormData);
+    setFormImage(null);
+    setEditingCert(null);
+  };
 
   const handleOpenCreateModal = () => {
-    setEditingCert(null);
-    setTitre('');
-    setDescription('');
-    setUrl('');
-    setOrganisme('');
-    setDateObtention('');
-    setImage('');
-    setFormCategorie('Web');
-    setFormStatus(true);
-    setFormImportant(false);
+    resetForm();
     setIsModalOpen(true);
   };
 
-  const handleOpenEditModal = (cert: CertificateItem) => {
+  const handleOpenEditModal = (cert: Certificate) => {
     setEditingCert(cert);
-    setTitre(cert.titre);
-    setDescription(cert.description);
-    setUrl(cert.url || '');
-    setOrganisme(cert.organisme || '');
-    setDateObtention(cert.dateObtention || '');
-    setImage(cert.image || '');
-    setFormCategorie(cert.categorie);
-    setFormStatus(cert.status);
-    setFormImportant(cert.important);
+    setFormData({
+      id: cert.id,
+      titre: cert.titre,
+      description: cert.description,
+      categorie: cert.categorie,
+      organisme: cert.organisme || '',
+      date: cert.date || '',
+      url: cert.url || '',
+      status: cert.status,
+      important: cert.important,
+    });
+    setFormImage(null);
     setIsModalOpen(true);
   };
 
-  const handleSaveCertificate = () => {
-    if (!titre.trim() || !description.trim()) {
+  const handleSaveCertificate = async () => {
+    if (!formData.titre.trim() || !formData.description.trim()) {
       toast.error('Champs manquants', 'Veuillez renseigner le titre et la description de la certification.');
       return;
     }
 
-    if (editingCert) {
-      setCertificates((prev) =>
-        prev.map((c) =>
-          c.id === editingCert.id
-            ? { ...c, titre: titre.trim(), description: description.trim(), url: url.trim(), organisme: organisme.trim(), dateObtention: dateObtention.trim(), image, categorie: formCategorie, status: formStatus, important: formImportant }
-            : c
-        )
-      );
-      toast.success('Certificat mis à jour', `La certification "${titre}" a été modifiée.`);
-    } else {
-      const newCert: CertificateItem = {
-        id: `cert-${Date.now()}`,
-        titre: titre.trim(),
-        description: description.trim(),
-        url: url.trim(),
-        organisme: organisme.trim() || 'Organisme de certification',
-        dateObtention: dateObtention.trim() || new Date().getFullYear().toString(),
-        image,
-        categorie: formCategorie,
-        status: formStatus,
-        important: formImportant,
-      };
-      setCertificates((prev) => [newCert, ...prev]);
-      toast.success('Certificat ajouté !', `La certification "${newCert.titre}" a été ajoutée.`);
+    setIsFormSubmitting(true);
+    try {
+      if (editingCert) {
+        await updateCertificate(editingCert.id, {
+          titre: formData.titre.trim(),
+          description: formData.description.trim(),
+          categorie: formData.categorie,
+          organisme: formData.organisme || undefined,
+          date: formData.date || undefined,
+          url: formData.url || undefined,
+          status: formData.status,
+          important: formData.important,
+          image: formImage || undefined,
+        });
+        toast.success('Certificat mis à jour', `La certification "${formData.titre}" a été modifiée.`);
+      } else {
+        await createCertificate({
+          titre: formData.titre.trim(),
+          description: formData.description.trim(),
+          categorie: formData.categorie,
+          organisme: formData.organisme || undefined,
+          date: formData.date || undefined,
+          url: formData.url || undefined,
+          status: formData.status,
+          important: formData.important,
+          image: formImage || undefined,
+        });
+        toast.success('Certificat ajouté !', `La certification "${formData.titre}" a été ajoutée.`);
+      }
+
+      setIsModalOpen(false);
+      resetForm();
+      fetchCertificatesData(currentPage);
+    } catch (error: any) {
+      toast.error('Erreur', error.message || 'Impossible de sauvegarder le certificat');
+    } finally {
+      setIsFormSubmitting(false);
     }
-
-    setIsModalOpen(false);
   };
 
-  const handleDeleteCertificate = (id: string, certTitre: string) => {
-    setCertificates((prev) => prev.filter((c) => c.id !== id));
-    toast.info('Certificat supprimé', `"${certTitre}" a été retiré.`);
+  const handleDeleteCertificate = async () => {
+    if (!deleteConfirmCert) return;
+    try {
+      await deleteCertificate(deleteConfirmCert.id);
+      toast.info('Certificat supprimé', `"${deleteConfirmCert.titre}" a été retiré.`);
+      setDeleteConfirmCert(null);
+      fetchCertificatesData(currentPage);
+    } catch (error: any) {
+      toast.error('Erreur', error.message || 'Impossible de supprimer le certificat');
+    }
   };
 
-  const toggleImportant = (id: string) => {
+  const toggleImportant = async (id: string) => {
     const target = certificates.find((c) => c.id === id);
     if (!target) return;
     const next = !target.important;
-    setCertificates((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, important: next } : c))
-    );
-    toast.info(next ? 'Certificat mis en avant' : 'Certificat retiré de la une');
+    try {
+      await patchCertificate(id, { important: next });
+      toast.info(next ? 'Certificat mis en avant' : 'Certificat retiré de la une');
+      fetchCertificatesData(currentPage);
+    } catch (error: any) {
+      toast.error('Erreur', error.message || 'Impossible de mettre à jour');
+    }
   };
 
-  const toggleStatus = (id: string) => {
+  const toggleStatus = async (id: string) => {
     const target = certificates.find((c) => c.id === id);
     if (!target) return;
     const next = !target.status;
-    setCertificates((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, status: next } : c))
-    );
-    toast.info(next ? 'Certificat publié' : 'Certificat passé en brouillon');
+    try {
+      await patchCertificate(id, { status: next });
+      toast.info(next ? 'Certificat publié' : 'Certificat passé en brouillon');
+      fetchCertificatesData(currentPage);
+    } catch (error: any) {
+      toast.error('Erreur', error.message || 'Impossible de mettre à jour');
+    }
   };
+
+  const formatDate = (dateString: string | undefined | null): string => {
+    if (!dateString) return 'Date inconnue';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        return dateString;
+      }
+      return date.toLocaleDateString('fr-FR', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      });
+    } catch {
+      return dateString;
+    }
+  };
+
+  const renderCertificateCard = (cert: Certificate) => (
+    <article key={cert.id} className="certificate-card">
+      <div className="certificate-card-top">
+        <div className="cert-badge-wrap">
+          <div className="cert-badge-icon">
+            <LuBadgeCheck />
+          </div>
+          <span className="cert-org-name">{cert.organisme || 'Certification'}</span>
+        </div>
+
+        <div className="cert-quick-actions">
+          <button
+            type="button"
+            className={`status-btn ${cert.status ? 'active' : ''}`}
+            onClick={() => toggleStatus(cert.id)}
+            title={cert.status ? 'Repasser en brouillon' : 'Publier'}
+          >
+            {cert.status ? <LuGlobe /> : <LuGlobeLock />}
+          </button>
+          <button
+            type="button"
+            className={`star-btn ${cert.important ? 'active' : ''}`}
+            onClick={() => toggleImportant(cert.id)}
+            title={cert.important ? 'Mis en avant' : 'Mettre en avant'}
+          >
+            <LuStar />
+          </button>
+        </div>
+      </div>
+
+      <div className="cert-meta-row">
+        <span className="badge badge-accent">{cert.categorie}</span>
+        <span className="badge badge-neutral">
+          {cert.status ? '● Publié' : '○ Brouillon'}
+        </span>
+        {cert.date && (
+          <span className="cert-date font-mono">{formatDate(cert.date)}</span>
+        )}
+      </div>
+
+      {cert.image && (
+        <div className="cert-image-wrapper">
+          <img 
+            src={cert.image} 
+            alt={cert.titre} 
+            className="cert-image"
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = 'none';
+            }}
+          />
+        </div>
+      )}
+
+      <div className="certificate-body">
+        <h3>{cert.titre}</h3>
+        <p>{cert.description}</p>
+      </div>
+
+      <div className="certificate-footer">
+        {cert.url ? (
+          <a
+            href={cert.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-ghost btn-xs cert-link-btn"
+          >
+            <LuExternalLink className="btn-icon" /> Vérifier le diplôme
+          </a>
+        ) : (
+          <span className="text-xs text-tertiary font-mono">Attestation enregistrée</span>
+        )}
+
+        <div className="project-actions">
+          <button
+            type="button"
+            className="btn btn-ghost btn-icon-only"
+            onClick={() => handleOpenEditModal(cert)}
+            title="Modifier"
+          >
+            <FiEdit3 />
+          </button>
+          <button
+            type="button"
+            className="btn btn-ghost btn-icon-only danger"
+            onClick={() => setDeleteConfirmCert(cert)}
+            title="Supprimer"
+          >
+            <LuTrash2 />
+          </button>
+        </div>
+      </div>
+    </article>
+  );
 
   return (
     <div className="certificates-page">
@@ -253,8 +380,8 @@ export default function Certificates() {
           className="field-select"
         >
           <option value="all">Toutes les catégories</option>
-          {CERTIFICATION_CATEGORIES.map((cat) => (
-            <option key={cat.value} value={cat.value}>{cat.label}</option>
+          {categories.map((cat) => (
+            <option key={cat} value={cat}>{cat}</option>
           ))}
         </select>
 
@@ -282,7 +409,12 @@ export default function Certificates() {
       </div>
 
       {/* Grille de Certificats */}
-      {filteredCertificates.length === 0 ? (
+      {isLoading ? (
+        <div className="panel-card loading-panel">
+          <Spinner color="#6366f1" />
+          <p>Chargement des certificats...</p>
+        </div>
+      ) : certificates.length === 0 ? (
         <div className="panel-card empty-projects-panel">
           <LuAward className="empty-icon" />
           <h3>Aucun certificat trouvé</h3>
@@ -292,241 +424,296 @@ export default function Certificates() {
           </button>
         </div>
       ) : (
-        <div className="certificates-grid">
-          {filteredCertificates.map((cert) => (
-            <article key={cert.id} className="certificate-card">
-              <div className="certificate-card-top">
-                <div className="cert-badge-wrap">
-                  <div className="cert-badge-icon">
-                    <LuBadgeCheck />
-                  </div>
-                  <span className="cert-org-name">{cert.organisme || 'Certification'}</span>
-                </div>
+        <>
+          <div className="certificates-grid">
+            {certificates.map(renderCertificateCard)}
+          </div>
 
-                <div className="cert-quick-actions">
-                  <button
-                    type="button"
-                    className={`status-btn ${cert.status ? 'active' : ''}`}
-                    onClick={() => toggleStatus(cert.id)}
-                    title={cert.status ? 'Repasser en brouillon' : 'Publier'}
-                  >
-                    {cert.status ? <LuGlobe /> : <LuGlobeLock />}
-                  </button>
-                  <button
-                    type="button"
-                    className={`star-btn ${cert.important ? 'active' : ''}`}
-                    onClick={() => toggleImportant(cert.id)}
-                    title={cert.important ? 'Mis en avant' : 'Mettre en avant'}
-                  >
-                    <LuStar />
-                  </button>
-                </div>
-              </div>
-
-              <div className="cert-meta-row">
-                <span className="badge badge-accent">{categoryLabel(cert.categorie)}</span>
-                <span className="badge badge-neutral">
-                  {cert.status ? '● Publié' : '○ Brouillon'}
-                </span>
-                {cert.dateObtention && (
-                  <span className="cert-date font-mono">{cert.dateObtention}</span>
-                )}
-              </div>
-
-              <div className="certificate-body">
-                <h3>{cert.titre}</h3>
-                <p>{cert.description}</p>
-              </div>
-
-              <div className="certificate-footer">
-                {cert.url ? (
-                  <a
-                    href={cert.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn btn-ghost btn-xs cert-link-btn"
-                  >
-                    <LuExternalLink className="btn-icon" /> Vérifier le diplôme
-                  </a>
-                ) : (
-                  <span className="text-xs text-tertiary font-mono">Attestation enregistrée</span>
-                )}
-
-                <div className="project-actions">
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-icon-only"
-                    onClick={() => handleOpenEditModal(cert)}
-                    title="Modifier"
-                  >
-                    <FiEdit3 />
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-icon-only danger"
-                    onClick={() => handleDeleteCertificate(cert.id, cert.titre)}
-                    title="Supprimer"
-                  >
-                    <LuTrash2 />
-                  </button>
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalCount={totalCount}
+            pageSize={pageSize}
+            onPageChange={(page) => fetchCertificatesData(page)}
+          />
+        </>
       )}
 
       {/* Modal Création / Édition */}
       {isModalOpen && (
-        <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
+        <CertificateModal
+          title={editingCert ? 'Modifier la certification' : 'Ajouter une nouvelle certification'}
+          submitLabel={editingCert ? 'Mettre à jour' : 'Enregistrer le certificat'}
+          isSubmitting={isFormSubmitting}
+          onClose={() => {
+            setIsModalOpen(false);
+            resetForm();
+          }}
+          onSubmit={handleSaveCertificate}
+          formData={formData}
+          setFormData={setFormData}
+          formImage={formImage}
+          setFormImage={setFormImage}
+          categories={categories}
+          isEdit={!!editingCert}
+          currentImage={editingCert?.image}
+        />
+      )}
+
+      {/* Modal Confirmation de Suppression */}
+      {deleteConfirmCert && (
+        <div className="modal-overlay" onClick={() => setDeleteConfirmCert(null)}>
           <div className="modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>{editingCert ? 'Modifier la certification' : 'Ajouter une nouvelle certification'}</h3>
+              <h3>Confirmer la suppression</h3>
               <button
                 type="button"
                 className="btn btn-ghost btn-icon-only"
-                onClick={() => setIsModalOpen(false)}
+                onClick={() => setDeleteConfirmCert(null)}
               >
                 <LuX />
               </button>
             </div>
-
             <div className="modal-body">
-              <div className="field">
-                <label htmlFor="ctitre">Titre de la certification</label>
-                <input
-                  id="ctitre"
-                  type="text"
-                  placeholder="Ex: AWS Certified Developer, Master React..."
-                  value={titre}
-                  onChange={(e) => setTitre(e.target.value)}
-                  autoFocus
-                />
-              </div>
-
-              <div className="field-row-triple">
-                <div className="field">
-                  <label htmlFor="corganisme">Organisme / Émetteur</label>
-                  <input
-                    id="corganisme"
-                    type="text"
-                    placeholder="Ex: Amazon Web Services, Meta, Coursera..."
-                    value={organisme}
-                    onChange={(e) => setOrganisme(e.target.value)}
-                  />
+              <p>
+                Êtes-vous sûr de vouloir supprimer définitivement la certification{' '}
+                <strong>« {deleteConfirmCert.titre} »</strong> ?
+              </p>
+              {deleteConfirmCert.image && (
+                <div className="delete-image-preview">
+                  <img src={deleteConfirmCert.image} alt="" />
                 </div>
-
-                <div className="field">
-                  <label htmlFor="cdate">Année / Date d'obtention</label>
-                  <input
-                    id="cdate"
-                    type="text"
-                    placeholder="Ex: 2026"
-                    value={dateObtention}
-                    onChange={(e) => setDateObtention(e.target.value)}
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="ccategorie">Catégorie</label>
-                  <select
-                    id="ccategorie"
-                    value={formCategorie}
-                    onChange={(e) => setFormCategorie(e.target.value)}
-                    className="field-select"
-                  >
-                    {CERTIFICATION_CATEGORIES.map((cat) => (
-                      <option key={cat.value} value={cat.value}>{cat.label}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="field-row-dual">
-                <div className="field">
-                  <label htmlFor="curl">URL de vérification ou badge</label>
-                  <input
-                    id="curl"
-                    type="url"
-                    placeholder="https://..."
-                    value={url}
-                    onChange={(e) => setUrl(e.target.value)}
-                  />
-                </div>
-
-                <div className="field">
-                  <label htmlFor="cimage">Image (PNG/JPG) — optionnel</label>
-                  <input
-                    id="cimage"
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files ? e.target.files[0] : null;
-                      setImage(file ? URL.createObjectURL(file) : '');
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div className="field-row-dual">
-                <div className="field">
-                  <label htmlFor="cstatus">Statut de publication</label>
-                  <select
-                    id="cstatus"
-                    value={formStatus ? 'published' : 'draft'}
-                    onChange={(e) => setFormStatus(e.target.value === 'published')}
-                    className="field-select"
-                  >
-                    <option value="published">Publié</option>
-                    <option value="draft">Brouillon</option>
-                  </select>
-                </div>
-
-                <div className="field">
-                  <label htmlFor="cimportant">Importance</label>
-                  <select
-                    id="cimportant"
-                    value={formImportant ? 'important' : 'normal'}
-                    onChange={(e) => setFormImportant(e.target.value === 'important')}
-                    className="field-select"
-                  >
-                    <option value="normal">Normal</option>
-                    <option value="important">Important</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="field">
-                <label htmlFor="cdesc">Description & Domaines d'expertise</label>
-                <textarea
-                  id="cdesc"
-                  placeholder="Précisez les compétences validées par ce certificat..."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={3}
-                />
-              </div>
+              )}
             </div>
-
             <div className="modal-actions">
               <button
                 type="button"
                 className="btn btn-secondary"
-                onClick={() => setIsModalOpen(false)}
+                onClick={() => setDeleteConfirmCert(null)}
               >
                 Annuler
               </button>
               <button
                 type="button"
-                className="btn btn-primary"
-                onClick={handleSaveCertificate}
+                className="btn btn-danger"
+                onClick={handleDeleteCertificate}
               >
-                {editingCert ? 'Mettre à jour' : 'Enregistrer le certificat'}
+                Supprimer le certificat
               </button>
             </div>
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// Composant Modal pour les certificats
+interface CertificateModalProps {
+  title: string;
+  submitLabel: string;
+  isSubmitting: boolean;
+  onClose: () => void;
+  onSubmit: () => void;
+  formData: CertificateFormData;
+  setFormData: (data: CertificateFormData | ((prev: CertificateFormData) => CertificateFormData)) => void;
+  formImage: File | null;
+  setFormImage: (file: File | null) => void;
+  categories: string[];
+  isEdit: boolean;
+  currentImage?: string | null;
+}
+
+function CertificateModal({
+  title,
+  submitLabel,
+  isSubmitting,
+  onClose,
+  onSubmit,
+  formData,
+  setFormData,
+  formImage,
+  setFormImage,
+  categories,
+  isEdit,
+  currentImage,
+}: CertificateModalProps) {
+  const updateField = <K extends keyof CertificateFormData>(
+    field: K,
+    value: CertificateFormData[K]
+  ) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h3>{title}</h3>
+          <button
+            type="button"
+            className="btn btn-ghost btn-icon-only"
+            onClick={onClose}
+            disabled={isSubmitting}
+          >
+            <LuX />
+          </button>
+        </div>
+
+        <div className="modal-body">
+          <div className="field">
+            <label htmlFor="ctitre">Titre de la certification *</label>
+            <input
+              id="ctitre"
+              type="text"
+              placeholder="Ex: AWS Certified Developer, Master React..."
+              value={formData.titre}
+              onChange={(e) => updateField('titre', e.target.value)}
+              autoFocus
+              disabled={isSubmitting}
+              required
+            />
+          </div>
+
+          <div className="field-row-triple">
+            <div className="field">
+              <label htmlFor="corganisme">Organisme</label>
+              <input
+                id="corganisme"
+                type="text"
+                placeholder="Ex: Amazon Web Services, Meta, Coursera..."
+                value={formData.organisme}
+                onChange={(e) => updateField('organisme', e.target.value)}
+                disabled={isSubmitting}
+              />
+            </div>
+
+            <div className="field">
+              <label htmlFor="cdate">Date d'obtention</label>
+              <input
+                id="cdate"
+                type="date"
+                value={formData.date}
+                onChange={(e) => updateField('date', e.target.value)}
+                disabled={isSubmitting}
+              />
+            </div>
+
+            <div className="field">
+              <label htmlFor="ccategorie">Catégorie *</label>
+              <select
+                id="ccategorie"
+                value={formData.categorie}
+                onChange={(e) => updateField('categorie', e.target.value)}
+                className="field-select"
+                disabled={isSubmitting}
+              >
+                {categories.map((cat) => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="field-row-dual">
+            <div className="field">
+              <label htmlFor="curl">URL de vérification (optionnel)</label>
+              <input
+                id="curl"
+                type="url"
+                placeholder="https://..."
+                value={formData.url}
+                onChange={(e) => updateField('url', e.target.value)}
+                disabled={isSubmitting}
+              />
+            </div>
+
+            <div className="field">
+              <label htmlFor="cimage">Image (PNG/JPG) — optionnel</label>
+              {isEdit && currentImage && !formImage && (
+                <div className="current-image-preview">
+                  <img src={currentImage} alt="Image actuelle" />
+                  <p className="text-xs text-tertiary">Image actuelle</p>
+                </div>
+              )}
+              <input
+                id="cimage"
+                type="file"
+                accept="image/*"
+                onChange={(e) => setFormImage(e.target.files ? e.target.files[0] : null)}
+                disabled={isSubmitting}
+              />
+              {formImage && (
+                <p className="file-name text-xs text-tertiary">
+                  <LuImage className="file-icon" /> {formImage.name}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="field-row-dual">
+            <div className="field">
+              <label htmlFor="cstatus">Statut de publication</label>
+              <select
+                id="cstatus"
+                value={formData.status ? 'published' : 'draft'}
+                onChange={(e) => updateField('status', e.target.value === 'published')}
+                className="field-select"
+                disabled={isSubmitting}
+              >
+                <option value="published">Publié</option>
+                <option value="draft">Brouillon</option>
+              </select>
+            </div>
+
+            <div className="field">
+              <label htmlFor="cimportant">Importance</label>
+              <select
+                id="cimportant"
+                value={formData.important ? 'important' : 'normal'}
+                onChange={(e) => updateField('important', e.target.value === 'important')}
+                className="field-select"
+                disabled={isSubmitting}
+              >
+                <option value="normal">Normal</option>
+                <option value="important">Important</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="field">
+            <label htmlFor="cdesc">Description & Domaines d'expertise *</label>
+            <textarea
+              id="cdesc"
+              placeholder="Précisez les compétences validées par ce certificat..."
+              value={formData.description}
+              onChange={(e) => updateField('description', e.target.value)}
+              rows={3}
+              disabled={isSubmitting}
+              required
+            />
+          </div>
+        </div>
+
+        <div className="modal-actions">
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={onClose}
+            disabled={isSubmitting}
+          >
+            Annuler
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={onSubmit}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? <Spinner color="#ffffff" /> : submitLabel}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
