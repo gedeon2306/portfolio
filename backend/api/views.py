@@ -8,6 +8,7 @@ from io import BytesIO
 from PIL import Image
 from decimal import Decimal, InvalidOperation
 
+from django.contrib.sites import requests
 from django.shortcuts import render, redirect
 from django.conf import settings
 from django.db import models, transaction
@@ -1469,4 +1470,174 @@ def analytics_data(request):
         return _error_server()
 
 
+@extend_schema(
+    tags=["Settings"],
+    summary="Récupérer ou mettre à jour les paramètres généraux",
+    description="GET : retourne la configuration actuelle. POST : crée/met à jour (upsert) le titre du site, le mode maintenance et les notifications email.",
+    request=inline_serializer(
+        name="SettingsUpdateRequest",
+        fields={
+            "titre_app": drf_serializers.CharField(),
+            "mode_maintenance": drf_serializers.BooleanField(required=False),
+            "email_notifications": drf_serializers.BooleanField(required=False),
+        }
+    ),
+    responses={
+        200: inline_serializer(name="SettingsSuccess", fields={"settings": SettingsSerializer()}),
+        400: inline_serializer(name="SettingsError", fields={"error": drf_serializers.CharField()}),
+    },
+)
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def settings_view(request):
+    try:
+        config = Settings.objects.first()
+
+        if request.method == 'GET':
+            if not config:
+                return Response({"settings": None}, status=status.HTTP_200_OK)
+            return Response({"settings": SettingsSerializer(config).data}, status=status.HTTP_200_OK)
+
+        titre_app = (request.data.get('titre_app') or '').strip()
+        if not titre_app:
+            return _bad_request("Titre du site")
+
+        data = {
+            "titre_app": titre_app,
+            "mode_maintenance": request.data.get('mode_maintenance', False),
+            "notification_email": request.data.get('notification_email', True),
+        }
+
+        if config is None:
+            serializer = SettingsSerializer(data=data)
+        else:
+            serializer = SettingsSerializer(config, data=data, partial=True)
+
+        if not serializer.is_valid():
+            return Response(
+                {"error": "Données invalides", "details": serializer.errors},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        saved = serializer.save()
+        log_journal("Mise à jour des paramètres généraux")
+
+        return Response({"settings": SettingsSerializer(saved).data}, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        logger.exception(f"Erreur dans settings_view: {str(e)}")
+        return _error_server()
+
+
+@extend_schema(
+    tags=["Settings"],
+    summary="Récupérer ou modifier l'état de la double authentification (2FA)",
+    request=inline_serializer(
+        name="SecurityUpdateRequest",
+        fields={"two_factor_auth": drf_serializers.BooleanField()}
+    ),
+    responses={
+        200: inline_serializer(
+            name="SecuritySuccess",
+            fields={"two_factor_auth": drf_serializers.BooleanField()}
+        ),
+    },
+)
+@api_view(['GET', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def security_settings(request):
+    user = request.user
+
+    if request.method == 'GET':
+        return Response({"two_factor_auth": user.dfa}, status=status.HTTP_200_OK)
+
+    value = request.data.get('two_factor_auth')
+    if value is None:
+        return _bad_request("two_factor_auth")
+
+    user.dfa = bool(value)
+    user.save()
+    log_journal(f"{'Activation' if user.dfa else 'Désactivation'} de la double authentification (2FA)")
+
+    return Response({"two_factor_auth": user.dfa}, status=status.HTTP_200_OK)
+
+
+@extend_schema(
+    tags=["Settings"],
+    summary="Changer le mot de passe administrateur",
+    request=inline_serializer(
+        name="ChangePasswordRequest",
+        fields={
+            "current_password": drf_serializers.CharField(),
+            "new_password": drf_serializers.CharField(),
+        }
+    ),
+    responses={
+        200: inline_serializer(name="ChangePasswordSuccess", fields={"message": drf_serializers.CharField()}),
+        400: inline_serializer(name="ChangePasswordError", fields={"error": drf_serializers.CharField()}),
+    },
+)
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def change_password(request):
+    current_password = request.data.get('current_password', '')
+    new_password = request.data.get('new_password', '')
+
+    if not current_password or not new_password:
+        return _bad_request("Mot de passe actuel et nouveau mot de passe")
+
+    user = request.user
+
+    if not user.check_password(current_password):
+        return _bad_request("Mot de passe actuel incorrect")
+
+    if len(new_password) < 8:
+        return _bad_request("Le nouveau mot de passe doit contenir au moins 8 caractères")
+
+    user.set_password(new_password)
+    user.save()
+    log_journal("Changement du mot de passe administrateur")
+
+    return Response({"message": "Mot de passe mis à jour avec succès."}, status=status.HTTP_200_OK)
+
+
+@extend_schema(
+    tags=["Settings"],
+    summary="Exporter une sauvegarde JSON complète du portfolio",
+    responses={200: OpenApiTypes.BINARY},
+)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def backup_export(request):
+    try:
+        info = MyInfo.objects.first()
+        config = Settings.objects.first()
+
+        backup = {
+            "exported_at": timezone.now().isoformat(),
+            "my_info": MyInfoSerializer(info, context={'request': request}).data if info else None,
+            "langues": LanguesSerializer(Langues.objects.all(), many=True).data,
+            "skills": _serialize_skill_categories(),
+            "projects": ProjectsListSerializer(
+                Projects.objects.all(), many=True, context={'request': request}
+            ).data,
+            "certificates": CertificatesSerializer(
+                Certificates.objects.all(), many=True, context={'request': request}
+            ).data,
+            "settings": SettingsSerializer(config).data if config else None,
+        }
+
+        response = HttpResponse(
+            json.dumps(backup, indent=2, ensure_ascii=False, default=str),
+            content_type='application/json',
+        )
+        filename = f"backup_portfolio_{timezone.now().strftime('%Y%m%d_%H%M%S')}.json"
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+        log_journal("Export d'une sauvegarde JSON du portfolio")
+        return response
+
+    except Exception as e:
+        logger.exception(f"Erreur dans backup_export: {str(e)}")
+        return _error_server()
 
