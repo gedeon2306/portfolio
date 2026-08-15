@@ -1,29 +1,28 @@
 import { useEffect, useMemo, useState } from 'react';
-import { clearAuthTokens } from '../api/Auth';
-import { useCheckCookies } from '../utils/CheckCookies';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
+  LuAward,
+  LuChartColumn,
   LuChevronLeft,
   LuChevronRight,
   LuFolderKanban,
   LuLayoutDashboard,
+  LuLogOut,
   LuMenu,
   LuMoon,
+  LuSearch,
   LuSettings,
   LuSun,
   LuUserRound,
   LuX,
-  LuSearch,
-  // LuBell,
-  LuAward,
-  LuChartColumn,
-  // LuCheck,
-  LuLogOut,
 } from 'react-icons/lu';
-import { CgMoreVertical } from "react-icons/cg";
+import { CgMoreVertical } from 'react-icons/cg';
 import { ImParagraphLeft } from 'react-icons/im';
+
+import { clearAuthTokens } from '../api/Auth';
 import { useTheme } from '../context/ThemeContext';
 import { useToast } from '../context/ToastContext';
+import { useCheckCookies } from '../utils/CheckCookies';
 import { CommandPalette } from './CommandPalette';
 import logo from '../assets/logo_jd_blanc_sbg.png';
 import '../css/DashboardLayout.css';
@@ -47,46 +46,36 @@ export default function DashboardLayout() {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isCmdOpen, setIsCmdOpen] = useState(false);
-  // const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // const notifications = [
-  //   { id: '1', title: 'Nouveau message reçu', time: 'Il y a 10 min', read: false },
-  //   { id: '2', title: 'Projet Portfolio V2 mis à jour', time: 'Il y a 2h', read: false },
-  //   { id: '3', title: 'Nouveau certificat AWS ajouté', time: 'Hier à 18:40', read: true },
-  // ];
-
-  const currentNav = useMemo(() => {
-    return navigation.find((item) => item.to === location.pathname) ?? { label: 'Vue d’ensemble', to: '/dashboard' };
-  }, [location.pathname]);
+  const currentNav = useMemo(
+    () => navigation.find((item) => item.to === location.pathname) ?? { label: 'Vue d’ensemble', to: '/dashboard' },
+    [location.pathname]
+  );
 
   useCheckCookies({ redirectIfNotAuthenticated: '/connexion' });
 
-  // Fermer les menus lors du changement de page
   useEffect(() => {
     setIsMobileNavOpen(false);
     setIsMobileMenuOpen(false);
-    // setIsNotifOpen(false);
   }, [location.pathname]);
 
-  // Gestion de la touche Escape et overflow body pour mobile
   useEffect(() => {
     const shouldLockScroll = isMobileNavOpen || isMobileMenuOpen;
     if (!shouldLockScroll) {
       document.body.style.overflow = '';
       return;
     }
-    
+
     document.body.style.overflow = 'hidden';
-    
+
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setIsMobileNavOpen(false);
         setIsMobileMenuOpen(false);
-        // setIsNotifOpen(false);
       }
     };
-    
+
     window.addEventListener('keydown', handleKeyDown);
     return () => {
       document.body.style.overflow = '';
@@ -94,22 +83,20 @@ export default function DashboardLayout() {
     };
   }, [isMobileNavOpen, isMobileMenuOpen]);
 
-  // Fermer le menu mobile quand on clique en dehors
   useEffect(() => {
     if (!isMobileMenuOpen) return;
-    
+
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
       if (!target.closest('.mobile-actions-menu') && !target.closest('.mobile-dropdown-menu')) {
         setIsMobileMenuOpen(false);
       }
     };
-    
-    // Petit délai pour éviter la fermeture immédiate lors du clic d'ouverture
+
     const timer = setTimeout(() => {
       document.addEventListener('click', handleClickOutside);
     }, 0);
-    
+
     return () => {
       clearTimeout(timer);
       document.removeEventListener('click', handleClickOutside);
@@ -122,7 +109,7 @@ export default function DashboardLayout() {
     toast.info('Déconnexion en cours...', 'À très bientôt sur l’administration.');
     try {
       clearAuthTokens();
-      await new Promise((r) => setTimeout(r, 700));
+      await new Promise((resolve) => setTimeout(resolve, 700));
       navigate('/connexion');
     } finally {
       setIsLoggingOut(false);
@@ -136,14 +123,12 @@ export default function DashboardLayout() {
 
   return (
     <div className={`dashboard-shell ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
-      {/* Overlay pour le menu mobile de navigation */}
       <div
         className={`mobile-nav-overlay ${isMobileNavOpen ? 'is-visible' : ''}`}
         onClick={() => setIsMobileNavOpen(false)}
         aria-hidden="true"
       />
 
-      {/* Sidebar Latérale */}
       <aside className={`dashboard-sidebar ${isMobileNavOpen ? 'is-open' : ''}`}>
         <button
           type="button"
@@ -202,7 +187,6 @@ export default function DashboardLayout() {
           ))}
         </nav>
 
-        {/* Pied de sidebar / Profil rapide */}
         <div className="sidebar-footer">
           <div className="sidebar-user-avatar">
             <span>JD</span>
@@ -226,7 +210,6 @@ export default function DashboardLayout() {
         </div>
       </aside>
 
-      {/* Zone Principale */}
       <div className="dashboard-main">
         <header className="dashboard-header">
           <div className="header-title-row">
@@ -246,7 +229,6 @@ export default function DashboardLayout() {
             </div>
           </div>
 
-          {/* Actions desktop (visibles uniquement sur grand écran) */}
           <div className="header-actions desktop-actions">
             <button
               type="button"
@@ -258,44 +240,6 @@ export default function DashboardLayout() {
               <span className="cmd-text">Rechercher...</span>
               <kbd className="cmd-shortcut-tag">⌘K</kbd>
             </button>
-
-            {/* <div className="notif-wrapper">
-              <button
-                type="button"
-                className={`header-icon-btn ${isNotifOpen ? 'active' : ''}`}
-                onClick={() => setIsNotifOpen((prev) => !prev)}
-                title="Notifications"
-                aria-label="Notifications"
-              >
-                <LuBell />
-                <span className="notif-badge-dot" />
-              </button>
-
-              {isNotifOpen && (
-                <div className="notif-dropdown">
-                  <div className="notif-header">
-                    <h4>Notifications</h4>
-                    <span className="badge badge-accent">3 nouvelles</span>
-                  </div>
-                  <div className="notif-list">
-                    {notifications.map((n) => (
-                      <div key={n.id} className={`notif-item ${!n.read ? 'unread' : ''}`}>
-                        <div className="notif-dot" />
-                        <div className="notif-content">
-                          <p className="notif-title">{n.title}</p>
-                          <p className="notif-time">{n.time}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="notif-footer">
-                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => setIsNotifOpen(false)}>
-                      <LuCheck /> Tout marquer comme lu
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div> */}
 
             <button
               type="button"
@@ -309,7 +253,6 @@ export default function DashboardLayout() {
             </button>
           </div>
 
-          {/* Actions mobile (visibles uniquement sur petit écran) */}
           <div className="mobile-actions-menu">
             <button
               type="button"
@@ -335,16 +278,6 @@ export default function DashboardLayout() {
 
               {isMobileMenuOpen && (
                 <div className="mobile-dropdown-menu" onClick={(e) => e.stopPropagation()}>
-                  {/* <button
-                    type="button"
-                    className="mobile-dropdown-item"
-                    onClick={() => handleMobileMenuAction(() => setIsNotifOpen((prev) => !prev))}
-                  >
-                    <LuBell />
-                    <span>Notifications</span>
-                    <span className="mobile-badge">3</span>
-                  </button> */}
-                  
                   <button
                     type="button"
                     className="mobile-dropdown-item"
@@ -353,9 +286,9 @@ export default function DashboardLayout() {
                     {theme === 'light' ? <LuMoon /> : <LuSun />}
                     <span>{theme === 'light' ? 'Mode sombre' : 'Mode clair'}</span>
                   </button>
-                  
+
                   <div className="mobile-dropdown-divider" />
-                  
+
                   <button
                     type="button"
                     className="mobile-dropdown-item mobile-logout-item"
@@ -376,7 +309,6 @@ export default function DashboardLayout() {
         </main>
       </div>
 
-      {/* Command Palette Keyboard Shortcut Modal */}
       <CommandPalette isOpen={isCmdOpen} onClose={() => setIsCmdOpen(false)} />
     </div>
   );

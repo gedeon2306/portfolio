@@ -22,8 +22,6 @@ function getInitialTheme(): Theme {
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>(getInitialTheme);
 
-  // Applique l'attribut data-theme sur <html> : toutes les pages qui
-  // importent index.css héritent automatiquement des bonnes variables.
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     window.localStorage.setItem(STORAGE_KEY, theme);
