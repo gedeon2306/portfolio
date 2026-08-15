@@ -1,27 +1,19 @@
 from pathlib import Path
-import os, environ, ssl
+import os
+import ssl
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
+import environ
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-env = environ.Env(
-    DEBUG=(bool, False),
-)
+env = environ.Env(DEBUG=(bool, False))
 environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 
-# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = env("SECRET_KEY")
-
-# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env("DEBUG")
 
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=[])
-
-# URL du frontend (utilisée pour les redirections après confirmation d'email)
 FRONTEND_URL = env("FRONTEND_URL", default="http://localhost:5173")
-
-
-# Application definition
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -30,13 +22,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    
+
     'rest_framework',
     'corsheaders',
     'rest_framework_simplejwt',
     'drf_spectacular',
-    
-    # apps
+
     'api',
 ]
 
@@ -54,25 +45,24 @@ MIDDLEWARE = [
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[])
 
-# On dit à DRF d'utiliser le JWT pour l'authentification
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
     'DEFAULT_THROTTLE_CLASSES': [
         'rest_framework.throttling.AnonRateThrottle',
-        'rest_framework.throttling.UserRateThrottle'
+        'rest_framework.throttling.UserRateThrottle',
     ],
     'DEFAULT_THROTTLE_RATES': {
         'anon': '100/day',
-        'user': '1000/day'
+        'user': '1000/day',
     },
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
 SPECTACULAR_SETTINGS = {
     'TITLE': 'PORTFOLIO API',
-    'DESCRIPTION': "API pour le backend du portfolio.",
+    'DESCRIPTION': 'API pour le backend du portfolio.',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
 }
@@ -82,12 +72,11 @@ from datetime import timedelta
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
-    'SIGNING_KEY': SECRET_KEY, 
+    'SIGNING_KEY': SECRET_KEY,
     'ALGORITHM': 'HS256',
 }
 
 ROOT_URLCONF = 'backend.urls'
-
 AUTH_USER_MODEL = 'api.User'
 
 TEMPLATES = [
@@ -107,21 +96,12 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'backend.wsgi.application'
 
-
-
-# Database
-# https://docs.djangoproject.com/en/6.0/ref/settings/#databases
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
-
-
-# Password validation
-# https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -138,38 +118,19 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
-# Internationalization
-# https://docs.djangoproject.com/en/6.0/topics/i18n/
-
 LANGUAGE_CODE = 'fr-FR'
-
-# TIME_ZONE = 'UTC'
-
 TIME_ZONE = 'Africa/Brazzaville'
-
 USE_I18N = True
-
 USE_TZ = True
 
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/6.0/howto/static-files/
-
 STATIC_URL = 'static/'
-
-# MEDIA
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-
-# Email settings
-
 EMAIL_SSL_CERTFILE = "/path/to/CERTFILE.crt"
-EMAIL_SSL_KEYFILE = "/path/to/private/KEYFILE.key" # make sure it is accessible by the executing user
-CA_PATH = '/path/to/cert/folder/' # e.g. '/etc/ssl/certs/' on ubuntu linux - this one is new 
+EMAIL_SSL_KEYFILE = "/path/to/private/KEYFILE.key"
+CA_PATH = '/path/to/cert/folder/'
 
-# Configuration de l'email
 EMAIL_BACKEND = 'api.backends.custom_email_backend.CustomEmailBackend'
 EMAIL_HOST = env('EMAIL_HOST')
 EMAIL_PORT = env('EMAIL_PORT')
@@ -181,6 +142,5 @@ EMAIL_CHECK_HOSTNAME = False
 EMAIL_VERIFY_MODE = ssl.CERT_NONE
 EMAIL_USER = env('EMAIL_USER')
 
-# Clé API pour la communication avec les frontend
 ADMIN_API_KEY = env('ADMIN_API_KEY')
 PORTFOLIO_API_KEY = env('PORTFOLIO_API_KEY')

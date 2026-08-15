@@ -1,22 +1,15 @@
 import random
-import string
-import base64
-import io
 import json
 import logging
-from io import BytesIO
-from PIL import Image
-from decimal import Decimal, InvalidOperation
 
 from django.contrib.sites import requests
-from django.shortcuts import render, redirect
 from django.conf import settings
-from django.db import models, transaction
+from django.db import transaction
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-from django.contrib.auth.models import BaseUserManager
 from django.core.cache import cache
-from django.db.models import Q, Case, When, Value, IntegerField, Count, Sum, Min, Max
+from django.db.models import Q, Count, Min, Max
+from django.http import HttpResponse
 from django.utils import timezone
 from datetime import datetime, timedelta
 
@@ -45,7 +38,6 @@ from .serializers import (
     LanguesSerializer,
     ProjectsSerializer,
     ProjectsListSerializer,
-    TechnologiesSerializer,
     CertificatesSerializer,
     JournalSerializer,
     SettingsSerializer,
@@ -54,10 +46,6 @@ from .serializers import (
 
 logger = logging.getLogger(__name__)
 
-
-# ============================================================================
-# UTILITAIRES
-# ============================================================================
 
 def _error_server():
     return Response({
@@ -212,7 +200,6 @@ def login(request):
     uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
     token = email_confirmation_token_generator.make_token(user)
 
-    # Envoi de l'email de notification
     try:
         send_login_email(user)
     except Exception:
@@ -323,7 +310,6 @@ def dashboard_home(request):
         previous_30_days = last_30_days - timedelta(days=30)
         start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
-        # --- Cartes statistiques ---
         projects_count = Projects.objects.count()
         projects_this_month = Projects.objects.filter(created_at__gte=start_of_month).count()
 
@@ -360,11 +346,9 @@ def dashboard_home(request):
             },
         }
 
-        # --- Activité récente (Journal) ---
         recent_activity = Journal.objects.all().order_by('-created_at')[:5]
         activity_data = JournalSerializer(recent_activity, many=True).data
 
-        # --- Journal des pages vues (recherche + filtre + pagination) ---
         search = request.query_params.get('search', '').strip()
         device = request.query_params.get('device', 'all')
 
@@ -460,7 +444,6 @@ def my_info(request):
                 "langues": LanguesSerializer(langues, many=True).data,
             }, status=status.HTTP_200_OK)
 
-        # --- POST : upsert MyInfo + synchronisation des langues ---
         info = MyInfo.objects.first()
         is_creation = info is None
 
@@ -479,7 +462,6 @@ def my_info(request):
                 value = request.POST.get(field)
                 data[field] = value if value is not None else ''
 
-        # Gestion image
         if 'image' in request.FILES:
             data['image'] = request.FILES['image']
         elif request.data.get('remove_image') == 'true' or request.POST.get('remove_image') == 'true':
@@ -487,7 +469,6 @@ def my_info(request):
                 info.image.delete(save=False)
             data['image'] = None
 
-        # Gestion cv
         if 'cv' in request.FILES:
             data['cv'] = request.FILES['cv']
         elif request.data.get('remove_cv') == 'true' or request.POST.get('remove_cv') == 'true':
@@ -511,7 +492,6 @@ def my_info(request):
             info = serializer.save()
             log_journal("Ajout de vos informations" if is_creation else "Mise à jour de vos informations")
 
-            # --- Synchronisation des langues ---
             langues_payload = []
             langues_raw = request.data.get('langues')
             if langues_raw is None:
@@ -615,7 +595,6 @@ def skills_management(request):
         if request.method == 'GET':
             return Response({"categories": _serialize_skill_categories()}, status=status.HTTP_200_OK)
 
-        # --- POST : synchronisation complète des catégories et de leurs compétences ---
         categories_payload = request.data.get('categories', [])
         if isinstance(categories_payload, str):
             try:
@@ -655,7 +634,6 @@ def skills_management(request):
                     sent_cat_ids.add(str(category.id))
                     cat_added += 1
 
-                # --- Synchronisation des compétences de cette catégorie ---
                 if not isinstance(skills_payload, list):
                     skills_payload = []
 
@@ -696,7 +674,6 @@ def skills_management(request):
                     Skills_list.objects.filter(id__in=removed_skill_ids).delete()
                     skill_removed += len(removed_skill_ids)
 
-            # Catégories envoyées côté frontend = source de vérité -> on supprime celles absentes
             removed_cat_ids = set(existing_categories.keys()) - sent_cat_ids
             cat_removed = len(removed_cat_ids)
             if removed_cat_ids:
@@ -756,7 +733,6 @@ def projects_list(request):
     try:
         queryset = Projects.objects.all().order_by('-important', '-status', '-updated_at')
 
-        # Filtres
         search = request.query_params.get('search', '').strip()
         category = request.query_params.get('category', '').strip()
         status_filter = request.query_params.get('status', '').strip()
@@ -839,14 +815,12 @@ def project_detail(request, pk):
 def project_create(request):
     try:
         data = request.data.copy()
-        
-        # Gestion des fichiers
+
         if 'image' in request.FILES:
             data['image'] = request.FILES['image']
         if 'doc' in request.FILES:
             data['doc'] = request.FILES['doc']
 
-        # Récupération de la liste des technologies
         technologies_names = data.pop('technologies', [])
         if isinstance(technologies_names, str):
             try:
@@ -857,7 +831,6 @@ def project_create(request):
         if not isinstance(technologies_names, list):
             technologies_names = []
 
-        # Mapping des champs frontend -> backend (pour compatibilité)
         if 'titre' not in data and 'name' in data:
             data['titre'] = data.pop('name')
         if 'categorie' not in data and 'category' in data:
@@ -867,7 +840,6 @@ def project_create(request):
         if 'code_source' not in data and 'githubUrl' in data:
             data['code_source'] = data.pop('githubUrl')
 
-        # Validation
         if not data.get('titre') or not data.get('description'):
             return _bad_request("Titre et description requis")
 
@@ -883,13 +855,11 @@ def project_create(request):
             project = serializer.save()
             log_journal(f"Ajout du projet: {project.titre}")
 
-            # Ajout des technologies
             for tech_name in technologies_names:
                 tech_name = tech_name.strip()
                 if not tech_name:
                     continue
                 try:
-                    # Recherche du skill_list correspondant
                     skill_list = Skills_list.objects.filter(libelle=tech_name).first()
                     if skill_list:
                         Technologies.objects.create(project=project, technologie=skill_list)
@@ -898,7 +868,6 @@ def project_create(request):
                 except Exception as e:
                     logger.warning(f"Erreur lors de l'ajout de la technologie {tech_name}: {e}")
 
-        # Recharger le projet avec ses relations
         project.refresh_from_db()
         response_data = ProjectsSerializer(project, context={'request': request}).data
         response_data['technologies'] = _serialize_technologies_for_frontend(project)
@@ -942,13 +911,11 @@ def project_update(request, pk):
         data = request.data.copy()
         is_patch = request.method == 'PATCH'
 
-        # Gestion des fichiers
         if 'image' in request.FILES:
             data['image'] = request.FILES['image']
         if 'doc' in request.FILES:
             data['doc'] = request.FILES['doc']
 
-        # Suppression des fichiers
         if data.get('remove_image') == 'true' or data.get('remove_image') is True:
             if project.image:
                 project.image.delete(save=False)
@@ -959,7 +926,6 @@ def project_update(request, pk):
                 project.doc.delete(save=False)
             data['doc'] = None
 
-        # Mapping des champs frontend -> backend (pour compatibilité)
         if 'titre' not in data and 'name' in data:
             data['titre'] = data.pop('name')
         if 'categorie' not in data and 'category' in data:
@@ -969,7 +935,6 @@ def project_update(request, pk):
         if 'code_source' not in data and 'githubUrl' in data:
             data['code_source'] = data.pop('githubUrl')
 
-        # Récupération des technologies
         technologies_names = data.pop('technologies', None)
         if technologies_names is not None:
             if isinstance(technologies_names, str):
@@ -980,7 +945,6 @@ def project_update(request, pk):
             if not isinstance(technologies_names, list):
                 technologies_names = []
 
-        # Mise à jour du projet
         serializer = ProjectsSerializer(
             project, 
             data=data, 
@@ -997,12 +961,9 @@ def project_update(request, pk):
             updated_project = serializer.save()
             log_journal(f"Mise à jour du projet: {updated_project.titre}")
 
-            # Synchronisation des technologies
             if technologies_names is not None:
-                # Supprimer les anciennes technologies
                 updated_project.tec_projets.all().delete()
 
-                # Ajouter les nouvelles technologies
                 for tech_name in technologies_names:
                     tech_name = tech_name.strip()
                     if not tech_name:
@@ -1039,7 +1000,6 @@ def project_delete(request, pk):
         project_name = project.titre
 
         with transaction.atomic():
-            # Suppression des fichiers associés
             if project.image:
                 project.image.delete(save=False)
             if project.doc:
@@ -1373,7 +1333,6 @@ def analytics_data(request):
         current_qs = Dashboard.objects.filter(timestamp__gte=period_start, timestamp__lte=now)
         previous_qs = Dashboard.objects.filter(timestamp__gte=previous_start, timestamp__lt=period_start)
 
-        # --- KPIs ---
         total_visits = current_qs.count()
         total_visits_prev = previous_qs.count()
 
@@ -1402,7 +1361,6 @@ def analytics_data(request):
             },
         }
 
-        # --- Trafic (toujours les 7 derniers jours, pour le graphique) ---
         weekly_traffic = []
         for i in range(6, -1, -1):
             day_date = (now - timedelta(days=i)).date()
@@ -1415,7 +1373,6 @@ def analytics_data(request):
                 "visits": visits,
             })
 
-        # --- Top pages ---
         top_pages_qs = (
             current_qs.values('path')
             .annotate(views=Count('id'))
@@ -1430,7 +1387,6 @@ def analytics_data(request):
             for row in top_pages_qs
         ]
 
-        # --- Répartition géographique (résolue depuis les IPs de la période) ---
         ip_counts_qs = (
             current_qs.exclude(ip_address__isnull=True)
             .exclude(ip_address='')
