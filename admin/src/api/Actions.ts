@@ -19,9 +19,7 @@ import type {
   SecurityResponse,
   ChangePasswordPayload,
 } from '../types/Types';
- 
-// Dashboard
- 
+
 export async function fetchDashboardHome(
   params: DashboardHomeParams = {}
 ): Promise<DashboardHomeResponse> {
@@ -37,9 +35,7 @@ export async function fetchDashboardHome(
 
   return data;
 }
- 
-// MyInfo
- 
+
 export async function fetchMyInfo(): Promise<MyInfoResponse> {
   const { data } = await api.get<MyInfoResponse>('myinfo/');
   return data;
@@ -68,8 +64,6 @@ export async function saveMyInfo(payload: MyInfoSavePayload): Promise<MyInfoResp
   return data;
 }
 
-// Skills
-
 export async function fetchSkills(): Promise<SkillsResponse> {
   const { data } = await api.get<SkillsResponse>('skills/');
   return data;
@@ -80,11 +74,6 @@ export async function saveSkills(payload: SkillsSavePayload): Promise<SkillsResp
   return data;
 }
 
-// Projects
-
-/**
- * Récupère la liste paginée des projets avec filtres
- */
 export async function fetchProjects(params: {
   page?: number;
   page_size?: number;
@@ -106,21 +95,14 @@ export async function fetchProjects(params: {
   return data;
 }
 
-/**
- * Récupère un projet par son ID
- */
 export async function fetchProject(id: string): Promise<Project> {
   const { data } = await api.get<Project>(`projects/${id}/`);
   return data;
 }
 
-/**
- * Crée un nouveau projet avec support des fichiers
- */
 export async function createProject(payload: ProjectCreatePayload): Promise<Project> {
   const formData = new FormData();
 
-  // Champs texte
   if (payload.titre) formData.append('titre', payload.titre);
   if (payload.description) formData.append('description', payload.description);
   if (payload.categorie) formData.append('categorie', payload.categorie);
@@ -129,12 +111,10 @@ export async function createProject(payload: ProjectCreatePayload): Promise<Proj
   if (payload.url) formData.append('url', payload.url);
   if (payload.code_source) formData.append('code_source', payload.code_source);
 
-  // Technologies (convertir en JSON)
   if (payload.technologies && payload.technologies.length > 0) {
     formData.append('technologies', JSON.stringify(payload.technologies));
   }
 
-  // Fichiers
   if (payload.image) formData.append('image', payload.image);
   if (payload.doc) formData.append('doc', payload.doc);
 
@@ -145,13 +125,9 @@ export async function createProject(payload: ProjectCreatePayload): Promise<Proj
   return data;
 }
 
-/**
- * Met à jour un projet existant (PUT - remplacement complet)
- */
 export async function updateProject(id: string, payload: ProjectCreatePayload): Promise<Project> {
   const formData = new FormData();
 
-  // Champs texte
   if (payload.titre) formData.append('titre', payload.titre);
   if (payload.description) formData.append('description', payload.description);
   if (payload.categorie) formData.append('categorie', payload.categorie);
@@ -160,15 +136,12 @@ export async function updateProject(id: string, payload: ProjectCreatePayload): 
   if (payload.url) formData.append('url', payload.url);
   if (payload.code_source) formData.append('code_source', payload.code_source);
 
-  // Technologies (convertir en JSON)
   if (payload.technologies && payload.technologies.length > 0) {
     formData.append('technologies', JSON.stringify(payload.technologies));
   } else if (payload.technologies !== undefined) {
-    // Envoyer une liste vide pour supprimer toutes les technologies
     formData.append('technologies', JSON.stringify([]));
   }
 
-  // Fichiers
   if (payload.image) formData.append('image', payload.image);
   if (payload.doc) formData.append('doc', payload.doc);
 
@@ -179,13 +152,9 @@ export async function updateProject(id: string, payload: ProjectCreatePayload): 
   return data;
 }
 
-/**
- * Met à jour partiellement un projet (PATCH)
- */
 export async function patchProject(id: string, payload: Partial<ProjectCreatePayload>): Promise<Project> {
   const formData = new FormData();
 
-  // Champs texte
   if (payload.titre !== undefined) formData.append('titre', payload.titre);
   if (payload.description !== undefined) formData.append('description', payload.description);
   if (payload.categorie !== undefined) formData.append('categorie', payload.categorie);
@@ -194,7 +163,6 @@ export async function patchProject(id: string, payload: Partial<ProjectCreatePay
   if (payload.url !== undefined) formData.append('url', payload.url);
   if (payload.code_source !== undefined) formData.append('code_source', payload.code_source);
 
-  // Technologies (convertir en JSON)
   if (payload.technologies !== undefined) {
     if (payload.technologies.length > 0) {
       formData.append('technologies', JSON.stringify(payload.technologies));
@@ -203,7 +171,6 @@ export async function patchProject(id: string, payload: Partial<ProjectCreatePay
     }
   }
 
-  // Fichiers
   if (payload.image) formData.append('image', payload.image);
   if (payload.doc) formData.append('doc', payload.doc);
 
@@ -214,30 +181,19 @@ export async function patchProject(id: string, payload: Partial<ProjectCreatePay
   return data;
 }
 
-/**
- * Supprime un projet
- */
 export async function deleteProject(id: string): Promise<void> {
   await api.delete(`projects/${id}/delete/`);
 }
 
-/**
- * Récupère la liste des catégories disponibles
- */
 export async function fetchProjectCategories(): Promise<string[]> {
   const { data } = await api.get<{ categories: string[] }>('projects/categories/');
   return data.categories;
 }
 
-/**
- * Récupère la liste des technologies disponibles
- */
 export async function fetchProjectTechnologies(): Promise<string[]> {
   const { data } = await api.get<{ technologies: string[] }>('projects/technologies/');
   return data.technologies;
 }
-
-// CERTIFICATES
 
 export async function fetchCertificates(params: {
   page?: number;
@@ -334,16 +290,12 @@ export async function fetchCertificateCategories(): Promise<string[]> {
   return data.categories;
 }
 
-// Analytics
-
 export async function fetchAnalytics(range: AnalyticsRange = '30d'): Promise<AnalyticsResponse> {
   const { data } = await api.get<AnalyticsResponse>('analytics/', {
     params: { range },
   });
   return data;
 }
-
-// Settings
 
 export async function fetchSettings(): Promise<SettingsResponse> {
   const { data } = await api.get<SettingsResponse>('settings/');
