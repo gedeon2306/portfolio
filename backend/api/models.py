@@ -53,19 +53,15 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 
 class Dashboard(models.Model):
-    # Informations sur la page
     path = models.CharField(max_length=500, db_index=True, help_text="URL consultée (ex: /projects/my-app/)")
     method = models.CharField(max_length=10, default="GET")
-    
-    # Origine du trafic
+
     referrer = models.URLField(max_length=500, blank=True, null=True, help_text="Site d'origine du visiteur")
-    
-    # Informations sur le visiteur
+
     ip_address = models.GenericIPAddressField(blank=True, null=True, help_text="Adresse IP (peut être anonymisée)")
     user_agent = models.CharField(max_length=255, blank=True, null=True, help_text="Navigateur / Système d'exploitation")
     session_key = models.CharField(max_length=40, blank=True, null=True, db_index=True)
-    
-    # Type d'appareil (optionnel mais utile)
+
     device_type = models.CharField(
         max_length=20,
         choices=[
@@ -78,14 +74,12 @@ class Dashboard(models.Model):
         default='other'
     )
 
-    # Date et heure
     timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:
         ordering = ['-timestamp']
         verbose_name = "Page vue"
         verbose_name_plural = "Pages vues"
-        # Index composé pour accélérer les requêtes d'analytics par URL et par date
         indexes = [
             models.Index(fields=['path', 'timestamp']),
         ]

@@ -1,15 +1,14 @@
-# myapp/backends/custom_email_backend.py
-
-from django.core.mail.backends.smtp import EmailBackend as SMTPEmailBackend
 import ssl
 import smtplib
+
+from django.core.mail.backends.smtp import EmailBackend as SMTPEmailBackend
+
 
 class CustomEmailBackend(SMTPEmailBackend):
     def __init__(self, *args, **kwargs):
         self.check_hostname = kwargs.pop('check_hostname', True)
         self.verify_mode = kwargs.pop('verify_mode', ssl.CERT_NONE)
 
-        # Ensure compatibility between check_hostname and verify_mode
         if self.verify_mode == ssl.CERT_NONE:
             self.check_hostname = False
 
