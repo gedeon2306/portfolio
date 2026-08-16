@@ -46,3 +46,16 @@ portfolio/
 ├── README.md
 └── .gitignore
 ```
+
+## Fonctionnalités principales
+
+### Backend
+
+- Authentification admin
+- Gestion des informations personnelles
+- Gestion des compétences et catégories
+- Gestion des projets avec images et documents
+- Gestion des certificats
+- Analytics et statistiques
+- Paramètres système et sécurité
+- Export de sauvegarde JSON
