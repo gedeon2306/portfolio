@@ -118,3 +118,39 @@ L’interface d’administration sera accessible sur :
 ```text
 http://localhost:5173/
 ```
+
+## Variables d’environnement
+
+### Backend
+
+Le fichier `.env` du backend contient notamment :
+
+```env
+SECRET_KEY=your_secret_key
+DEBUG=True
+ALLOWED_HOSTS=localhost,127.0.0.1
+CORS_ALLOWED_ORIGINS=http://localhost:5173
+FRONTEND_URL=http://localhost:5173
+ADMIN_API_KEY=your_admin_api_key
+PORTFOLIO_API_KEY=your_portfolio_api_key
+```
+
+### Admin
+
+Le fichier `.env` de l’admin contient généralement :
+
+```env
+VITE_API_URL=http://localhost:8000/api
+```
+
+## Documentation associée
+
+- Backend: [backend/README.md](backend/README.md)
+- Admin: [admin/README.md](admin/README.md)
+
+## Bonnes pratiques
+
+- Ne pas versionner les fichiers `.env` sensibles
+- Vérifier les migrations avant un déploiement
+- Tester les changements côté backend et admin avant publication
+- Garder les routes API et les composants administratifs cohérents entre eux
