@@ -154,3 +154,12 @@ VITE_API_URL=http://localhost:8000/api
 - Vérifier les migrations avant un déploiement
 - Tester les changements côté backend et admin avant publication
 - Garder les routes API et les composants administratifs cohérents entre eux
+
+## Notes
+
+Ce projet est structuré en deux parties bien distinctes :
+
+- le backend gère les données, l’authentification et les endpoints API
+- l’admin permet la gestion du contenu et de la configuration via une interface simple et fonctionnelle
+
+La logique est pensée pour être facilement maintenable, lisible et évolutive.
