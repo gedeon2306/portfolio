@@ -7,3 +7,12 @@
 
 ---
 Application full-stack pour un portfolio personnel avec une interface d’administration et un backend API. Le projet permet de gérer les informations du profil, les compétences, les projets, les certificats, les statistiques et les paramètres du site.
+
+## Architecture
+
+- Backend: Django + Django REST Framework
+- Authentification: JWT via SimpleJWT
+- Interface d’admin: React + TypeScript + Vite
+- Base de données: SQLite en environnement local
+- Fichiers media: images, CV et documents uploadés
+- Documentation API: drf-spectacular / OpenAPI
