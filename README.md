@@ -16,3 +16,33 @@ Application full-stack pour un portfolio personnel avec une interface d’admini
 - Base de données: SQLite en environnement local
 - Fichiers media: images, CV et documents uploadés
 - Documentation API: drf-spectacular / OpenAPI
+
+## Structure du projet
+
+```text
+portfolio/
+├── admin/
+│   ├── public/
+│   ├── src/
+│   ├── .env
+│   ├── .env.example
+│   ├── index.html
+│   ├── package.json
+│   ├── README.md
+│   ├── tsconfig.json
+│   ├── vite.config.ts
+│   └── ...
+├── backend/
+│   ├── api/
+│   ├── backend/
+│   ├── media/
+│   ├── .env
+│   ├── .env.example
+│   ├── db.sqlite3
+│   ├── manage.py
+│   ├── README.md
+│   ├── requirements.txt
+│   └── ...
+├── README.md
+└── .gitignore
+```
