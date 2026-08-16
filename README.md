@@ -59,3 +59,20 @@ portfolio/
 - Analytics et statistiques
 - Paramètres système et sécurité
 - Export de sauvegarde JSON
+
+### Interface d’administration
+
+- Dashboard principal
+- Gestion du profil
+- Administration des compétences
+- Administration des projets
+- Administration des certificats
+- Analyse des données
+- Paramètres et sécurité
+
+## Prérequis
+
+- Python 3.12+
+- Node.js 18+
+- npm ou yarn
+- Git
