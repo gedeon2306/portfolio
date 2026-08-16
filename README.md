@@ -76,3 +76,45 @@ portfolio/
 - Node.js 18+
 - npm ou yarn
 - Git
+
+## Démarrage rapide
+
+### 1) Backend Django
+
+```bash
+cd backend
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+python manage.py migrate
+python manage.py createsuperuser
+python manage.py runserver
+```
+
+L’API sera disponible sur :
+
+```text
+http://localhost:8000/
+```
+
+La documentation OpenAPI est accessible sur :
+
+```text
+http://localhost:8000/api/schema/
+```
+
+### 2) Interface d’administration
+
+```bash
+cd admin
+npm install
+cp .env.example .env
+npm run dev
+```
+
+L’interface d’administration sera accessible sur :
+
+```text
+http://localhost:5173/
+```
