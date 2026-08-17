@@ -1,0 +1,39 @@
+.pf-highlight {
+  position: relative;
+  display: inline;
+  color: var(--text);
+  font-weight: 600;
+  padding: 1px 6px 2px;
+  margin: 0 -2px;
+  background: var(--accent-light);
+  border: 1px solid var(--accent-border);
+  line-height: 1.35;
+  transition: all var(--duration) var(--ease-spring);
+  box-decoration: inset 0 0 0 0 var(--accent-light);
+}
+
+.pf-highlight-0 {
+  border-radius: 4px 10px 5px 8px;
+  transform: rotate(-0.8deg);
+}
+
+.pf-highlight-1 {
+  border-radius: 8px 4px 9px 5px;
+  transform: rotate(0.6deg);
+}
+
+.pf-highlight-2 {
+  border-radius: 6px 9px 4px 8px;
+  transform: rotate(-0.4deg);
+}
+
+.pf-highlight:hover {
+  background: var(--accent-subtle);
+  transform: scale(1.02);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pf-highlight {
+    transform: none !important;
+  }
+}

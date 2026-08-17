@@ -1,0 +1,125 @@
+.pf-skills {
+  padding: 100px 0;
+  position: relative;
+}
+
+.pf-skills-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.pf-skills-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  transition: transform var(--duration) var(--ease-spring),
+    border-color var(--duration) var(--ease-spring),
+    box-shadow var(--duration) var(--ease-spring),
+    background var(--duration) var(--ease-spring);
+}
+
+.pf-skills-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-md);
+  background: var(--surface-hover);
+}
+
+.pf-skills-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  margin-bottom: 22px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.pf-skills-card h3 {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  margin: 0;
+}
+
+.pf-skills-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.pf-skill-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.pf-skill-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 7px;
+  font-size: var(--text-xs);
+}
+
+.pf-skill-name {
+  font-family: var(--font-body);
+  color: var(--text);
+  font-weight: 500;
+}
+
+.pf-tech-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pf-tech-inline svg {
+  flex-shrink: 0;
+}
+
+.pf-skill-level {
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.pf-skill-bar {
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: var(--surface-active);
+  overflow: hidden;
+  position: relative;
+}
+
+.pf-skill-bar-fill {
+  height: 100%;
+  width: 0;
+  border-radius: var(--radius-full);
+  background: var(--accent);
+  transition: width 1000ms var(--ease-spring);
+}
+
+.pf-reveal.pf-in .pf-skill-bar-fill {
+  width: var(--pf-level);
+}
+
+@media (max-width: 960px) {
+  .pf-skills-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .pf-skills-grid {
+    grid-template-columns: 1fr;
+  }
+}

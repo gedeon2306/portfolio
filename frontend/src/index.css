@@ -1,0 +1,414 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  color-scheme: light;
+
+  /* Palette Principale (Charte stricte: Blanc, Noir, Violet) */
+  --color-black: #09090b;
+  --color-white: #ffffff;
+  --color-violet-900: #2e1065;
+  --color-violet-800: #3b0764;
+  --color-violet-700: #581c87;
+  --color-violet-600: #6d28d9;
+  --color-violet-500: #7c3aed;
+  --color-violet-400: #8b5cf6;
+  --color-violet-300: #a78bfa;
+  --color-violet-200: #c4b5fd;
+  --color-violet-100: #ddd6fe;
+  --color-violet-50: #f5f3ff;
+
+  /* Variables sémantiques light mode */
+  --bg: #ffffff;
+  --bg-elevated: #fafafa;
+  --surface: #f9f9fb;
+  --surface-hover: #f1f0f5;
+  --surface-active: #e8e6ee;
+  --text: #09090b;
+  --text-secondary: #52525b;
+  --text-tertiary: #a1a1aa;
+  --border: #e4e4e7;
+  --border-strong: #d4d4d8;
+  
+  --accent: var(--color-violet-600);
+  --accent-hover: var(--color-violet-700);
+  --accent-light: var(--color-violet-50);
+  --accent-border: var(--color-violet-200);
+  --accent-subtle: rgba(124, 58, 237, 0.08);
+  --accent-contrast: #ffffff;
+  --focus-ring: rgba(124, 58, 237, 0.4);
+
+  --gradient-accent: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+  --gradient-glow: linear-gradient(135deg, rgba(124, 58, 237, 0.12) 0%, rgba(139, 92, 246, 0.04) 100%);
+
+  /* Typographie identique Admin */
+  --font-display: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.75rem;
+  --text-3xl: 2.25rem;
+  --text-4xl: 3rem;
+
+  /* Espacements */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-7: 2rem;
+  --space-8: 3rem;
+  --space-9: 4rem;
+
+  /* Rayons de courbure */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+
+  /* Physique d'animation Emil Kowalski (spring curves & tactile feel) */
+  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --duration: 200ms;
+  --duration-fast: 120ms;
+  --duration-slow: 400ms;
+
+  /* Ombres */
+  --shadow-sm: 0 1px 3px rgba(9, 9, 11, 0.05), 0 1px 2px rgba(9, 9, 11, 0.03);
+  --shadow-md: 0 4px 16px rgba(9, 9, 11, 0.06), 0 2px 6px rgba(9, 9, 11, 0.03);
+  --shadow-lg: 0 12px 32px rgba(9, 9, 11, 0.1), 0 4px 12px rgba(9, 9, 11, 0.04);
+  --shadow-accent: 0 4px 14px rgba(124, 58, 237, 0.25);
+  --shadow-accent-lg: 0 12px 36px rgba(124, 58, 237, 0.32);
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --bg: #09090b;
+  --bg-elevated: #0f0e13;
+  --surface: #121115;
+  --surface-hover: #1c1a22;
+  --surface-active: #26242e;
+  --text: #fafafa;
+  --text-secondary: #a1a1aa;
+  --text-tertiary: #71717a;
+  --border: #27272a;
+  --border-strong: #3f3f46;
+
+  --accent: var(--color-violet-500);
+  --accent-hover: var(--color-violet-400);
+  --accent-light: rgba(124, 58, 237, 0.16);
+  --accent-border: rgba(167, 139, 250, 0.3);
+  --accent-subtle: rgba(167, 139, 250, 0.1);
+  --accent-contrast: #ffffff;
+  --focus-ring: rgba(167, 139, 250, 0.5);
+
+  --gradient-accent: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%);
+  --gradient-glow: linear-gradient(135deg, rgba(167, 139, 250, 0.18) 0%, rgba(124, 58, 237, 0.05) 100%);
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.6);
+  --shadow-accent: 0 4px 20px rgba(124, 58, 237, 0.35);
+  --shadow-accent-lg: 0 12px 40px rgba(124, 58, 237, 0.45);
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: 1.6;
+  min-height: 100vh;
+  transition: background var(--duration) var(--ease-spring), color var(--duration) var(--ease-spring);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+img, svg {
+  display: block;
+  max-width: 100%;
+}
+
+button, input, textarea, select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  user-select: none;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  color: var(--text);
+}
+
+/* Scrollbar personnalisée Kowalski */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: var(--radius-full);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--accent-light);
+  color: var(--accent);
+}
+
+/* Boutons & Micro-interactions Emil Kowalski */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: 0.65rem 1.25rem;
+  border-radius: var(--radius-full);
+  border: 1px solid transparent;
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: transform var(--duration) var(--ease-spring),
+    box-shadow var(--duration) var(--ease-spring),
+    background var(--duration) var(--ease-spring),
+    border-color var(--duration) var(--ease-spring),
+    color var(--duration) var(--ease-spring);
+  position: relative;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+}
+
+.btn:active {
+  transform: translateY(0) scale(0.96);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  box-shadow: var(--shadow-accent);
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover);
+  box-shadow: var(--shadow-accent-lg);
+  filter: none;
+}
+
+.btn-secondary {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-secondary:hover {
+  background: var(--surface-hover);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+}
+
+.btn-outline:hover {
+  background: var(--accent-light);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.btn-ghost:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.btn-danger {
+  background: var(--color-black);
+  color: var(--color-white);
+  border: 1px solid var(--border-strong);
+}
+
+[data-theme='dark'] .btn-danger {
+  background: var(--color-white);
+  color: var(--color-black);
+}
+
+.btn-icon-only {
+  padding: 0.6rem;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-full);
+}
+
+/* Champs de formulaires Impeccable */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.field label, .field > span {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.field input, .field textarea, .field select {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem;
+  color: var(--text);
+  font-size: var(--text-sm);
+  font-family: var(--font-body);
+  transition: all var(--duration) var(--ease-spring);
+  width: 100%;
+}
+
+.field input:hover, .field textarea:hover, .field select:hover {
+  border-color: var(--border-strong);
+}
+
+.field input:focus, .field textarea:focus, .field select:focus {
+  border-color: var(--accent);
+  background: var(--bg);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+  outline: none;
+}
+
+.field input::placeholder, .field textarea::placeholder {
+  color: var(--text-tertiary);
+}
+
+.field textarea {
+  min-height: 120px;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+/* Badges Impeccable & Mono details */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+.badge-accent {
+  background: var(--accent-light);
+  color: var(--accent);
+  border: 1px solid var(--accent-border);
+}
+
+.badge-neutral {
+  background: var(--surface-hover);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+.badge-black {
+  background: var(--color-black);
+  color: var(--color-white);
+}
+
+[data-theme='dark'] .badge-black {
+  background: var(--color-white);
+  color: var(--color-black);
+}
+
+.text-secondary { color: var(--text-secondary); }
+.text-tertiary { color: var(--text-tertiary); }
+.font-mono { font-family: var(--font-mono); }
+.font-display { font-family: var(--font-display); }
+
+/* Animation Spinner Impeccable */
+.spinner {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid rgba(124, 58, 237, 0.2);
+  border-top-color: var(--spinner-color, var(--accent));
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
