@@ -177,3 +177,5 @@ python manage.py check
 ## Notes
 
 Ce backend sert de source de données pour l’application frontend du portfolio et centralise la gestion du contenu éditorial, de l’authentification et des statistiques.
+
+
