@@ -11,7 +11,7 @@ from .serializers import (
 
 from django.conf import settings
 
-from .models import Langues, MyInfo, Settings, Skills_list
+from .models import Certificates, Langues, MyInfo, Settings, Skills_list
 
 logger = logging.getLogger(__name__)
 
@@ -146,4 +146,83 @@ def frontend_skills(request):
     except Exception as e:
         logger.exception(f"Erreur dans frontend_skills: {str(e)}")
         return _error_server()
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def frontend_certificates(request):
+    """
+    Retourne toutes les certifications publiques (status=True) pour la page des certificats.
+    Tri : d'abord les plus importantes (important=True), puis par date décroissante.
+    """
+    try:
+        # Récupérer toutes les certifications avec status=True
+        certificates = Certificates.objects.filter(status=True).order_by('-important', '-date')
+        
+        # Construire le payload
+        payload = {
+            'certificats': [
+                {
+                    'id': str(cert.id),
+                    'categorie': cert.categorie,
+                    'titre': cert.titre,
+                    'description': cert.description,
+                    'organisme': cert.organisme,
+                    'date': cert.date.strftime('%d/%m/%Y'),
+                    'credentialId': f"{cert.organisme[:4].upper()}-{str(cert.id)[:8].upper()}",
+                    'url': cert.url,
+                    'image': request.build_absolute_uri(cert.image.url) if cert.image else None,
+                    'important': cert.important,
+                }
+                for cert in certificates
+            ]
+        }
+        
+        return Response(payload, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        logger.exception(f"Erreur dans frontend_certificates: {str(e)}")
+        return _error_server()
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def frontend_certificates_highlights(request):
+    """
+    Retourne les certifications mises en avant (important=True et status=True) 
+    pour le composant d'accueil.
+    Tri par date décroissante.
+    """
+    try:
+        # Récupérer les certifications importantes et actives
+        certificates = Certificates.objects.filter(
+            status=True, 
+            important=True
+        ).order_by('-date')
+        
+        # Construire le payload
+        payload = {
+            'certificats': [
+                {
+                    'id': str(cert.id),
+                    'categorie': cert.categorie,
+                    'titre': cert.titre,
+                    'description': cert.description,
+                    'organisme': cert.organisme,
+                    'date': cert.date.strftime('%d/%m/%Y'),
+                    'credentialId': f"{cert.organisme[:4].upper()}-{str(cert.id)[:8].upper()}",
+                    'url': cert.url,
+                    'image': request.build_absolute_uri(cert.image.url) if cert.image else None,
+                    'important': cert.important,
+                }
+                for cert in certificates
+            ]
+        }
+        
+        return Response(payload, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        logger.exception(f"Erreur dans frontend_certificates_highlights: {str(e)}")
+        return _error_server()
+
 

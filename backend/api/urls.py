@@ -29,6 +29,8 @@ from .views_frontend import (
     settings_public,
     frontend_about,
     frontend_skills,
+    frontend_certificates,
+    frontend_certificates_highlights,
 )
 
 urlpatterns = [
@@ -68,4 +70,6 @@ urlpatterns = [
     path('settings/public/', settings_public, name='settings_public'),
     path('frontend/about/', frontend_about, name='frontend_about'),
     path('frontend/skills/', frontend_skills, name='frontend_skills'),
+    path('frontend/certificates/', frontend_certificates, name='frontend_certificates'),
+    path('frontend/certificates/highlights/', frontend_certificates_highlights, name='frontend_certificates_highlights'),
 ]

@@ -1,5 +1,3 @@
-// Skills.tsx - Version sans données par défaut
-
 import { useEffect, useState } from "react";
 import { useScrollReveal } from "./useScrollReveal";
 import { TechIcon, getTechMeta } from "../utils/techIcons";
