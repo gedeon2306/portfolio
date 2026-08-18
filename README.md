@@ -6,7 +6,7 @@
 </div>
 
 ---
-Application full-stack pour un portfolio personnel avec une interface d’administration et un backend API. Le projet permet de gérer les informations du profil, les compétences, les projets, les certificats, les statistiques et les paramètres du site.
+
 
 ## Architecture
 
