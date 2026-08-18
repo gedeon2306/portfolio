@@ -25,8 +25,13 @@ from .views import (
     change_password,
     backup_export,
 )
+from .views_frontend import (
+    frontend_about,
+    settings_public
+)
 
 urlpatterns = [
+    # Admin routes
     path('auth/login/', login, name='login'),
     path('auth/confirm-login/', confirm_login, name='confirm_login'),
 
@@ -57,4 +62,8 @@ urlpatterns = [
     path('settings/security/', security_settings, name='security_settings'),
     path('settings/change-password/', change_password, name='change_password'),
     path('settings/backup/', backup_export, name='backup_export'),
+
+    # Portfolio routes (frontend)
+    path('frontend/about/', frontend_about, name='frontend_about'),
+    path('settings/public/', settings_public, name='settings_public'),
 ]

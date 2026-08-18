@@ -1,3 +1,5 @@
+/* About.css - Version corrigée (garde les couleurs originales) */
+
 .pf-about {
   padding: 100px 0;
   position: relative;
@@ -88,7 +90,7 @@
   margin-bottom: 40px;
 }
 
-/* Languages */
+/* Languages - MODIFIED SECTION */
 .pf-langs-section {
   padding-top: 28px;
   border-top: 1px solid var(--border);
@@ -112,19 +114,26 @@
 
 .pf-lang-card {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
+  flex-direction: column;
+  padding: 14px 16px;
   border-radius: var(--radius-md);
   background: var(--surface);
   border: 1px solid var(--border);
   transition: all var(--duration) var(--ease-spring);
+  gap: 8px;
 }
 
 .pf-lang-card:hover {
   border-color: var(--border-strong);
   background: var(--surface-hover);
   transform: translateY(-2px);
+}
+
+/* Ligne du haut : drapeau + nom de la langue */
+.pf-lang-top-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .pf-lang-flag {
@@ -136,13 +145,6 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 }
 
-.pf-lang-info {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 0;
-}
-
 .pf-lang-name {
   font-family: var(--font-body);
   font-size: var(--text-xs);
@@ -150,10 +152,17 @@
   color: var(--text);
 }
 
+/* Ligne du bas : niveau - GARDE LES COULEURS ORIGINALES */
 .pf-lang-badge {
   font-size: 10px;
-  padding: 2px 6px;
+  padding: 3px 8px;
   align-self: flex-start;
+  /* Garde les couleurs de la classe .badge-accent existante */
+}
+
+/* On garde .pf-lang-info mais on le cache */
+.pf-lang-info {
+  display: none;
 }
 
 @media (max-width: 900px) {
