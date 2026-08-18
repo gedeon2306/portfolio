@@ -11,7 +11,7 @@ from .serializers import (
 
 from django.conf import settings
 
-from .models import Langues, MyInfo, Settings
+from .models import Langues, MyInfo, Settings, Skills_list
 
 logger = logging.getLogger(__name__)
 
@@ -104,3 +104,46 @@ def frontend_about(request):
     }
 
     return Response(payload, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def frontend_skills(request):
+    """
+    Retourne les compétences publiques à afficher sur la page Skills.
+    Les compétences sont triées par pourcentage décroissant.
+    """
+    try:
+        # Récupérer toutes les compétences avec leurs niveaux, triées par pourcentage décroissant
+        skills_list = Skills_list.objects.select_related('skill').all().order_by('-pourcentage')
+        
+        # Grouper par catégorie (skill)
+        grouped_skills = {}
+        for skill_item in skills_list:
+            category_name = skill_item.skill.competence
+            if category_name not in grouped_skills:
+                grouped_skills[category_name] = []
+            
+            grouped_skills[category_name].append({
+                'id': str(skill_item.id),
+                'libelle': skill_item.libelle,
+                'pourcentage': skill_item.pourcentage,
+            })
+        
+        # Construire le payload
+        payload = {
+            'competences': [
+                {
+                    'categorie': category,
+                    'skills': skills
+                }
+                for category, skills in grouped_skills.items()
+            ]
+        }
+        
+        return Response(payload, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        logger.exception(f"Erreur dans frontend_skills: {str(e)}")
+        return _error_server()
+

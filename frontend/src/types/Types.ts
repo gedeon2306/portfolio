@@ -1,3 +1,5 @@
+// types/Types.ts - Version corrigée
+
 export interface Settings {
   id?: string;
   titre_app?: string;
@@ -21,3 +23,16 @@ export interface AboutData {
   langues: AboutLanguage[];
 }
 
+// Types pour les compétences
+export interface SkillGroup {
+  categorie: string;
+  skills: {
+    id: string;
+    libelle: string;
+    pourcentage: number;
+  }[];
+}
+
+export interface SkillsData {
+  competences: SkillGroup[];
+}
