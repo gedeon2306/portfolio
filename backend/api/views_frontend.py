@@ -11,7 +11,7 @@ from .serializers import (
 
 from django.conf import settings
 
-from .models import Certificates, Langues, MyInfo, Settings, Skills_list
+from .models import Certificates, Langues, MyInfo, Projects, Settings, Skills_list
 
 logger = logging.getLogger(__name__)
 
@@ -226,3 +226,82 @@ def frontend_certificates_highlights(request):
         return _error_server()
 
 
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def frontend_projects(request):
+    """
+    Retourne tous les projets publics (status=True) pour la page des projets.
+    Tri : d'abord les plus importants (important=True), puis par date de création décroissante.
+    """
+    try:
+        projects = Projects.objects.filter(status=True).prefetch_related(
+            'tec_projets__technologie'
+        ).order_by('-important', '-created_at')
+
+        payload = {
+            'projets': [
+                {
+                    'id': str(project.id),
+                    'categorie': project.categorie,
+                    'titre': project.titre,
+                    'description': project.description,
+                    'image': request.build_absolute_uri(project.image.url) if project.image else None,
+                    'url': project.url,
+                    'codeSource': project.code_source,
+                    'important': project.important,
+                    'date': project.created_at.strftime('%d/%m/%Y'),
+                    'technologies': [
+                        tech.technologie.libelle
+                        for tech in project.tec_projets.all()
+                    ],
+                }
+                for project in projects
+            ]
+        }
+
+        return Response(payload, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        logger.exception(f"Erreur dans frontend_projects: {str(e)}")
+        return _error_server()
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def frontend_projects_highlights(request):
+    """
+    Retourne les projets mis en avant (important=True et status=True)
+    pour le composant d'accueil.
+    """
+    try:
+        projects = Projects.objects.filter(
+            status=True,
+            important=True
+        ).prefetch_related('tec_projets__technologie').order_by('-created_at')
+
+        payload = {
+            'projets': [
+                {
+                    'id': str(project.id),
+                    'categorie': project.categorie,
+                    'titre': project.titre,
+                    'description': project.description,
+                    'image': request.build_absolute_uri(project.image.url) if project.image else None,
+                    'url': project.url,
+                    'codeSource': project.code_source,
+                    'important': project.important,
+                    'date': project.created_at.strftime('%d/%m/%Y'),
+                    'technologies': [
+                        tech.technologie.libelle
+                        for tech in project.tec_projets.all()
+                    ],
+                }
+                for project in projects
+            ]
+        }
+
+        return Response(payload, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        logger.exception(f"Erreur dans frontend_projects_highlights: {str(e)}")
+        return _error_server()

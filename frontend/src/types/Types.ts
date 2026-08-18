@@ -54,3 +54,21 @@ export interface Certificate {
 export interface CertificatesData {
   certificats: Certificate[];
 }
+
+// Types pour les projets
+export interface Project {
+  id: string;
+  categorie: string;
+  titre: string;
+  description: string;
+  image: string | null;
+  url: string | null;
+  codeSource: string | null;
+  important: boolean;
+  date: string; // Format: DD/MM/YYYY
+  technologies: string[];
+}
+
+export interface ProjectsData {
+  projets: Project[];
+}
