@@ -1,5 +1,10 @@
 import api from './AxiosConfig';
-import type { Settings, AboutData, CertificatesData } from '../types/Types';
+import type { 
+  Settings, 
+  AboutData, 
+  CertificatesData,
+  ProjectsData,
+} from '../types/Types';
 
 export async function getSettings(): Promise<Settings | null> {
 	const resp = await api.get('settings/public/');
@@ -57,10 +62,40 @@ export async function getCertificatesHighlights(): Promise<CertificatesData | nu
   }
 }
 
+/**
+ * Récupère tous les projets actifs (status=True)
+ * Tri : important d'abord, puis par date décroissante
+ */
+export async function getProjects(): Promise<ProjectsData | null> {
+  try {
+    const resp = await api.get('frontend/projects/');
+    return resp.data ?? null;
+  } catch (error) {
+    console.error('Erreur lors de la récupération des projets:', error);
+    return null;
+  }
+}
+
+/**
+ * Récupère uniquement les projets mis en avant (important=True et status=True)
+ * pour le composant d'accueil
+ */
+export async function getProjectsHighlights(): Promise<ProjectsData | null> {
+  try {
+    const resp = await api.get('frontend/projects/highlights/');
+    return resp.data ?? null;
+  } catch (error) {
+    console.error('Erreur lors de la récupération des projets en avant:', error);
+    return null;
+  }
+}
+
 export default {
   getSettings,
   getAboutData,
   getSkills,
   getCertificates,
   getCertificatesHighlights,
+  getProjects,
+  getProjectsHighlights,
 };

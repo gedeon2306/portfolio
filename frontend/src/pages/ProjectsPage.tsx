@@ -7,26 +7,17 @@ import {
   FiFilter,
   FiX,
   FiGithub,
-  FiExternalLink
+  FiExternalLink,
 } from "react-icons/fi";
 import { useNavigate, Link } from "react-router-dom";
 import { useToast } from "../context/ToastContext";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import { getProjects } from "../api/Actions";
+import type { Project } from "../types/Types";
+import { extractYear, getAvailableYears } from "../utils/dateUtils";
 import { TechIcon, getTechMeta } from "../utils/techIcons";
 import "../css/ProjectsPage.css";
-
-interface Project {
-  id: string;
-  category: string;
-  title: string;
-  description: string;
-  tags: string[];
-  image: string;
-  repoUrl?: string;
-  liveUrl?: string;
-  featured?: boolean;
-}
 
 const PROJECT_CATEGORIES = [
   { value: 'Web', label: 'Application Web' },
@@ -42,154 +33,63 @@ const PROJECT_CATEGORIES = [
   { value: 'Autre', label: 'Autre' },
 ];
 
-const PROJECTS: Project[] = [
-  {
-    id: "proj-1",
-    category: "Web",
-    title: "Plateforme E-Commerce & Gestion des Stocks",
-    description:
-      "Solution moderne de commerce électronique avec panier temps réel, paiement Stripe, dashboard vendeur et architecture microservices.",
-    tags: ["React 19", "Node.js", "MongoDB", "Stripe API", "TailwindCSS"],
-    image: "/assets/projects/ecommerce.jpg",
-    repoUrl: "https://github.com",
-    liveUrl: "https://example.com",
-    featured: true,
-  },
-  {
-    id: "proj-2",
-    category: "Web",
-    title: "Dashboard Analytics & Visualisation Temps Réel",
-    description:
-      "Tableau de bord haute performance avec visualisations interactives D3.js, websockets bidirectionnels et agrégation de métriques avancées.",
-    tags: ["React", "TypeScript", "D3.js", "WebSockets", "Django"],
-    image: "/assets/projects/analytics.jpg",
-    repoUrl: "https://github.com",
-    liveUrl: "https://example.com",
-    featured: true,
-  },
-  {
-    id: "proj-3",
-    category: "Web",
-    title: "Application Collaborative de Gestion de Tâches",
-    description:
-      "Espace de travail agile avec synchronisation instantanée, assignation de tickets, notifications push et historique d'activité complet.",
-    tags: ["Next.js", "PostgreSQL", "Prisma", "TailwindCSS"],
-    image: "/assets/projects/taskmgmt.jpg",
-    repoUrl: "https://github.com",
-    liveUrl: "https://example.com",
-  },
-  {
-    id: "proj-4",
-    category: "Mobile",
-    title: "Application Mobile Fitness & Suivi d'Entraînement",
-    description:
-      "Application cross-platform avec suivi GPS, calcul calorique dynamique, graphiques de progression et synchronisation cloud offline-first.",
-    tags: ["React Native", "Redux Toolkit", "Firebase", "Expo"],
-    image: "/assets/projects/mobile.jpg",
-    repoUrl: "https://github.com",
-    liveUrl: "https://example.com",
-  },
-  {
-    id: "proj-5",
-    category: "Web",
-    title: "Plateforme de Streaming Vidéo & Médias",
-    description:
-      "Interface fluide de lecture multimédia avec système de recommandation personnalisé, sous-titrage dynamique et mode sombre automatique.",
-    tags: ["React", "TypeScript", "Video.js", "GraphQL"],
-    image: "/assets/projects/streaming.jpg",
-    repoUrl: "https://github.com",
-    liveUrl: "https://example.com",
-  },
-  {
-    id: "proj-6",
-    category: "Web",
-    title: "Générateur & Système de Design Tokens",
-    description:
-      "Outil pour designers et développeurs permettant d'exporter des thèmes et variables CSS / JSON synchronisés en temps réel.",
-    tags: ["TypeScript", "Vite", "CSS Variables", "Design Tokens"],
-    image: "/assets/projects/designtokens.jpg",
-    repoUrl: "https://github.com",
-    liveUrl: "https://example.com",
-  },
-  {
-    id: "proj-7",
-    category: "API",
-    title: "API RESTful pour Gestion de Contenu",
-    description:
-      "API haute performance avec authentification JWT, documentation Swagger, rate limiting et caching Redis.",
-    tags: ["Node.js", "Express", "PostgreSQL", "Redis", "JWT"],
-    image: "/assets/projects/api.jpg",
-    repoUrl: "https://github.com",
-    liveUrl: "https://example.com",
-  },
-  {
-    id: "proj-8",
-    category: "IA",
-    title: "Système de Recommandation par IA",
-    description:
-      "Moteur de recommandation basé sur des algorithmes de machine learning avec analyse de comportement utilisateur.",
-    tags: ["Python", "TensorFlow", "React", "FastAPI"],
-    image: "/assets/projects/ai-recommendation.jpg",
-    repoUrl: "https://github.com",
-    liveUrl: "https://example.com",
-    featured: true,
-  },
-];
-
-// Générer les années de 2024 à 2026
-const YEARS = ["2024", "2025", "2026"];
-
 export default function ProjectsPage() {
   const navigate = useNavigate();
   const toast = useToast();
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedYear, setSelectedYear] = useState<string>("");
   const [showFilters, setShowFilters] = useState(false);
 
-  // Scroll en haut de la page au chargement
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
+
+    const fetchProjects = async () => {
+      try {
+        setLoading(true);
+        const data = await getProjects();
+        if (data?.projets) {
+          setProjects(data.projets);
+        }
+      } catch (error) {
+        console.error("Erreur lors du chargement des projets:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProjects();
   }, []);
 
-  // Filtrer les projets
-  const filteredProjects = useMemo(() => {
-    let filtered = PROJECTS;
+  const availableYears = useMemo(() => {
+    return getAvailableYears(projects);
+  }, [projects]);
 
-    // Filtre par recherche
+  const filteredProjects = useMemo(() => {
+    let filtered = projects;
+
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase().trim();
       filtered = filtered.filter(
         (project) =>
-          project.title.toLowerCase().includes(term) ||
+          project.titre.toLowerCase().includes(term) ||
           project.description.toLowerCase().includes(term) ||
-          project.tags.some(tag => tag.toLowerCase().includes(term))
+          project.technologies.some((tech) => tech.toLowerCase().includes(term))
       );
     }
 
-    // Filtre par catégorie
     if (selectedCategory) {
-      filtered = filtered.filter((project) => project.category === selectedCategory);
+      filtered = filtered.filter((project) => project.categorie === selectedCategory);
     }
 
-    // Filtre par année (simulé avec une date fictive pour l'exemple)
     if (selectedYear) {
-      // On simule des années pour les projets
-      const yearMap: Record<string, string> = {
-        "proj-1": "2024",
-        "proj-2": "2024",
-        "proj-3": "2025",
-        "proj-4": "2025",
-        "proj-5": "2024",
-        "proj-6": "2026",
-        "proj-7": "2025",
-        "proj-8": "2026",
-      };
-      filtered = filtered.filter((project) => yearMap[project.id] === selectedYear);
+      filtered = filtered.filter((project) => extractYear(project.date) === selectedYear);
     }
 
     return filtered;
-  }, [searchTerm, selectedCategory, selectedYear]);
+  }, [searchTerm, selectedCategory, selectedYear, projects]);
 
   const handleActionClick = (name: string, type: "repo" | "demo") => {
     if (type === "repo") {
@@ -202,7 +102,6 @@ export default function ProjectsPage() {
   const handleBack = (e: React.MouseEvent) => {
     e.preventDefault();
     navigate("/");
-    // Attendre que la page se charge pour scroller vers la section projets
     setTimeout(() => {
       const element = document.getElementById("projets");
       if (element) {
@@ -218,39 +117,56 @@ export default function ProjectsPage() {
   };
 
   const getCategoryLabel = (value: string) => {
-    const category = PROJECT_CATEGORIES.find(c => c.value === value);
+    const category = PROJECT_CATEGORIES.find((c) => c.value === value);
     return category ? category.label : value;
   };
 
   const hasActiveFilters = searchTerm || selectedCategory || selectedYear;
+
+  if (loading) {
+    return (
+      <>
+        <Navbar />
+        <div className="pf-projects-page">
+          <div className="pf-container">
+            <div className="pf-projects-page-header">
+              <Link to="/" className="pf-back-button" onClick={handleBack}>
+                <FiArrowLeft size={20} />
+                <span>Retour au portfolio</span>
+              </Link>
+            </div>
+            <div className="pf-projects-loading">
+              <div className="pf-spinner" />
+              <p>Chargement des projets...</p>
+            </div>
+          </div>
+        </div>
+        <Footer />
+      </>
+    );
+  }
 
   return (
     <>
       <Navbar />
       <div className="pf-projects-page">
         <div className="pf-container">
-          {/* En-tête avec navigation */}
           <div className="pf-projects-page-header">
-            <Link 
-              to="/"
-              className="pf-back-button"
-              onClick={handleBack}
-            >
+            <Link to="/" className="pf-back-button" onClick={handleBack}>
               <FiArrowLeft size={20} />
               <span>Retour au portfolio</span>
             </Link>
-            
+
             <div className="pf-projects-page-title-section">
               <span className="pf-eyebrow">Portfolio & Réalisations</span>
               <h1 className="pf-projects-page-title">Tous mes Projets</h1>
               <p className="pf-projects-page-subtitle">
-                L'ensemble de mes projets professionnels et personnels, démontrant mon expertise en développement logiciel.
-                {PROJECTS.length} projets réalisés.
+                Une sélection complète d'applications conçues avec une exigence stricte de qualité de code, de performance et de design.
+                {" "}{projects.length} projets réalisés.
               </p>
             </div>
           </div>
 
-          {/* Barre de recherche et filtres */}
           <div className="pf-projects-search-section">
             <div className="pf-search-bar">
               <FiSearch className="pf-search-icon" size={20} />
@@ -262,10 +178,7 @@ export default function ProjectsPage() {
                 className="pf-search-input"
               />
               {searchTerm && (
-                <button
-                  className="pf-search-clear"
-                  onClick={() => setSearchTerm("")}
-                >
+                <button className="pf-search-clear" onClick={() => setSearchTerm("")}>
                   <FiX size={18} />
                 </button>
               )}
@@ -281,7 +194,6 @@ export default function ProjectsPage() {
             </button>
           </div>
 
-          {/* Filtres déroulants */}
           <div className={`pf-filters-panel ${showFilters ? 'open' : ''}`}>
             <div className="pf-filters-grid">
               <div className="pf-filter-group">
@@ -308,7 +220,7 @@ export default function ProjectsPage() {
                   className="pf-filter-select"
                 >
                   <option value="">Toutes les années</option>
-                  {YEARS.map((year) => (
+                  {availableYears.map((year) => (
                     <option key={year} value={year}>
                       {year}
                     </option>
@@ -317,10 +229,7 @@ export default function ProjectsPage() {
               </div>
 
               {hasActiveFilters && (
-                <button
-                  className="pf-clear-filters-btn"
-                  onClick={clearFilters}
-                >
+                <button className="pf-clear-filters-btn" onClick={clearFilters}>
                   <FiX size={16} />
                   <span>Effacer les filtres</span>
                 </button>
@@ -328,7 +237,6 @@ export default function ProjectsPage() {
             </div>
           </div>
 
-          {/* Résultats */}
           <div className="pf-projects-results">
             <div className="pf-projects-results-header">
               <span className="pf-projects-count">
@@ -362,10 +270,7 @@ export default function ProjectsPage() {
                 <FiLayers size={48} className="pf-empty-icon" />
                 <h3>Aucun projet trouvé</h3>
                 <p>Aucun projet ne correspond à vos critères de recherche.</p>
-                <button
-                  className="btn btn-secondary"
-                  onClick={clearFilters}
-                >
+                <button className="btn btn-secondary" onClick={clearFilters}>
                   Effacer les filtres
                 </button>
               </div>
@@ -375,14 +280,14 @@ export default function ProjectsPage() {
                   <article key={project.id} className="pf-project-card">
                     <div className="pf-project-thumb">
                       <img
-                        src={project.image}
-                        alt={project.title}
+                        src={project.image || "/assets/projects/default.svg"}
+                        alt={project.titre}
                         className="pf-project-thumb-image"
                       />
                       <div className="pf-project-thumb-bg">
                         <FiLayers className="pf-project-watermark" />
                       </div>
-                      {project.featured && (
+                      {project.important && (
                         <span className="badge badge-accent pf-project-badge-top">
                           En vedette
                         </span>
@@ -391,17 +296,17 @@ export default function ProjectsPage() {
 
                     <div className="pf-project-body">
                       <span className="pf-project-category font-mono">
-                        {getCategoryLabel(project.category)}
+                        {getCategoryLabel(project.categorie)}
                       </span>
-                      <h3 className="pf-project-title">{project.title}</h3>
+                      <h3 className="pf-project-title">{project.titre}</h3>
                       <p className="pf-project-desc">{project.description}</p>
 
                       <div className="pf-project-tags">
-                        {project.tags.map((tag) => {
-                          const meta = getTechMeta(tag);
+                        {project.technologies.map((tech) => {
+                          const meta = getTechMeta(tech);
                           return (
-                            <span key={tag} className="badge badge-neutral pf-tech-badge">
-                              <TechIcon name={tag} size={12} />
+                            <span key={tech} className="badge badge-neutral pf-tech-badge">
+                              <TechIcon name={tech} size={12} />
                               <span>{meta.label}</span>
                             </span>
                           );
@@ -410,28 +315,28 @@ export default function ProjectsPage() {
 
                       <div className="pf-project-footer">
                         <div className="pf-project-links">
-                          {project.repoUrl && (
+                          {project.codeSource && (
                             <a
-                              href={project.repoUrl}
+                              href={project.codeSource}
                               target="_blank"
                               rel="noreferrer"
                               className="pf-icon-btn pf-project-icon-btn"
                               aria-label="Voir le code source"
                               title="Code source GitHub"
-                              onClick={() => handleActionClick(project.title, "repo")}
+                              onClick={() => handleActionClick(project.titre, "repo")}
                             >
                               <FiGithub size={16} />
                             </a>
                           )}
-                          {project.liveUrl && (
+                          {project.url && (
                             <a
-                              href={project.liveUrl}
+                              href={project.url}
                               target="_blank"
                               rel="noreferrer"
                               className="pf-icon-btn pf-project-icon-btn"
                               aria-label="Voir la démo en direct"
                               title="Démo live"
-                              onClick={() => handleActionClick(project.title, "demo")}
+                              onClick={() => handleActionClick(project.titre, "demo")}
                             >
                               <FiExternalLink size={16} />
                             </a>
@@ -439,11 +344,11 @@ export default function ProjectsPage() {
                         </div>
 
                         <a
-                          href={project.liveUrl ?? "#"}
+                          href={project.url ?? "#"}
                           target="_blank"
                           rel="noreferrer"
                           className="pf-project-explore"
-                          onClick={() => handleActionClick(project.title, "demo")}
+                          onClick={() => handleActionClick(project.titre, "demo")}
                         >
                           <span>Explorer</span>
                           <FiArrowUpRight size={14} className="link-arrow" />
