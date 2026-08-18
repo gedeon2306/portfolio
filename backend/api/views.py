@@ -393,43 +393,6 @@ def dashboard_home(request):
         "POST : crée les informations si aucune n'existe, sinon les met à jour (upsert), "
         "et synchronise la liste des langues envoyée (ajout / modification / suppression)."
     ),
-    request=inline_serializer(
-        name="MyInfoUpdateRequest",
-        fields={
-            "nom": drf_serializers.CharField(required=False),
-            "prenom": drf_serializers.CharField(required=False),
-            "email": drf_serializers.EmailField(required=False),
-            "telephone": drf_serializers.CharField(required=False),
-            "localisation": drf_serializers.CharField(required=False),
-            "profession": drf_serializers.CharField(required=False),
-            "description1": drf_serializers.CharField(required=False),
-            "description2": drf_serializers.CharField(required=False),
-            "image": drf_serializers.CharField(required=False, allow_blank=True),
-            "cv": drf_serializers.CharField(required=False, allow_blank=True),
-            "formation": drf_serializers.CharField(required=False),
-            "experience": drf_serializers.CharField(required=False),
-            "passions": drf_serializers.CharField(required=False),
-            "github": drf_serializers.URLField(required=False, allow_blank=True),
-            "linkedin": drf_serializers.URLField(required=False, allow_blank=True),
-            "instagram": drf_serializers.URLField(required=False, allow_blank=True),
-            "twitter_x": drf_serializers.URLField(required=False, allow_blank=True),
-            "tik_tok": drf_serializers.URLField(required=False, allow_blank=True),
-            "langues": drf_serializers.ListField(
-                child=drf_serializers.DictField(), required=False,
-                help_text="Liste d'objets {id?, langue, niveau}"
-            ),
-        }
-    ),
-    responses={
-        200: inline_serializer(
-            name="MyInfoSuccess",
-            fields={
-                "info": MyInfoSerializer(),
-                "langues": LanguesSerializer(many=True),
-            }
-        ),
-        400: inline_serializer(name="MyInfoError", fields={"error": drf_serializers.CharField()}),
-    },
 )
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
@@ -447,12 +410,14 @@ def my_info(request):
         info = MyInfo.objects.first()
         is_creation = info is None
 
+        # Récupérer les données texte
         text_fields = [
             'nom', 'prenom', 'email', 'telephone', 'localisation', 'profession',
             'description1', 'description2', 'formation', 'experience', 'passions',
             'github', 'linkedin', 'instagram', 'twitter_x', 'tik_tok',
         ]
         
+        # Préparer les données pour le serializer
         data = {}
         for field in text_fields:
             if field in request.data:
@@ -462,36 +427,87 @@ def my_info(request):
                 value = request.POST.get(field)
                 data[field] = value if value is not None else ''
 
+        # Gérer l'image
+        image_update = False
         if 'image' in request.FILES:
+            # Nouvelle image fournie
             data['image'] = request.FILES['image']
+            image_update = True
         elif request.data.get('remove_image') == 'true' or request.POST.get('remove_image') == 'true':
-            if info and info.image:
-                info.image.delete(save=False)
+            # Suppression demandée
             data['image'] = None
+            image_update = True
 
+        # Gérer le CV
+        cv_update = False
         if 'cv' in request.FILES:
+            # Nouveau CV fourni
             data['cv'] = request.FILES['cv']
+            cv_update = True
         elif request.data.get('remove_cv') == 'true' or request.POST.get('remove_cv') == 'true':
-            if info and info.cv:
-                info.cv.delete(save=False)
+            # Suppression demandée
             data['cv'] = None
+            cv_update = True
 
         with transaction.atomic():
             if info is None:
+                # CRÉATION : on crée une nouvelle instance
                 serializer = MyInfoSerializer(data=data, context={'request': request})
+                
+                if not serializer.is_valid():
+                    logger.error(f"Erreurs de validation MyInfo: {serializer.errors}")
+                    return Response(
+                        {"error": "Données invalides", "details": serializer.errors},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                
+                info = serializer.save()
+                log_journal("Ajout de vos informations")
+                
             else:
-                serializer = MyInfoSerializer(info, data=data, partial=True, context={'request': request})
+                # MISE À JOUR : on met à jour l'instance existante
+                
+                # 1. Supprimer les anciens fichiers SI de nouveaux sont envoyés ou si suppression demandée
+                if image_update:
+                    if 'image' in data and data['image'] is not None:
+                        # Nouvelle image : supprimer l'ancienne
+                        if info.image:
+                            info.image.delete(save=False)
+                    elif 'image' in data and data['image'] is None:
+                        # Suppression de l'image
+                        if info.image:
+                            info.image.delete(save=False)
+                
+                if cv_update:
+                    if 'cv' in data and data['cv'] is not None:
+                        # Nouveau CV : supprimer l'ancien
+                        if info.cv:
+                            info.cv.delete(save=False)
+                    elif 'cv' in data and data['cv'] is None:
+                        # Suppression du CV
+                        if info.cv:
+                            info.cv.delete(save=False)
+                
+                # 2. Mettre à jour les champs texte
+                for field in text_fields:
+                    if field in data:
+                        setattr(info, field, data[field])
+                
+                # 3. Mettre à jour les champs fichiers
+                if image_update:
+                    info.image = data.get('image')
+                
+                if cv_update:
+                    info.cv = data.get('cv')
+                
+                # 4. Sauvegarder
+                info.save()
+                log_journal("Mise à jour de vos informations")
+                
+                # 5. Recharger pour avoir les URLs complètes
+                info.refresh_from_db()
 
-            if not serializer.is_valid():
-                logger.error(f"Erreurs de validation MyInfo: {serializer.errors}")
-                return Response(
-                    {"error": "Données invalides", "details": serializer.errors},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-            info = serializer.save()
-            log_journal("Ajout de vos informations" if is_creation else "Mise à jour de vos informations")
-
+            # Gérer les langues (même code)
             langues_payload = []
             langues_raw = request.data.get('langues')
             if langues_raw is None:
@@ -551,9 +567,14 @@ def my_info(request):
             if removed:
                 log_journal(f"Suppression de {removed} langue(s)")
 
+        # Recharger l'instance pour avoir les données à jour
+        if info:
+            info.refresh_from_db()
+        
         langues = Langues.objects.all().order_by('langue')
+        
         return Response({
-            "info": MyInfoSerializer(info, context={'request': request}).data,
+            "info": MyInfoSerializer(info, context={'request': request}).data if info else None,
             "langues": LanguesSerializer(langues, many=True).data,
         }, status=status.HTTP_200_OK)
 
