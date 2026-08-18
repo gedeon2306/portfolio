@@ -1,4 +1,4 @@
-// types/Types.ts - Version corrigée
+// types/Types.ts - Ajouter les interfaces pour les certifications
 
 export interface Settings {
   id?: string;
@@ -35,4 +35,22 @@ export interface SkillGroup {
 
 export interface SkillsData {
   competences: SkillGroup[];
+}
+
+// Types pour les certifications
+export interface Certificate {
+  id: string;
+  categorie: string;
+  titre: string;
+  description: string;
+  organisme: string;
+  date: string; // Format: DD/MM/YYYY
+  credentialId: string;
+  url: string | null;
+  image: string | null;
+  important: boolean;
+}
+
+export interface CertificatesData {
+  certificats: Certificate[];
 }

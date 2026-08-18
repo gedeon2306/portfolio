@@ -1,5 +1,5 @@
 import api from './AxiosConfig';
-import type { Settings, AboutData } from '../types/Types';
+import type { Settings, AboutData, CertificatesData } from '../types/Types';
 
 export async function getSettings(): Promise<Settings | null> {
 	const resp = await api.get('settings/public/');
@@ -29,9 +29,38 @@ export async function getSkills() {
     return null;
   }
 }
+/**
+ * Récupère toutes les certifications actives (status=True)
+ * Tri : important d'abord, puis par date décroissante
+ */
+export async function getCertificates(): Promise<CertificatesData | null> {
+  try {
+    const resp = await api.get('frontend/certificates/');
+    return resp.data ?? null;
+  } catch (error) {
+    console.error('Erreur lors de la récupération des certifications:', error);
+    return null;
+  }
+}
+
+/**
+ * Récupère uniquement les certifications mises en avant (important=True et status=True)
+ * pour le composant d'accueil
+ */
+export async function getCertificatesHighlights(): Promise<CertificatesData | null> {
+  try {
+    const resp = await api.get('frontend/certificates/highlights/');
+    return resp.data ?? null;
+  } catch (error) {
+    console.error('Erreur lors de la récupération des certifications en avant:', error);
+    return null;
+  }
+}
 
 export default {
   getSettings,
   getAboutData,
   getSkills,
+  getCertificates,
+  getCertificatesHighlights,
 };

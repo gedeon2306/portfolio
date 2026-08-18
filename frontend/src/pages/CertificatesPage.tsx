@@ -6,25 +6,16 @@ import {
   FiCheckCircle, 
   FiSearch,
   FiFilter,
-  FiX
+  FiX,
 } from "react-icons/fi";
 import { useNavigate, Link } from "react-router-dom";
 import { useToast } from "../context/ToastContext";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import { getCertificates } from "../api/Actions";
+import type { Certificate } from "../types/Types";
+import { formatCertDate, extractYear, getAvailableYears } from "../utils/dateUtils";
 import "../css/CertificatesPage.css";
-
-interface Certificate {
-  id: string;
-  category: string;
-  title: string;
-  description: string;
-  issuer: string;
-  date: string;
-  credentialId: string;
-  url: string;
-  image: string;
-}
 
 const CERTIFICATION_CATEGORIES = [
   { value: 'IA', label: 'Intelligence Artificielle' },
@@ -45,126 +36,78 @@ const CERTIFICATION_CATEGORIES = [
   { value: 'Autre', label: 'Autre' },
 ];
 
-const CERTIFICATES: Certificate[] = [
-  {
-    id: "cert-1",
-    category: "Web",
-    title: "Full-Stack Web Development Professional",
-    description:
-      "Certification avancée couvrant les architectures modernes React, TypeScript, APIs RESTful et Django.",
-    issuer: "Meta",
-    date: "Mars 2025",
-    credentialId: "META-FS-98214",
-    url: "https://coursera.org",
-    image: "/assets/certificates/web-development.svg",
-  },
-  {
-    id: "cert-2",
-    category: "IA",
-    title: "AI & Generative Models Specialist",
-    description:
-      "Spécialisation en intégration d'IA générative, embeddings, LLM orchestration et architectures neuro-vectorielles.",
-    issuer: "Google Cloud",
-    date: "Janvier 2025",
-    credentialId: "GCP-AI-44102",
-    url: "https://cloud.google.com",
-    image: "/assets/certificates/ai-professional.svg",
-  },
-  {
-    id: "cert-3",
-    category: "Data Base",
-    title: "Database Administrator & Data Modeling",
-    description:
-      "Maîtrise de l'architecture des données relationnelles et NoSQL (PostgreSQL, MySQL, Redis, MongoDB).",
-    issuer: "IBM",
-    date: "Novembre 2026",
-    credentialId: "IBM-DB-78193",
-    url: "https://ibm.com",
-    image: "/assets/certificates/database-administrator.svg",
-  },
-  {
-    id: "cert-4",
-    category: "Cloud",
-    title: "Cloud Solutions Architect",
-    description:
-      "Conception et déploiement d'infrastructures résilientes et scalables, conteneurisation Docker et CI/CD.",
-    issuer: "AWS / Coursera",
-    date: "Septembre 2026",
-    credentialId: "AWS-CSA-31804",
-    url: "https://aws.amazon.com",
-    image: "/assets/certificates/cloud-solutions-architect.svg",
-  },
-  {
-    id: "cert-5",
-    category: "Langage de Programmation",
-    title: "Advanced Software Design & Clean Code",
-    description:
-      "Principes SOLID, design patterns avancés, tests unitaires/E2E et refactoring d'applications d'entreprise.",
-    issuer: "Microsoft",
-    date: "Juin 2026",
-    credentialId: "MS-ASD-19045",
-    url: "https://microsoft.com",
-    image: "/assets/certificates/advanced-software-design.svg",
-  },
-];
-
-// Générer les années de 2025 à 2030
-const YEARS = Array.from({ length: 5 }, (_, i) => (2025 + i).toString());
-
 export default function CertificatesPage() {
   const navigate = useNavigate();
   const toast = useToast();
+  const [certificates, setCertificates] = useState<Certificate[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedYear, setSelectedYear] = useState<string>("");
   const [showFilters, setShowFilters] = useState(false);
 
-  // Scroll en haut de la page au chargement
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
+    
+    const fetchCertificates = async () => {
+      try {
+        setLoading(true);
+        const data = await getCertificates();
+        if (data?.certificats) {
+          setCertificates(data.certificats);
+        }
+      } catch (error) {
+        console.error("Erreur lors du chargement des certifications:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCertificates();
   }, []);
 
-  // Filtrer les certificats
-  const filteredCertificates = useMemo(() => {
-    let filtered = CERTIFICATES;
+  const availableYears = useMemo(() => {
+    return getAvailableYears(certificates);
+  }, [certificates]);
 
-    // Filtre par recherche
+  const filteredCertificates = useMemo(() => {
+    let filtered = certificates;
+
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase().trim();
       filtered = filtered.filter(
         (cert) =>
-          cert.title.toLowerCase().includes(term) ||
+          cert.titre.toLowerCase().includes(term) ||
           cert.description.toLowerCase().includes(term) ||
-          cert.issuer.toLowerCase().includes(term)
+          cert.organisme.toLowerCase().includes(term)
       );
     }
 
-    // Filtre par catégorie
     if (selectedCategory) {
-      filtered = filtered.filter((cert) => cert.category === selectedCategory);
+      filtered = filtered.filter((cert) => cert.categorie === selectedCategory);
     }
 
-    // Filtre par année
     if (selectedYear) {
-      filtered = filtered.filter((cert) => cert.date.includes(selectedYear));
+      filtered = filtered.filter((cert) => extractYear(cert.date) === selectedYear);
     }
 
     return filtered;
-  }, [searchTerm, selectedCategory, selectedYear]);
+  }, [searchTerm, selectedCategory, selectedYear, certificates]);
 
   const handleCertClick = (cert: Certificate, e: React.MouseEvent) => {
     e.preventDefault();
-    window.open(cert.url, "_blank", "noopener,noreferrer");
-    toast.success(
-      "Certificat vérifié",
-      `Ouverture du certificat de ${cert.issuer}...`
-    );
+    if (cert.url) {
+      window.open(cert.url, "_blank", "noopener,noreferrer");
+      toast.success(
+        "Certificat vérifié",
+        `Ouverture du certificat de ${cert.organisme}...`
+      );
+    }
   };
 
   const handleBack = (e: React.MouseEvent) => {
     e.preventDefault();
     navigate("/");
-    // Attendre que la page se charge pour scroller vers la section certificats
     setTimeout(() => {
       const element = document.getElementById("certificates");
       if (element) {
@@ -186,12 +129,34 @@ export default function CertificatesPage() {
 
   const hasActiveFilters = searchTerm || selectedCategory || selectedYear;
 
+  if (loading) {
+    return (
+      <>
+        <Navbar />
+        <div className="pf-certificates-page">
+          <div className="pf-container">
+            <div className="pf-cert-page-header">
+              <Link to="/" className="pf-back-button" onClick={handleBack}>
+                <FiArrowLeft size={20} />
+                <span>Retour au portfolio</span>
+              </Link>
+            </div>
+            <div className="pf-cert-loading">
+              <div className="pf-spinner" />
+              <p>Chargement des certificats...</p>
+            </div>
+          </div>
+        </div>
+        <Footer />
+      </>
+    );
+  }
+
   return (
     <>
       <Navbar />
       <div className="pf-certificates-page">
         <div className="pf-container">
-          {/* En-tête avec navigation */}
           <div className="pf-cert-page-header">
             <Link 
               to="/"
@@ -207,12 +172,11 @@ export default function CertificatesPage() {
               <h1 className="pf-cert-page-title">Tous mes Certificats</h1>
               <p className="pf-cert-page-subtitle">
                 L'ensemble de mes certifications professionnelles obtenues auprès des leaders technologiques mondiaux.
-                {CERTIFICATES.length} certificats validés.
+                {certificates.length} certificats validés.
               </p>
             </div>
           </div>
 
-          {/* Barre de recherche et filtres */}
           <div className="pf-cert-search-section">
             <div className="pf-search-bar">
               <FiSearch className="pf-search-icon" size={20} />
@@ -243,7 +207,6 @@ export default function CertificatesPage() {
             </button>
           </div>
 
-          {/* Filtres déroulants */}
           <div className={`pf-filters-panel ${showFilters ? 'open' : ''}`}>
             <div className="pf-filters-grid">
               <div className="pf-filter-group">
@@ -270,7 +233,7 @@ export default function CertificatesPage() {
                   className="pf-filter-select"
                 >
                   <option value="">Toutes les années</option>
-                  {YEARS.map((year) => (
+                  {availableYears.map((year) => (
                     <option key={year} value={year}>
                       {year}
                     </option>
@@ -290,7 +253,6 @@ export default function CertificatesPage() {
             </div>
           </div>
 
-          {/* Résultats */}
           <div className="pf-cert-results">
             <div className="pf-cert-results-header">
               <span className="pf-cert-count">
@@ -337,8 +299,8 @@ export default function CertificatesPage() {
                   <article key={cert.id} className="pf-cert-card">
                     <div className="pf-cert-thumb">
                       <img
-                        src={cert.image}
-                        alt={cert.title}
+                        src={cert.image || "/assets/certificates/default.svg"}
+                        alt={cert.titre}
                         className="pf-cert-thumb-image"
                       />
                       <div className="pf-cert-thumb-pattern">
@@ -353,31 +315,33 @@ export default function CertificatesPage() {
                     <div className="pf-cert-body">
                       <div className="pf-cert-meta-top">
                         <span className="badge badge-accent pf-cert-category">
-                          {getCategoryLabel(cert.category)}
+                          {getCategoryLabel(cert.categorie)}
                         </span>
-                        <span className="pf-cert-date">{cert.date}</span>
+                        <span className="pf-cert-date">{formatCertDate(cert.date)}</span>
                       </div>
 
-                      <h3 className="pf-cert-title">{cert.title}</h3>
+                      <h3 className="pf-cert-title">{cert.titre}</h3>
                       <p className="pf-cert-desc">{cert.description}</p>
 
                       <div className="pf-cert-footer">
                         <div className="pf-cert-issuer-box">
-                          <span className="pf-issuer-name">{cert.issuer}</span>
+                          <span className="pf-issuer-name">{cert.organisme}</span>
                           <span className="pf-cred-id font-mono">ID: {cert.credentialId}</span>
                         </div>
 
-                        <a
-                          href={cert.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="pf-cert-action"
-                          onClick={(e) => handleCertClick(cert, e)}
-                          title="Voir le certificat"
-                        >
-                          <span>Vérifier</span>
-                          <FiArrowUpRight size={14} className="link-arrow" />
-                        </a>
+                        {cert.url && (
+                          <a
+                            href={cert.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="pf-cert-action"
+                            onClick={(e) => handleCertClick(cert, e)}
+                            title="Voir le certificat"
+                          >
+                            <span>Vérifier</span>
+                            <FiArrowUpRight size={14} className="link-arrow" />
+                          </a>
+                        )}
                       </div>
                     </div>
                   </article>
