@@ -42,18 +42,15 @@ export default function About() {
   const toast = useToast();
   
   const [aboutData, setAboutData] = useState<AboutData | null>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchAboutData = async () => {
       try {
-        setLoading(true);
         const data = await getAboutData();
         setAboutData(data);
       } catch (err) {
         console.error("Erreur lors du chargement des données About:", err);
       } finally {
-        setLoading(false);
       }
     };
 

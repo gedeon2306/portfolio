@@ -26,8 +26,9 @@ from .views import (
     backup_export,
 )
 from .views_frontend import (
+    settings_public,
     frontend_about,
-    settings_public
+    frontend_skills,
 )
 
 urlpatterns = [
@@ -64,6 +65,7 @@ urlpatterns = [
     path('settings/backup/', backup_export, name='backup_export'),
 
     # Portfolio routes (frontend)
-    path('frontend/about/', frontend_about, name='frontend_about'),
     path('settings/public/', settings_public, name='settings_public'),
+    path('frontend/about/', frontend_about, name='frontend_about'),
+    path('frontend/skills/', frontend_skills, name='frontend_skills'),
 ]

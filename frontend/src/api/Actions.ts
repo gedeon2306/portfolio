@@ -17,7 +17,21 @@ export async function getAboutData(): Promise<AboutData | null> {
 	}
 }
 
+/**
+ * Récupère les compétences triées par pourcentage décroissant
+ */
+export async function getSkills() {
+  try {
+    const resp = await api.get('frontend/skills/');
+    return resp.data ?? null;
+  } catch (error) {
+    console.error('Erreur lors de la récupération des compétences:', error);
+    return null;
+  }
+}
+
 export default {
-	getSettings,
-	getAboutData,
+  getSettings,
+  getAboutData,
+  getSkills,
 };
