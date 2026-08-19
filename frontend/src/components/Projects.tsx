@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { 
   FiGithub, 
   FiExternalLink, 
@@ -9,6 +9,7 @@ import {
 } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "../context/ToastContext";
+import { useQuery } from "@tanstack/react-query";
 import { getProjectsHighlights } from "../api/Actions";
 import type { Project } from "../types/Types";
 import { TechIcon, getTechMeta } from "../utils/techIcons";
@@ -19,24 +20,40 @@ const INITIAL_COUNT = 3;
 export default function Projects() {
   const toast = useToast();
   const navigate = useNavigate();
-  const [projects, setProjects] = useState<Project[]>([]);
   const [visibleCount, setVisibleCount] = useState(INITIAL_COUNT);
   const gridRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const fetchProjects = async () => {
-      try {
-        const data = await getProjectsHighlights();
-        if (data?.projets) {
-          setProjects(data.projets);
-        }
-      } catch (error) {
-        console.error("Erreur lors du chargement des projets:", error);
-      }
-    };
+  const { data: projectsData, isLoading, error } = useQuery({
+    queryKey: ['projects-highlights'],
+    queryFn: getProjectsHighlights,
+    staleTime: 1000 * 60 * 5,
+  });
 
-    fetchProjects();
-  }, []);
+  const projects = projectsData?.projets || [];
+
+  if (isLoading) {
+    return (
+      <section id="projets" className="pf-projects">
+        <div className="pf-container">
+          <div className="pf-section-header">
+            <span className="pf-eyebrow">Portfolio & Réalisations</span>
+            <h2 className="pf-section-title">Projets Récents</h2>
+          </div>
+          <div style={{ textAlign: 'center', padding: '40px' }}>
+            <p>Chargement des projets...</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (error) {
+    console.error("Erreur lors du chargement des projets:", error);
+  }
+
+  if (projects.length === 0) {
+    return null;
+  }
 
   const displayedProjects = projects.slice(0, visibleCount);
   const hasMore = visibleCount < projects.length;
@@ -62,10 +79,6 @@ export default function Projects() {
   const handleCollapse = () => {
     setVisibleCount(INITIAL_COUNT);
   };
-
-  if (projects.length === 0) {
-    return null;
-  }
 
   return (
     <section id="projets" className="pf-projects">
