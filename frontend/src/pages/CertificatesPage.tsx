@@ -107,13 +107,7 @@ export default function CertificatesPage() {
 
   const handleBack = (e: React.MouseEvent) => {
     e.preventDefault();
-    navigate("/");
-    setTimeout(() => {
-      const element = document.getElementById("certificates");
-      if (element) {
-        element.scrollIntoView({ behavior: "smooth" });
-      }
-    }, 200);
+    navigate("/", { state: { scrollTo: "certificates" } });
   };
 
   const clearFilters = () => {
