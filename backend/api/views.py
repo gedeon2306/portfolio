@@ -842,7 +842,14 @@ def project_create(request):
         if 'doc' in request.FILES:
             data['doc'] = request.FILES['doc']
 
-        technologies_names = data.pop('technologies', [])
+        # En multipart/form-data, request.data est un QueryDict : .pop() renvoie
+        # une liste de valeurs brutes (ex: ['["React", "Django"]']) et non la
+        # chaîne elle-même, contrairement à un dict classique. On récupère donc
+        # la valeur avec .get() (qui renvoie bien la chaîne JSON) avant de
+        # retirer la clé du dict transmis au serializer.
+        technologies_names = data.get('technologies', [])
+        data.pop('technologies', None)
+
         if isinstance(technologies_names, str):
             try:
                 technologies_names = json.loads(technologies_names)
@@ -932,9 +939,17 @@ def project_update(request, pk):
         data = request.data.copy()
         is_patch = request.method == 'PATCH'
 
+        # Si une nouvelle image/doc est envoyée, on supprime l'ancien fichier du
+        # disque avant de l'écraser : Django ne le fait pas automatiquement, il se
+        # contente d'enregistrer le nouveau fichier sous un nom différent, ce qui
+        # laisse l'ancien fichier orphelin sur le serveur.
         if 'image' in request.FILES:
+            if project.image:
+                project.image.delete(save=False)
             data['image'] = request.FILES['image']
         if 'doc' in request.FILES:
+            if project.doc:
+                project.doc.delete(save=False)
             data['doc'] = request.FILES['doc']
 
         if data.get('remove_image') == 'true' or data.get('remove_image') is True:
@@ -956,7 +971,12 @@ def project_update(request, pk):
         if 'code_source' not in data and 'githubUrl' in data:
             data['code_source'] = data.pop('githubUrl')
 
-        technologies_names = data.pop('technologies', None)
+        # Même remarque que dans project_create : sur un QueryDict, .pop()
+        # renvoie une liste de valeurs brutes et non la chaîne JSON attendue.
+        # On lit donc la valeur avec .get() avant de retirer la clé.
+        technologies_names = data.get('technologies', None)
+        data.pop('technologies', None)
+
         if technologies_names is not None:
             if isinstance(technologies_names, str):
                 try:
@@ -1186,7 +1206,12 @@ def certificate_update(request, pk):
         data = request.data.copy()
         is_patch = request.method == 'PATCH'
 
+        # Même correction que pour project_update : supprimer l'ancien fichier
+        # du disque avant de l'écraser par une nouvelle image, sinon il reste
+        # orphelin sur le serveur.
         if 'image' in request.FILES:
+            if cert.image:
+                cert.image.delete(save=False)
             data['image'] = request.FILES['image']
         elif data.get('remove_image') == 'true' or data.get('remove_image') is True:
             if cert.image:
@@ -1617,4 +1642,3 @@ def backup_export(request):
     except Exception as e:
         logger.exception(f"Erreur dans backup_export: {str(e)}")
         return _error_server()
-

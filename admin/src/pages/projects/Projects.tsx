@@ -1,4 +1,4 @@
-import { useState, type KeyboardEvent, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   LuFolder,
   LuTrash2,
@@ -53,9 +53,9 @@ const initialFormData: ProjectFormData = {
   technologies: [],
 };
 
-// ✅ Fonction pour normaliser un projet
+// Normalise un projet reçu de l'API (gère les alias de champs et les formats hérités)
 const normalizeProject = (project: any): Project => {
-  // Gérer les technologies (peuvent être des objets ou des strings)
+  // Les technologies peuvent être des objets { id, libelle, pourcentage } ou de simples strings
   let technologies: Technology[] = [];
   if (Array.isArray(project.technologies)) {
     technologies = project.technologies.map((tech: any) => {
@@ -116,7 +116,7 @@ export default function Projects() {
   const [isFormSubmitting, setIsFormSubmitting] = useState(false);
   const [availableSkills, setAvailableSkills] = useState<string[]>([]);
 
-  // ✅ Catégories valides pour le backend
+  // Catégories valides pour le backend
   const categories = [
     'Web',
     'Mobile',
@@ -157,7 +157,7 @@ export default function Projects() {
 
       const response = await fetchProjects(params);
       
-      // ✅ Normaliser les projets
+      // Normaliser les projets
       const normalizedProjects = response.results.map(normalizeProject);
       setProjects(normalizedProjects);
       setTotalCount(response.count);
@@ -207,13 +207,6 @@ export default function Projects() {
       ...prev,
       technologies: prev.technologies.filter((t) => t !== tech),
     }));
-  };
-
-  const handleTechInputKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      addTechnology();
-    }
   };
 
   const resetForm = () => {
@@ -345,7 +338,7 @@ export default function Projects() {
     }
   };
 
-  // ✅ Fonction de formatage de date robuste
+  // Formate une date ISO en date lisible (fr-FR), avec repli si invalide
   const formatDate = (dateString: string | undefined | null): string => {
     if (!dateString) return 'Date inconnue';
     try {
@@ -363,7 +356,7 @@ export default function Projects() {
     }
   };
 
-  // ✅ Fonction pour supprimer une technologie existante du projet
+  // Retire une technologie existante du projet en cours d'édition
   const removeExistingTechnology = (techLibelle: string) => {
     setFormData((prev) => ({
       ...prev,
@@ -373,7 +366,7 @@ export default function Projects() {
   };
 
   const renderProjectCard = (project: Project) => {
-    // ✅ Normaliser les technologies pour l'affichage
+    // Normaliser les technologies pour l'affichage
     const techDisplay = project.technologies.map((tech) => {
       if (typeof tech === 'string') {
         return { id: tech, libelle: tech, pourcentage: 0 };
@@ -411,7 +404,7 @@ export default function Projects() {
           </div>
         </div>
 
-        {/* ✅ Image du projet */}
+        {/* Image du projet */}
         {project.image && (
           <div className="project-image-wrapper">
             <img 
@@ -638,7 +631,6 @@ export default function Projects() {
           setTechInput={setTechInput}
           addTechnology={addTechnology}
           removeTechnology={removeTechnology}
-          handleTechInputKeyDown={handleTechInputKeyDown}
           availableSkills={availableSkills}
           categories={categories}
           isEdit={false}
@@ -668,7 +660,6 @@ export default function Projects() {
           setTechInput={setTechInput}
           addTechnology={addTechnology}
           removeTechnology={removeTechnology}
-          handleTechInputKeyDown={handleTechInputKeyDown}
           availableSkills={availableSkills}
           categories={categories}
           isEdit={true}
@@ -743,7 +734,6 @@ interface ProjectModalProps {
   setTechInput: (value: string) => void;
   addTechnology: () => void;
   removeTechnology: (tech: string) => void;
-  handleTechInputKeyDown: (e: KeyboardEvent<HTMLInputElement>) => void;
   availableSkills: string[];
   categories: string[];
   isEdit?: boolean;
@@ -768,13 +758,10 @@ function ProjectModal({
   setTechInput,
   addTechnology,
   removeTechnology,
-  handleTechInputKeyDown,
   availableSkills,
   categories,
   isEdit = false,
   currentImage,
-  currentTechnologies = [],
-  onRemoveExistingTechnology,
 }: ProjectModalProps) {
   const updateField = <K extends keyof ProjectFormData>(
     field: K,
@@ -782,6 +769,11 @@ function ProjectModal({
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
+
+  // Compétences disponibles dans la liste déroulante (déjà sélectionnées exclues)
+  const availableTechOptions = availableSkills.filter(
+    (skill) => !formData.technologies.includes(skill)
+  );
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -948,83 +940,46 @@ function ProjectModal({
           <div className="field">
             <label htmlFor="ptech">Technologies</label>
             <p className="field-hint text-xs text-tertiary">
-              {isEdit 
-                ? 'Cliquez sur le X pour retirer une technologie existante, ou ajoutez-en une nouvelle'
-                : 'Sélectionnez une compétence existante ou tapez un nom pour l\'ajouter'
+              {isEdit
+                ? 'Cliquez sur le X pour retirer une technologie existante, ou sélectionnez-en une nouvelle dans la liste'
+                : 'Sélectionnez une compétence dans la liste déroulante puis cliquez sur Ajouter'
               }
             </p>
 
-            {/* ✅ Affichage des technologies existantes du projet (mode édition) */}
-            {isEdit && currentTechnologies.length > 0 && (
-              <div className="current-tech-list">
-                <p className="text-xs text-secondary">Technologies actuelles :</p>
-                <div className="tech-chips">
-                  {currentTechnologies.map((tech) => {
-                    const isStillInForm = formData.technologies.includes(tech.libelle);
-                    return (
-                      <span 
-                        key={tech.id} 
-                        className={`tech-chip ${!isStillInForm ? 'tech-chip-removed' : ''}`}
-                      >
-                        <LuCode className="tech-chip-icon" />
-                        {tech.libelle}
-                        {tech.pourcentage > 0 && (
-                          <span className="tech-percentage"> ({tech.pourcentage}%)</span>
-                        )}
-                        {isStillInForm && onRemoveExistingTechnology && (
-                          <button
-                            type="button"
-                            onClick={() => onRemoveExistingTechnology(tech.libelle)}
-                            title={`Retirer ${tech.libelle}`}
-                            disabled={isSubmitting}
-                            className="tech-remove-btn"
-                          >
-                            <LuX />
-                          </button>
-                        )}
-                        {!isStillInForm && (
-                          <span className="tech-removed-badge">(retirée)</span>
-                        )}
-                      </span>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* ✅ Ajout de nouvelles technologies */}
+            {/* Sélection d'une technologie dans la liste déroulante des compétences existantes */}
             <div className="tech-input-row">
-              <input
+              <select
                 id="ptech"
-                type="text"
-                placeholder="Ex: React, Django, TypeScript..."
                 value={techInput}
                 onChange={(e) => setTechInput(e.target.value)}
-                onKeyDown={handleTechInputKeyDown}
-                list="tech-suggestions"
-                disabled={isSubmitting}
-              />
-              <datalist id="tech-suggestions">
-                {availableSkills
-                  .filter((skill) => !formData.technologies.includes(skill))
-                  .map((skill) => (
-                    <option key={skill} value={skill} />
-                  ))}
-              </datalist>
+                className="field-select flex-1"
+                disabled={isSubmitting || availableTechOptions.length === 0}
+              >
+                <option value="">
+                  {availableTechOptions.length === 0
+                    ? 'Toutes les compétences sont déjà sélectionnées'
+                    : 'Sélectionner une compétence...'}
+                </option>
+                {availableTechOptions.map((skill) => (
+                  <option key={skill} value={skill}>
+                    {skill}
+                  </option>
+                ))}
+              </select>
               <button
                 type="button"
                 className="btn btn-secondary"
                 onClick={addTechnology}
-                disabled={isSubmitting || !techInput.trim()}
+                disabled={isSubmitting || !techInput}
               >
                 <LuPlus className="btn-icon" /> Ajouter
               </button>
             </div>
 
-            {/* ✅ Technologies ajoutées dans cette session */}
+            {/* Technologies sélectionnées pour ce projet */}
             {formData.technologies.length > 0 && (
               <div className="tech-chips">
-                <p className="text-xs text-secondary">Technologies à ajouter :</p>
+                <p className="text-xs text-secondary">Technologies sélectionnées :</p>
                 {formData.technologies.map((tech) => (
                   <span key={tech} className="tech-chip tech-chip-new">
                     <LuCode className="tech-chip-icon" />
