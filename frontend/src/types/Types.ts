@@ -1,5 +1,17 @@
-// types/Types.ts - Ajouter les interfaces pour les certifications
+// Types de base & utilitaires
+export type DateString = string; // Format attendu: DD/MM/YYYY
 
+interface BaseEntity {
+  id: string;
+  categorie: string;
+  titre: string;
+  description: string;
+  image: string | null;
+  url: string | null;
+  important: boolean;
+}
+
+// Settings
 export interface Settings {
   id?: string;
   titre_app?: string;
@@ -7,6 +19,7 @@ export interface Settings {
   notification_email: boolean;
 }
 
+// About / Profil
 export interface AboutLanguage {
   id: string;
   langue: string;
@@ -23,49 +36,37 @@ export interface AboutData {
   langues: AboutLanguage[];
 }
 
-// Types pour les compétences
+// Compétences
+export interface Skill {
+  id: string;
+  libelle: string;
+  pourcentage: number;
+}
+
 export interface SkillGroup {
   categorie: string;
-  skills: {
-    id: string;
-    libelle: string;
-    pourcentage: number;
-  }[];
+  skills: Skill[];
 }
 
 export interface SkillsData {
   competences: SkillGroup[];
 }
 
-// Types pour les certifications
-export interface Certificate {
-  id: string;
-  categorie: string;
-  titre: string;
-  description: string;
+// Certifications
+export interface Certificate extends BaseEntity {
   organisme: string;
-  date: string; // Format: DD/MM/YYYY
+  date: DateString;
   credentialId: string;
-  url: string | null;
-  image: string | null;
-  important: boolean;
 }
 
 export interface CertificatesData {
   certificats: Certificate[];
 }
 
-// Types pour les projets
-export interface Project {
-  id: string;
-  categorie: string;
-  titre: string;
-  description: string;
-  image: string | null;
-  url: string | null;
+// Projets
+export interface Project extends BaseEntity {
   codeSource: string | null;
-  important: boolean;
-  date: string; // Format: DD/MM/YYYY
+  date: DateString;
   technologies: string[];
 }
 
