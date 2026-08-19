@@ -8,37 +8,16 @@ import "../css/Skills.css";
 export default function Skills() {
   const revealRef = useScrollReveal<HTMLDivElement>();
 
-  const { data: skillsData, isLoading, error } = useQuery<{ competences: SkillGroup[] }>({
+  const { data: skillsData, isLoading, error } = useQuery({
     queryKey: ['skills'],
     queryFn: getSkills,
-    staleTime: 1000 * 60 * 5,
   });
-
-  const skillGroups = skillsData?.competences || [];
-
-  if (isLoading) {
-    return (
-      <section id="competences" className="pf-skills">
-        <div className="pf-container">
-          <div className="pf-section-header">
-            <span className="pf-eyebrow">Expertise & Maîtrise</span>
-            <h2 className="pf-section-title">Compétences Techniques</h2>
-          </div>
-          <div style={{ textAlign: 'center', padding: '40px' }}>
-            <p>Chargement des compétences...</p>
-          </div>
-        </div>
-      </section>
-    );
-  }
 
   if (error) {
     console.error("Erreur lors du chargement des compétences:", error);
   }
 
-  if (skillGroups.length === 0) {
-    return null;
-  }
+  const skillGroups: SkillGroup[] = skillsData?.competences || [];
 
   return (
     <section id="competences" className="pf-skills">
@@ -52,7 +31,23 @@ export default function Skills() {
         </div>
 
         <div ref={revealRef} className="pf-skills-grid pf-reveal">
-          {skillGroups.map((group) => (
+          {isLoading && (
+            <div style={{ textAlign: 'center', padding: '40px', gridColumn: '1 / -1' }}>
+              <p>Chargement des compétences...</p>
+            </div>
+          )}
+
+          {!isLoading && (error || skillGroups.length === 0) && (
+            <div style={{ textAlign: 'center', padding: '40px', gridColumn: '1 / -1' }}>
+              <p>
+                {error
+                  ? "Impossible de charger les compétences pour le moment."
+                  : "Aucune compétence disponible."}
+              </p>
+            </div>
+          )}
+
+          {!isLoading && !error && skillGroups.map((group) => (
             <div key={group.categorie} className="pf-skills-card">
               <div className="pf-skills-card-header">
                 <h3>{group.categorie}</h3>
