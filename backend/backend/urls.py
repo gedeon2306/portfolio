@@ -5,8 +5,10 @@ from django.urls import path, include
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 from django.views.generic import RedirectView
 
+frontend = settings.FRONTEND_URL
+
 urlpatterns = [
-    path("", RedirectView.as_view(url="https://jihreldev.vercel.app", permanent=False), name="root-redirect"),
+    path("", RedirectView.as_view(url=frontend, permanent=False), name="root-redirect"),
     path("admin/", admin.site.urls),
     path("api/", include("api.urls")),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

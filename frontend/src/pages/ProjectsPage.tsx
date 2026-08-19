@@ -101,13 +101,7 @@ export default function ProjectsPage() {
 
   const handleBack = (e: React.MouseEvent) => {
     e.preventDefault();
-    navigate("/");
-    setTimeout(() => {
-      const element = document.getElementById("projets");
-      if (element) {
-        element.scrollIntoView({ behavior: "smooth" });
-      }
-    }, 200);
+    navigate("/", { state: { scrollTo: "projets" } });
   };
 
   const clearFilters = () => {

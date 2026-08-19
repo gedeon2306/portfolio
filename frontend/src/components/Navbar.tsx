@@ -15,7 +15,7 @@ const NAV_LINKS = [
   { label: "Contact", href: "#contact", id: "contact" },
 ];
 
-const GITHUB_REPO_URL = "https://github.com/";
+const GITHUB_REPO_URL = "https://github.com/gedeon2306/porfolio";
 const LINKEDIN_URL = "https://linkedin.com/";
 
 export default function Navbar() {
@@ -67,26 +67,70 @@ export default function Navbar() {
     e.preventDefault();
     setMenuOpen(false);
 
-    if (isSpecialPage) {
-      // Naviguer vers la page d'accueil
-      navigate("/");
-      // Attendre que la page se charge pour scroller
-      setTimeout(() => {
+    if (isSpecialPage || location.pathname !== "/") {
+      navigate("/", {
+        state: { scrollTo: link.id === "top" ? "top" : link.id },
+      });
+      return;
+    }
+
         const element = document.getElementById(link.id);
-        if (element && link.id !== "top") {
-          element.scrollIntoView({ behavior: "smooth" });
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth", block: "start" });
         } else if (link.id === "top") {
           window.scrollTo({ top: 0, behavior: "smooth" });
         }
-      }, 200);
-    } else {
-      // Sur la page d'accueil, scroller directement
-      const element = document.getElementById(link.id);
-      if (element) {
-        element.scrollIntoView({ behavior: "smooth" });
-      }
-    }
   };
+
+  useEffect(() => {
+    if (location.pathname !== "/") return;
+
+    const target = (location.state as { scrollTo?: string } | null)?.scrollTo;
+    if (!target) return;
+
+    let attempts = 8;
+    const delay = 150;
+    let mounted = true;
+
+    const scrollToTargetWithRetries = () => {
+      if (!mounted) return;
+
+      if (target === "top") {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        // Clear navigation state so we don't re-run on subsequent mounts
+        navigate(location.pathname, { replace: true, state: {} });
+        return;
+      }
+
+      const element = document.getElementById(target as string);
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "start" });
+
+        // After scrolling, verify element is near top of viewport; if not, retry a few times
+        const rect = element.getBoundingClientRect();
+        if (Math.abs(rect.top) > 120 && attempts > 0) {
+          attempts -= 1;
+          window.setTimeout(scrollToTargetWithRetries, delay);
+          return;
+        }
+
+        // Success: clear the navigation state to avoid repeated scrolling
+        navigate(location.pathname, { replace: true, state: {} });
+        return;
+      }
+
+      if (attempts > 0) {
+        attempts -= 1;
+        window.setTimeout(scrollToTargetWithRetries, delay);
+      }
+    };
+
+    scrollToTargetWithRetries();
+
+    return () => {
+      mounted = false;
+    };
+  }, [location.pathname, location.state, navigate]);
 
   // Empêcher le défilement du corps quand le menu est ouvert
   useEffect(() => {
@@ -135,8 +179,7 @@ export default function Navbar() {
             aria-label="JihrelDev - Accueil"
             onClick={(e) => {
               e.preventDefault();
-              navigate("/");
-              window.scrollTo({ top: 0, behavior: "smooth" });
+              navigate("/", { state: { scrollTo: "top" } });
               setMenuOpen(false);
             }}
           >
