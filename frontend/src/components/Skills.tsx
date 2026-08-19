@@ -1,28 +1,44 @@
-import { useEffect, useState } from "react";
 import { useScrollReveal } from "./useScrollReveal";
 import { TechIcon, getTechMeta } from "../utils/techIcons";
+import { useQuery } from "@tanstack/react-query";
 import { getSkills } from "../api/Actions";
 import type { SkillGroup } from "../types/Types";
 import "../css/Skills.css";
 
 export default function Skills() {
   const revealRef = useScrollReveal<HTMLDivElement>();
-  const [skillGroups, setSkillGroups] = useState<SkillGroup[]>([]);
 
-  useEffect(() => {
-    const fetchSkills = async () => {
-      try {
-        const data = await getSkills();
-        if (data?.competences) {
-          setSkillGroups(data.competences);
-        }
-      } catch (error) {
-        console.error("Erreur lors du chargement des compétences:", error);
-      }
-    };
+  const { data: skillsData, isLoading, error } = useQuery<{ competences: SkillGroup[] }>({
+    queryKey: ['skills'],
+    queryFn: getSkills,
+    staleTime: 1000 * 60 * 5,
+  });
 
-    fetchSkills();
-  }, []);
+  const skillGroups = skillsData?.competences || [];
+
+  if (isLoading) {
+    return (
+      <section id="competences" className="pf-skills">
+        <div className="pf-container">
+          <div className="pf-section-header">
+            <span className="pf-eyebrow">Expertise & Maîtrise</span>
+            <h2 className="pf-section-title">Compétences Techniques</h2>
+          </div>
+          <div style={{ textAlign: 'center', padding: '40px' }}>
+            <p>Chargement des compétences...</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (error) {
+    console.error("Erreur lors du chargement des compétences:", error);
+  }
+
+  if (skillGroups.length === 0) {
+    return null;
+  }
 
   return (
     <section id="competences" className="pf-skills">
