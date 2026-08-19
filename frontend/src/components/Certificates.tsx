@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { 
   FiArrowUpRight, 
   FiAward, 
@@ -8,6 +8,7 @@ import {
 } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "../context/ToastContext";
+import { useQuery } from "@tanstack/react-query";
 import { getCertificatesHighlights } from "../api/Actions";
 import type { Certificate } from "../types/Types";
 import { formatCertDate } from "../utils/dateUtils";
@@ -18,24 +19,40 @@ const INITIAL_VISIBLE_COUNT = 3;
 export default function Certificates() {
   const toast = useToast();
   const navigate = useNavigate();
-  const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE_COUNT);
   const gridRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const fetchCertificates = async () => {
-      try {
-        const data = await getCertificatesHighlights();
-        if (data?.certificats) {
-          setCertificates(data.certificats);
-        }
-      } catch (error) {
-        console.error("Erreur lors du chargement des certifications:", error);
-      }
-    };
+  const { data: certificatesData, isLoading, error } = useQuery({
+    queryKey: ['certificates-highlights'],
+    queryFn: getCertificatesHighlights,
+    staleTime: 1000 * 60 * 5,
+  });
 
-    fetchCertificates();
-  }, []);
+  const certificates = certificatesData?.certificats || [];
+
+  if (isLoading) {
+    return (
+      <section id="certificates" className="pf-certificates">
+        <div className="pf-container">
+          <div className="pf-section-header">
+            <span className="pf-eyebrow">Accréditations & Diplômes</span>
+            <h2 className="pf-section-title">Certifications Professionnelles</h2>
+          </div>
+          <div style={{ textAlign: 'center', padding: '40px' }}>
+            <p>Chargement des certifications...</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (error) {
+    console.error("Erreur lors du chargement des certifications:", error);
+  }
+
+  if (certificates.length === 0) {
+    return null;
+  }
 
   const displayedCertificates = certificates.slice(0, visibleCount);
   const hasMore = visibleCount < certificates.length;
@@ -64,10 +81,6 @@ export default function Certificates() {
   const handleCollapse = () => {
     setVisibleCount(INITIAL_VISIBLE_COUNT);
   };
-
-  if (certificates.length === 0) {
-    return null;
-  }
 
   return (
     <section id="certificates" className="pf-certificates">
