@@ -17,7 +17,6 @@ export async function getAboutData(): Promise<AboutData | null> {
 		const resp = await api.get('frontend/about/');
 		return resp.data ?? null;
 	} catch (error) {
-		console.error('Erreur lors de la récupération des données About:', error);
 		return null;
 	}
 }
@@ -30,7 +29,6 @@ export async function getSkills() {
     const resp = await api.get('frontend/skills/');
     return resp.data ?? null;
   } catch (error) {
-    console.error('Erreur lors de la récupération des compétences:', error);
     return null;
   }
 }
@@ -43,7 +41,6 @@ export async function getCertificates(): Promise<CertificatesData | null> {
     const resp = await api.get('frontend/certificates/');
     return resp.data ?? null;
   } catch (error) {
-    console.error('Erreur lors de la récupération des certifications:', error);
     return null;
   }
 }
@@ -57,7 +54,6 @@ export async function getCertificatesHighlights(): Promise<CertificatesData | nu
     const resp = await api.get('frontend/certificates/highlights/');
     return resp.data ?? null;
   } catch (error) {
-    console.error('Erreur lors de la récupération des certifications en avant:', error);
     return null;
   }
 }
@@ -71,7 +67,6 @@ export async function getProjects(): Promise<ProjectsData | null> {
     const resp = await api.get('frontend/projects/');
     return resp.data ?? null;
   } catch (error) {
-    console.error('Erreur lors de la récupération des projets:', error);
     return null;
   }
 }
@@ -85,7 +80,6 @@ export async function getProjectsHighlights(): Promise<ProjectsData | null> {
     const resp = await api.get('frontend/projects/highlights/');
     return resp.data ?? null;
   } catch (error) {
-    console.error('Erreur lors de la récupération des projets en avant:', error);
     return null;
   }
 }

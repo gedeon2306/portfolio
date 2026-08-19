@@ -11,7 +11,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "../context/ToastContext";
 import { useQuery } from "@tanstack/react-query";
 import { getProjectsHighlights } from "../api/Actions";
-import type { Project } from "../types/Types";
 import { TechIcon, getTechMeta } from "../utils/techIcons";
 import "../css/Projects.css";
 
@@ -26,7 +25,6 @@ export default function Projects() {
   const { data: projectsData, isLoading, error } = useQuery({
     queryKey: ['projects-highlights'],
     queryFn: getProjectsHighlights,
-    staleTime: 1000 * 60 * 5,
   });
 
   const projects = projectsData?.projets || [];

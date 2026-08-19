@@ -10,7 +10,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "../context/ToastContext";
 import { useQuery } from "@tanstack/react-query";
 import { getCertificatesHighlights } from "../api/Actions";
-import type { Certificate } from "../types/Types";
 import { formatCertDate } from "../utils/dateUtils";
 import "../css/Certificates.css";
 
@@ -25,7 +24,6 @@ export default function Certificates() {
   const { data: certificatesData, isLoading, error } = useQuery({
     queryKey: ['certificates-highlights'],
     queryFn: getCertificatesHighlights,
-    staleTime: 1000 * 60 * 5,
   });
 
   const certificates = certificatesData?.certificats || [];
@@ -58,7 +56,7 @@ export default function Certificates() {
   const hasMore = visibleCount < certificates.length;
   const canCollapse = visibleCount > INITIAL_VISIBLE_COUNT && certificates.length > INITIAL_VISIBLE_COUNT;
 
-  const handleCertClick = (cert: Certificate, e: React.MouseEvent) => {
+  const handleCertClick = (cert: any, e: React.MouseEvent) => {
     e.preventDefault();
     if (cert.url) {
       window.open(cert.url, "_blank", "noopener,noreferrer");

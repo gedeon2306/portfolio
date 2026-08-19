@@ -6,9 +6,9 @@ import "../css/About.css";
 import { VscDebugStart } from "react-icons/vsc";
 import { useQuery } from "@tanstack/react-query";
 import { getAboutData } from "../api/Actions";
-import type { AboutData } from "../types/Types";
 import { formatLanguageLevel, sortLanguagesByOrder } from "../utils/languageUtils";
 
+// Mots à surligner par défaut
 const DEFAULT_MOTS_A_SURLIGNER = [
   "interfaces intuitives",
   "performantes",
@@ -22,12 +22,14 @@ const DEFAULT_MOTS_A_SURLIGNER = [
   "nouveaux défis technologiques",
 ];
 
+// Textes par défaut
 const DEFAULT_PARAGRAPH_1 =
   "Développeur Full-Stack passionné par la création d'interfaces intuitives et performantes, je conçois des produits web pensés du premier croquis jusqu'à la mise en production. Mon approche combine rigueur technique et sensibilité design pour offrir des expériences numériques d'exception, où chaque interaction est réfléchie et chaque détail compte. J'aime autant discuter d'architecture backend que de micro-interactions à l'écran.";
 
 const DEFAULT_PARAGRAPH_2 =
   "Expertise en React, Next.js et Django, je transforme des concepts complexes en solutions fluides et accessibles, en gardant toujours à l'esprit la performance et la maintenabilité du code. Curieux et méthodique, je documente mon travail, teste ce que je construis et reste en quête de nouveaux défis technologiques, que ce soit sur l'architecture d'un back-office, l'accessibilité d'un formulaire ou la fluidité d'une animation.";
 
+// Langues par défaut avec niveaux CECRL
 const DEFAULT_LANGUAGES = [
   { id: "FR", langue: "Français", niveau: "C2" },
   { id: "EN", langue: "Anglais", niveau: "B2" },
@@ -38,51 +40,36 @@ export default function About() {
   const revealRef = useScrollReveal<HTMLDivElement>();
   const toast = useToast();
 
-  const { data: aboutData, isLoading, error } = useQuery<AboutData | null>({
+  const { data: aboutData, isLoading, error } = useQuery({
     queryKey: ['about-data'],
     queryFn: getAboutData,
-    staleTime: 1000 * 60 * 5,
   });
-
-  if (isLoading) {
-    return (
-      <section id="apropos" className="pf-about">
-        <div className="pf-container">
-          <div className="pf-section-header">
-            <span className="pf-eyebrow">Profil & Philosophie</span>
-            <h2 className="pf-section-title">À propos de moi</h2>
-          </div>
-          <div className="pf-about-block">
-            <div style={{ textAlign: 'center', padding: '40px' }}>
-              <p>Chargement de mes informations...</p>
-            </div>
-          </div>
-        </div>
-      </section>
-    );
-  }
 
   if (error) {
     console.error("Erreur lors du chargement des données About:", error);
   }
 
+  // Utiliser les données de l'API ou les valeurs par défaut
   const prenom = aboutData?.prenom || "Gédéon Jihrel";
   const nom = aboutData?.nom || "GANGOUE";
   const description1 = aboutData?.description1 || DEFAULT_PARAGRAPH_1;
   const description2 = aboutData?.description2 || DEFAULT_PARAGRAPH_2;
   const photoUrl = aboutData?.photo || "/jihreldev.jpeg";
-  const cvUrl = aboutData?.cv || "/cv-Jihreldev.pdf";
-  
-  const languesData = aboutData?.langues?.length 
-    ? aboutData.langues 
+  const cvUrl = aboutData?.cv || "/assets/cv-Jihreldev.pdf";
+
+  // Langues : utiliser celles de l'API ou les défauts, puis trier
+  const languesData = aboutData?.langues?.length
+    ? aboutData.langues
     : DEFAULT_LANGUAGES;
-  
+
+  // Trier les langues : Français, Anglais, Espagnol
   const sortedLanguages = sortLanguagesByOrder(languesData);
 
   const handleDownloadCV = () => {
     toast.info("Téléchargement du CV", "Votre téléchargement a démarré.");
   };
 
+  // Fonction pour obtenir le code du drapeau
   const getFlagCode = (langue: string) => {
     const langLower = langue.toLowerCase();
     if (langLower.includes('français')) return 'fr';
@@ -92,7 +79,7 @@ export default function About() {
   };
 
   return (
-    <section id="apropos" className="pf-about">
+    <section id="apropos" className="pf-about" aria-busy={isLoading}>
       <div className="pf-container">
         <div className="pf-section-header">
           <span className="pf-eyebrow">Profil & Philosophie</span>
@@ -148,6 +135,7 @@ export default function About() {
                 <div className="pf-langs-grid">
                   {sortedLanguages.map((lang) => (
                     <div key={lang.id} className="pf-lang-card">
+                      {/* Ligne du haut : drapeau + langue */}
                       <div className="pf-lang-top-row">
                         <img
                           className="pf-lang-flag"
@@ -157,6 +145,8 @@ export default function About() {
                         />
                         <span className="pf-lang-name">{lang.langue}</span>
                       </div>
+
+                      {/* Ligne du bas : niveau - Garde la classe badge-accent existante */}
                       <span className="badge badge-accent pf-lang-badge">
                         {formatLanguageLevel(lang.niveau)}
                       </span>
