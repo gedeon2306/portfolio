@@ -13,8 +13,8 @@ import { useNavigate, Link } from "react-router-dom";
 import { useToast } from "../context/ToastContext";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import { useQuery } from "@tanstack/react-query";
 import { getProjects } from "../api/Actions";
-import type { Project } from "../types/Types";
 import { extractYear, getAvailableYears } from "../utils/dateUtils";
 import { TechIcon, getTechMeta } from "../utils/techIcons";
 import "../css/ProjectsPage.css";
@@ -36,31 +36,20 @@ const PROJECT_CATEGORIES = [
 export default function ProjectsPage() {
   const navigate = useNavigate();
   const toast = useToast();
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedYear, setSelectedYear] = useState<string>("");
   const [showFilters, setShowFilters] = useState(false);
 
+  const { data: projectsData, isLoading, error } = useQuery({
+    queryKey: ['projects'],
+    queryFn: getProjects,
+  });
+
+  const projects = projectsData?.projets || [];
+
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
-
-    const fetchProjects = async () => {
-      try {
-        setLoading(true);
-        const data = await getProjects();
-        if (data?.projets) {
-          setProjects(data.projets);
-        }
-      } catch (error) {
-        console.error("Erreur lors du chargement des projets:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProjects();
   }, []);
 
   const availableYears = useMemo(() => {
@@ -117,7 +106,11 @@ export default function ProjectsPage() {
 
   const hasActiveFilters = searchTerm || selectedCategory || selectedYear;
 
-  if (loading) {
+  if (error) {
+    console.error("Erreur lors du chargement des projets:", error);
+  }
+
+  if (isLoading) {
     return (
       <>
         <Navbar />

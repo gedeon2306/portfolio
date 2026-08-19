@@ -12,6 +12,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useToast } from "../context/ToastContext";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import { useQuery } from "@tanstack/react-query";
 import { getCertificates } from "../api/Actions";
 import type { Certificate } from "../types/Types";
 import { formatCertDate, extractYear, getAvailableYears } from "../utils/dateUtils";
@@ -39,31 +40,20 @@ const CERTIFICATION_CATEGORIES = [
 export default function CertificatesPage() {
   const navigate = useNavigate();
   const toast = useToast();
-  const [certificates, setCertificates] = useState<Certificate[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedYear, setSelectedYear] = useState<string>("");
   const [showFilters, setShowFilters] = useState(false);
 
+  const { data: certificatesData, isLoading, error } = useQuery({
+    queryKey: ['certificates'],
+    queryFn: getCertificates,
+  });
+
+  const certificates = certificatesData?.certificats || [];
+
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
-    
-    const fetchCertificates = async () => {
-      try {
-        setLoading(true);
-        const data = await getCertificates();
-        if (data?.certificats) {
-          setCertificates(data.certificats);
-        }
-      } catch (error) {
-        console.error("Erreur lors du chargement des certifications:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCertificates();
   }, []);
 
   const availableYears = useMemo(() => {
@@ -123,7 +113,11 @@ export default function CertificatesPage() {
 
   const hasActiveFilters = searchTerm || selectedCategory || selectedYear;
 
-  if (loading) {
+  if (error) {
+    console.error("Erreur lors du chargement des certifications:", error);
+  }
+
+  if (isLoading) {
     return (
       <>
         <Navbar />
