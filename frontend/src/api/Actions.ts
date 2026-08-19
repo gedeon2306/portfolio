@@ -4,87 +4,74 @@ import type {
   AboutData, 
   CertificatesData,
   ProjectsData,
+  SkillsData,
 } from '../types/Types';
 
+/**
+ * Fonction générique pour effectuer une requête GET de manière sécurisée.
+ */
+async function fetchData<T>(url: string): Promise<T | null> {
+  try {
+    const resp = await api.get<T>(url);
+    return resp.data ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function getSettings(): Promise<Settings | null> {
-	const resp = await api.get('settings/public/');
-	// L'API renvoie { settings: ... } ou { settings: null }
-	return resp.data?.settings ?? null;
+  try {
+    const resp = await api.get<{ settings: Settings | null }>('settings/public/');
+    return resp.data?.settings ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export async function getAboutData(): Promise<AboutData | null> {
-	try {
-		const resp = await api.get('frontend/about/');
-		return resp.data ?? null;
-	} catch (error) {
-		return null;
-	}
+  return fetchData<AboutData>('frontend/about/');
 }
 
 /**
- * Récupère les compétences triées par pourcentage décroissant
+ * Récupère les compétences triées par pourcentage décroissant.
  */
-export async function getSkills() {
-  try {
-    const resp = await api.get('frontend/skills/');
-    return resp.data ?? null;
-  } catch (error) {
-    return null;
-  }
+export async function getSkills(): Promise<SkillsData | null> {
+  return fetchData<SkillsData>('frontend/skills/');
 }
+
 /**
- * Récupère toutes les certifications actives (status=True)
- * Tri : important d'abord, puis par date décroissante
+ * Récupère toutes les certifications actives (status=True).
+ * Tri : important d'abord, puis par date décroissante.
  */
 export async function getCertificates(): Promise<CertificatesData | null> {
-  try {
-    const resp = await api.get('frontend/certificates/');
-    return resp.data ?? null;
-  } catch (error) {
-    return null;
-  }
+  return fetchData<CertificatesData>('frontend/certificates/');
 }
 
 /**
  * Récupère uniquement les certifications mises en avant (important=True et status=True)
- * pour le composant d'accueil
+ * pour le composant d'accueil.
  */
 export async function getCertificatesHighlights(): Promise<CertificatesData | null> {
-  try {
-    const resp = await api.get('frontend/certificates/highlights/');
-    return resp.data ?? null;
-  } catch (error) {
-    return null;
-  }
+  return fetchData<CertificatesData>('frontend/certificates/highlights/');
 }
 
 /**
- * Récupère tous les projets actifs (status=True)
- * Tri : important d'abord, puis par date décroissante
+ * Récupère tous les projets actifs (status=True).
+ * Tri : important d'abord, puis par date décroissante.
  */
 export async function getProjects(): Promise<ProjectsData | null> {
-  try {
-    const resp = await api.get('frontend/projects/');
-    return resp.data ?? null;
-  } catch (error) {
-    return null;
-  }
+  return fetchData<ProjectsData>('frontend/projects/');
 }
 
 /**
  * Récupère uniquement les projets mis en avant (important=True et status=True)
- * pour le composant d'accueil
+ * pour le composant d'accueil.
  */
 export async function getProjectsHighlights(): Promise<ProjectsData | null> {
-  try {
-    const resp = await api.get('frontend/projects/highlights/');
-    return resp.data ?? null;
-  } catch (error) {
-    return null;
-  }
+  return fetchData<ProjectsData>('frontend/projects/highlights/');
 }
 
-export default {
+const apiService = {
   getSettings,
   getAboutData,
   getSkills,
@@ -93,3 +80,5 @@ export default {
   getProjects,
   getProjectsHighlights,
 };
+
+export default apiService;
