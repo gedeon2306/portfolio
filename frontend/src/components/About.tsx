@@ -7,6 +7,8 @@ import { VscDebugStart } from "react-icons/vsc";
 import { useQuery } from "@tanstack/react-query";
 import { getAboutData } from "../api/Actions";
 import { formatLanguageLevel, sortLanguagesByOrder } from "../utils/languageUtils";
+import image from "../assets/jihredel.jpeg"
+import cv from "../assets/CV-JihrelDev.pdf"
 
 // Mots à surligner par défaut
 const DEFAULT_MOTS_A_SURLIGNER = [
@@ -32,8 +34,8 @@ const DEFAULT_PARAGRAPH_2 =
 // Langues par défaut avec niveaux CECRL
 const DEFAULT_LANGUAGES = [
   { id: "FR", langue: "Français", niveau: "C2" },
-  { id: "EN", langue: "Anglais", niveau: "B2" },
-  { id: "ES", langue: "Espagnol", niveau: "A2" },
+  { id: "EN", langue: "Anglais", niveau: "B1" },
+  { id: "ES", langue: "Espagnol", niveau: "A1" },
 ];
 
 export default function About() {
@@ -54,8 +56,8 @@ export default function About() {
   const nom = aboutData?.nom || "GANGOUE";
   const description1 = aboutData?.description1 || DEFAULT_PARAGRAPH_1;
   const description2 = aboutData?.description2 || DEFAULT_PARAGRAPH_2;
-  const photoUrl = aboutData?.photo || "/jihreldev.jpeg";
-  const cvUrl = aboutData?.cv || "/assets/cv-Jihreldev.pdf";
+  const photoUrl = aboutData?.photo || image;
+  const cvUrl = aboutData?.cv || cv;
 
   // Langues : utiliser celles de l'API ou les défauts, puis trier
   const languesData = aboutData?.langues?.length

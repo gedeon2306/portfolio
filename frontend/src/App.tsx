@@ -7,7 +7,7 @@ import ProjectsPage from "./pages/ProjectsPage";
 import Maintenance from "./pages/Maintenance";
 import NotFound from "./pages/NotFound";
 import { loadSiteSettings, type SiteSettings } from "./config";
-import SkeletonLayout from "./components/SkeletonLayout";
+import SkeletonLayout from "./components/skeletonComponents/SkeletonLayout";
 import { useEffect, useState, createContext, useContext } from "react";
 
 interface SettingsContextType extends SiteSettings {
