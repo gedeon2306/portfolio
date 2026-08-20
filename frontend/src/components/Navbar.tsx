@@ -5,6 +5,7 @@ import { useTheme } from "../context/ThemeContext";
 import { useLocation, useNavigate } from "react-router-dom";
 import logoJdBlanc from "../assets/logo_jd_blanc_sbg.png";
 import "../css/Navbar.css";
+import { useSettings } from "../App";
 
 const NAV_LINKS = [
   { label: "Accueil", href: "#top", id: "top" },
@@ -16,7 +17,6 @@ const NAV_LINKS = [
 ];
 
 const GITHUB_REPO_URL = "https://github.com/gedeon2306/portfolio";
-const LINKEDIN_URL = "https://linkedin.com/";
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -27,6 +27,9 @@ export default function Navbar() {
   const isCertificatesPage = location.pathname === "/certificates";
   const isProjectsPage = location.pathname === "/projects";
   const isSpecialPage = isCertificatesPage || isProjectsPage;
+  const { linkedin } = useSettings(); 
+
+  const LINKEDIN_URL = linkedin || "https://linkedin.com/";
 
   // Gérer le scroll pour la page d'accueil
   useEffect(() => {
