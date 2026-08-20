@@ -1,0 +1,78 @@
+.skeleton-skills-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.skeleton-skills-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.skeleton-skills-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  margin-bottom: 22px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.skeleton-skills-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.skeleton-skill-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.skeleton-skill-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 7px;
+}
+
+.skeleton-skill-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.skeleton-skill-bar {
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: var(--surface-active);
+  overflow: hidden;
+  position: relative;
+}
+
+.skeleton-skill-bar-fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: var(--accent);
+  opacity: 0.3;
+}
+
+@media (max-width: 960px) {
+  .skeleton-skills-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .skeleton-skills-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getSkills } from "../api/Actions";
 import type { SkillGroup } from "../types/Types";
 import "../css/Skills.css";
+import SkeletonSkills from "./skeletonComponents/SkeletonSkills";
 
 export default function Skills() {
   const revealRef = useScrollReveal<HTMLDivElement>();
@@ -31,19 +32,11 @@ export default function Skills() {
         </div>
 
         <div ref={revealRef} className="pf-skills-grid pf-reveal">
-          {isLoading && (
-            <div style={{ textAlign: 'center', padding: '40px', gridColumn: '1 / -1' }}>
-              <p>Chargement des compétences...</p>
-            </div>
-          )}
+          {isLoading && <SkeletonSkills />}
 
           {!isLoading && (error || skillGroups.length === 0) && (
             <div style={{ textAlign: 'center', padding: '40px', gridColumn: '1 / -1' }}>
-              <p>
-                {error
-                  ? "Impossible de charger les compétences pour le moment."
-                  : "Aucune compétence disponible."}
-              </p>
+              <SkeletonSkills />
             </div>
           )}
 
