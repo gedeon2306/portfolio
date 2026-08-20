@@ -78,6 +78,7 @@ export default function Certificates() {
 
   const handleCollapse = () => {
     setVisibleCount(INITIAL_VISIBLE_COUNT);
+    navigate("/", { state: { scrollTo: "certificates" } });
   };
 
   return (
