@@ -14,10 +14,6 @@ export default function Skills() {
     queryFn: getSkills,
   });
 
-  if (error) {
-    console.error("Erreur lors du chargement des compétences:", error);
-  }
-
   const skillGroups: SkillGroup[] = skillsData?.competences || [];
 
   return (
@@ -31,50 +27,46 @@ export default function Skills() {
           </p>
         </div>
 
-        <div ref={revealRef} className="pf-skills-grid pf-reveal">
-          {isLoading && <SkeletonSkills />}
+        {isLoading || error || skillGroups.length === 0 ? (
+          <SkeletonSkills />
+        ) : (
+          <div ref={revealRef} className="pf-skills-grid pf-reveal">
+            {!isLoading && !error && skillGroups.map((group) => (
+              <div key={group.categorie} className="pf-skills-card">
+                <div className="pf-skills-card-header">
+                  <h3>{group.categorie}</h3>
+                </div>
 
-          {!isLoading && (error || skillGroups.length === 0) && (
-            <div style={{ textAlign: 'center', padding: '40px', gridColumn: '1 / -1' }}>
-              <SkeletonSkills />
-            </div>
-          )}
-
-          {!isLoading && !error && skillGroups.map((group) => (
-            <div key={group.categorie} className="pf-skills-card">
-              <div className="pf-skills-card-header">
-                <h3>{group.categorie}</h3>
-              </div>
-
-              <ul className="pf-skills-list">
-                {group.skills.map((skill) => (
-                  <li key={skill.id} className="pf-skill-item">
-                    <div className="pf-skill-row">
-                      <span className="pf-skill-name pf-tech-inline">
-                        <TechIcon name={skill.libelle} size={13} />
-                        <span>{getTechMeta(skill.libelle).label}</span>
-                      </span>
-                      <span className="pf-skill-level font-mono">{skill.pourcentage}%</span>
-                    </div>
-                    <div
-                      className="pf-skill-bar"
-                      role="progressbar"
-                      aria-valuenow={skill.pourcentage}
-                      aria-valuemin={0}
-                      aria-valuemax={100}
-                      aria-label={skill.libelle}
-                    >
+                <ul className="pf-skills-list">
+                  {group.skills.map((skill) => (
+                    <li key={skill.id} className="pf-skill-item">
+                      <div className="pf-skill-row">
+                        <span className="pf-skill-name pf-tech-inline">
+                          <TechIcon name={skill.libelle} size={13} />
+                          <span>{getTechMeta(skill.libelle).label}</span>
+                        </span>
+                        <span className="pf-skill-level font-mono">{skill.pourcentage}%</span>
+                      </div>
                       <div
-                        className="pf-skill-bar-fill"
-                        style={{ ["--pf-level" as string]: `${skill.pourcentage}%` }}
-                      />
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
+                        className="pf-skill-bar"
+                        role="progressbar"
+                        aria-valuenow={skill.pourcentage}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-label={skill.libelle}
+                      >
+                        <div
+                          className="pf-skill-bar-fill"
+                          style={{ ["--pf-level" as string]: `${skill.pourcentage}%` }}
+                        />
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
