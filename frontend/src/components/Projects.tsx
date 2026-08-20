@@ -73,9 +73,10 @@ export default function Projects() {
   const handleShowMore = () => {
     setVisibleCount((prev) => Math.min(prev + 3, projects.length));
   };
-
+  
   const handleCollapse = () => {
     setVisibleCount(INITIAL_COUNT);
+    navigate("/", { state: { scrollTo: "projects" } });
   };
 
   return (
