@@ -1,7 +1,7 @@
 import React from 'react';
-import '../css/Skeleton.css';
-import '../css/Hero.css';
-import '../css/Navbar.css';
+import '../../css/skeleton/Skeleton.css';
+import '../../css/Hero.css';
+import '../../css/Navbar.css';
 
 const SkeletonLayout: React.FC = () => {
   return (
