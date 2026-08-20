@@ -33,6 +33,7 @@ from .views_frontend import (
     frontend_certificates_highlights,
     frontend_projects,
     frontend_projects_highlights,
+    frontend_contact,
 )
 
 urlpatterns = [
@@ -76,4 +77,5 @@ urlpatterns = [
     path('frontend/certificates/highlights/', frontend_certificates_highlights, name='frontend_certificates_highlights'),
     path('frontend/projects/', frontend_projects, name='frontend_projects'),
     path('frontend/projects/highlights/', frontend_projects_highlights, name='frontend_projects_highlights'),
+    path('frontend/contact/', frontend_contact, name='frontend_contact'),
 ]
