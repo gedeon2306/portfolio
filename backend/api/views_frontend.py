@@ -305,3 +305,4 @@ def frontend_projects_highlights(request):
     except Exception as e:
         logger.exception(f"Erreur dans frontend_projects_highlights: {str(e)}")
         return _error_server()
+

@@ -16,7 +16,6 @@ export interface Settings {
   id?: string;
   titre_app?: string;
   mode_maintenance: boolean;
-  notification_email: boolean;
 }
 
 // About / Profil
