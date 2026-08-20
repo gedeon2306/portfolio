@@ -61,10 +61,24 @@ def _check_api_key(cle):
 def settings_public(request):
     try:
         config = Settings.objects.first()
+        
+        # Récupérer les informations MyInfo pour le lien LinkedIn
+        my_info = MyInfo.objects.order_by('-id').first()
+        linkedin = my_info.linkedin if my_info else None
 
         if not config:
-            return Response({"settings": None}, status=status.HTTP_200_OK)
-        return Response({"settings": SettingsSerializer(config).data}, status=status.HTTP_200_OK)
+            return Response({
+                "settings": {
+                    "mode_maintenance": False,
+                    "linkedin": linkedin
+                }
+            }, status=status.HTTP_200_OK)
+            
+        # Sérialiser les données de settings et ajouter linkedin
+        settings_data = SettingsSerializer(config).data
+        settings_data['linkedin'] = linkedin
+        
+        return Response({"settings": settings_data}, status=status.HTTP_200_OK)
 
     except Exception as e:
         logger.exception(f"Erreur dans settings_public: {str(e)}")

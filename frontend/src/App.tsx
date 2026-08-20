@@ -6,24 +6,47 @@ import CertificatesPage from "./pages/CertificatesPage";
 import ProjectsPage from "./pages/ProjectsPage";
 import Maintenance from "./pages/Maintenance";
 import NotFound from "./pages/NotFound";
-import { loadSiteSettings } from "./config";
+import { loadSiteSettings, type SiteSettings } from "./config";
 import SkeletonLayout from "./components/SkeletonLayout";
-import { useEffect, useState } from "react";
+import { useEffect, useState, createContext, useContext } from "react";
 
-export default function App() {
-  const [loading, setLoading] = useState(true);
-  const [maintenance, setMaintenance] = useState(false);
+interface SettingsContextType extends SiteSettings {
+  loading: boolean;
+}
+
+const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
+
+export function useSettings() {
+  const context = useContext(SettingsContext);
+  if (context === undefined) {
+    throw new Error('useSettings doit être utilisé à l\'intérieur d\'un SettingsProvider');
+  }
+  return context;
+}
+
+function SettingsProvider({ children }: { children: React.ReactNode }) {
+  const [settings, setSettings] = useState<SettingsContextType>({
+    modeMaintenance: false,
+    linkedin: null,
+    loading: true,
+  });
 
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
         const s = await loadSiteSettings();
-        if (mounted) setMaintenance(!!s.modeMaintenance);
+        if (mounted) {
+          setSettings({
+            modeMaintenance: s.modeMaintenance,
+            linkedin: s.linkedin || null,
+            loading: false,
+          });
+        }
       } catch (e) {
-        // ignore and keep default
-      } finally {
-        if (mounted) setLoading(false);
+        if (mounted) {
+          setSettings(prev => ({ ...prev, loading: false }));
+        }
       }
     })();
     return () => {
@@ -32,23 +55,43 @@ export default function App() {
   }, []);
 
   return (
+    <SettingsContext.Provider value={settings}>
+      {children}
+    </SettingsContext.Provider>
+  );
+}
+
+export default function App() {
+  return (
     <ThemeProvider>
       <ToastProvider>
-        {loading ? (
-          <SkeletonLayout />
-        ) : maintenance ? (
-          <Maintenance />
-        ) : (
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<PortfolioPage />} />
-              <Route path="/certificates" element={<CertificatesPage />} />
-              <Route path="/projects" element={<ProjectsPage />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        )}
+        <SettingsProvider>
+          <AppContent />
+        </SettingsProvider>
       </ToastProvider>
     </ThemeProvider>
+  );
+}
+
+function AppContent() {
+  const { modeMaintenance, loading } = useSettings();
+
+  if (loading) {
+    return <SkeletonLayout />;
+  }
+
+  if (modeMaintenance) {
+    return <Maintenance />;
+  }
+
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<PortfolioPage />} />
+        <Route path="/certificates" element={<CertificatesPage />} />
+        <Route path="/projects" element={<ProjectsPage />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
