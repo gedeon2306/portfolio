@@ -15,7 +15,7 @@ const NAV_LINKS = [
   { label: "Contact", href: "#contact", id: "contact" },
 ];
 
-const GITHUB_REPO_URL = "https://github.com/gedeon2306/porfolio";
+const GITHUB_REPO_URL = "https://github.com/gedeon2306/portfolio";
 const LINKEDIN_URL = "https://linkedin.com/";
 
 export default function Navbar() {
