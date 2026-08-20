@@ -5,6 +5,7 @@ import type {
   CertificatesData,
   ProjectsData,
   SkillsData,
+  ContactData,
 } from '../types/Types';
 
 /**
@@ -71,6 +72,13 @@ export async function getProjectsHighlights(): Promise<ProjectsData | null> {
   return fetchData<ProjectsData>('frontend/projects/highlights/');
 }
 
+/**
+ * Récupère les informations de contact publiques.
+ */
+export async function getContact(): Promise<ContactData | null> {
+  return fetchData<ContactData>('frontend/contact/');
+}
+
 const apiService = {
   getSettings,
   getAboutData,
@@ -79,6 +87,7 @@ const apiService = {
   getCertificatesHighlights,
   getProjects,
   getProjectsHighlights,
+  getContact,
 };
 
 export default apiService;

@@ -56,6 +56,7 @@ def _check_api_key(cle):
         return _unauthorized("utiliser cette ressource")
     return None
 
+
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def settings_public(request):
@@ -318,5 +319,46 @@ def frontend_projects_highlights(request):
 
     except Exception as e:
         logger.exception(f"Erreur dans frontend_projects_highlights: {str(e)}")
+        return _error_server()
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def frontend_contact(request):
+    """
+    Retourne les informations de contact publiques.
+    """
+    try:
+        info = MyInfo.objects.order_by('-id').first()
+        
+        if not info:
+            return Response({
+                'profession': '',
+                'email': '',
+                'localisation': '',
+                'telephone': '',
+                'github': None,
+                'linkedin': None,
+                'instagram': None,
+                'twitter_x': None,
+                'tik_tok': None,
+            }, status=status.HTTP_200_OK)
+        
+        payload = {
+            'profession': info.profession,
+            'email': info.email,
+            'localisation': info.localisation,
+            'telephone': info.telephone,
+            'github': info.github,
+            'linkedin': info.linkedin,
+            'instagram': info.instagram,
+            'twitter_x': info.twitter_x,
+            'tik_tok': info.tik_tok,
+        }
+        
+        return Response(payload, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        logger.exception(f"Erreur dans frontend_contact: {str(e)}")
         return _error_server()
 

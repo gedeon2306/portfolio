@@ -73,3 +73,16 @@ export interface Project extends BaseEntity {
 export interface ProjectsData {
   projets: Project[];
 }
+
+// Contact
+export interface ContactData {
+  profession: string;
+  email: string;
+  localisation: string;
+  telephone: string;
+  github: string | null;
+  linkedin: string | null;
+  instagram: string | null;
+  twitter_x: string | null;
+  tik_tok: string | null;
+}
