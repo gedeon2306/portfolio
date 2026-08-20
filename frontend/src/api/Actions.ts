@@ -12,12 +12,8 @@ import type {
  * Fonction générique pour effectuer une requête GET de manière sécurisée.
  */
 async function fetchData<T>(url: string): Promise<T | null> {
-  try {
     const resp = await api.get<T>(url);
     return resp.data ?? null;
-  } catch {
-    return null;
-  }
 }
 
 export async function getSettings(): Promise<Settings | null> {

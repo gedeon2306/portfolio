@@ -12,6 +12,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getCertificatesHighlights } from "../api/Actions";
 import { formatCertDate } from "../utils/dateUtils";
 import "../css/Certificates.css";
+import SkeletonCertificates from "./skeletonComponents/SkeletonCertificates";
 
 const INITIAL_VISIBLE_COUNT = 3;
 
@@ -27,30 +28,6 @@ export default function Certificates() {
   });
 
   const certificates = certificatesData?.certificats || [];
-
-  if (isLoading) {
-    return (
-      <section id="certificates" className="pf-certificates">
-        <div className="pf-container">
-          <div className="pf-section-header">
-            <span className="pf-eyebrow">Accréditations & Diplômes</span>
-            <h2 className="pf-section-title">Certifications Professionnelles</h2>
-          </div>
-          <div style={{ textAlign: 'center', padding: '40px' }}>
-            <p>Chargement des certifications...</p>
-          </div>
-        </div>
-      </section>
-    );
-  }
-
-  if (error) {
-    console.error("Erreur lors du chargement des certifications:", error);
-  }
-
-  if (certificates.length === 0) {
-    return null;
-  }
 
   const displayedCertificates = certificates.slice(0, visibleCount);
   const hasMore = visibleCount < certificates.length;
@@ -92,58 +69,61 @@ export default function Certificates() {
           </p>
         </div>
 
-        <div ref={gridRef} className="pf-cert-grid">
-          {displayedCertificates.map((cert) => (
-            <article key={cert.id} className="pf-cert-card">
-              <div className="pf-cert-thumb">
-                <img
-                  src={cert.image || "/assets/certificates/default.svg"}
-                  alt={cert.titre}
-                  className="pf-cert-thumb-image"
-                />
-                <div className="pf-cert-thumb-pattern">
-                  <FiAward className="pf-thumb-watermark" />
-                </div>
-                <span className="badge badge-black pf-cert-badge-top">
-                  <FiCheckCircle size={12} className="verified-icon" />
-                  <span>Vérifié</span>
-                </span>
-              </div>
-
-              <div className="pf-cert-body">
-                <div className="pf-cert-meta-top">
-                  <span className="badge badge-accent pf-cert-category">{cert.categorie}</span>
-                  <span className="pf-cert-date">{formatCertDate(cert.date)}</span>
+        {isLoading || error || certificates.length === 0 ? (
+          <SkeletonCertificates />
+        ) : (
+          <div ref={gridRef} className="pf-cert-grid">
+            {displayedCertificates.map((cert) => (
+              <article key={cert.id} className="pf-cert-card">
+                <div className="pf-cert-thumb">
+                  <img
+                    src={cert.image || "/assets/certificates/default.svg"}
+                    alt={cert.titre}
+                    className="pf-cert-thumb-image"
+                  />
+                  <div className="pf-cert-thumb-pattern">
+                    <FiAward className="pf-thumb-watermark" />
+                  </div>
+                  <span className="badge badge-black pf-cert-badge-top">
+                    <FiCheckCircle size={12} className="verified-icon" />
+                    <span>Vérifié</span>
+                  </span>
                 </div>
 
-                <h3 className="pf-cert-title">{cert.titre}</h3>
-                <p className="pf-cert-desc">{cert.description}</p>
-
-                <div className="pf-cert-footer">
-                  <div className="pf-cert-issuer-box">
-                    <span className="pf-issuer-name">{cert.organisme}</span>
-                    <span className="pf-cred-id font-mono">ID: {cert.credentialId}</span>
+                <div className="pf-cert-body">
+                  <div className="pf-cert-meta-top">
+                    <span className="badge badge-accent pf-cert-category">{cert.categorie}</span>
+                    <span className="pf-cert-date">{formatCertDate(cert.date)}</span>
                   </div>
 
-                  {cert.url && (
-                    <a
-                      href={cert.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="pf-cert-action"
-                      onClick={(e) => handleCertClick(cert, e)}
-                      title="Voir le certificat"
-                    >
-                      <span>Vérifier</span>
-                      <FiArrowUpRight size={14} className="link-arrow" />
-                    </a>
-                  )}
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
+                  <h3 className="pf-cert-title">{cert.titre}</h3>
+                  <p className="pf-cert-desc">{cert.description}</p>
 
+                  <div className="pf-cert-footer">
+                    <div className="pf-cert-issuer-box">
+                      <span className="pf-issuer-name">{cert.organisme}</span>
+                      <span className="pf-cred-id font-mono">ID: {cert.credentialId}</span>
+                    </div>
+
+                    {cert.url && (
+                      <a
+                        href={cert.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="pf-cert-action"
+                        onClick={(e) => handleCertClick(cert, e)}
+                        title="Voir le certificat"
+                      >
+                        <span>Vérifier</span>
+                        <FiArrowUpRight size={14} className="link-arrow" />
+                      </a>
+                    )}
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
         <div className="pf-cert-actions">
           {hasMore && (
             <button
