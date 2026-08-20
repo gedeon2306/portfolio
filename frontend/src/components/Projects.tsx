@@ -13,6 +13,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getProjectsHighlights } from "../api/Actions";
 import { TechIcon, getTechMeta } from "../utils/techIcons";
 import "../css/Projects.css";
+import SkeletonProjects from "./skeletonComponents/SkeletonProjects";
 
 const INITIAL_COUNT = 3;
 
@@ -28,30 +29,6 @@ export default function Projects() {
   });
 
   const projects = projectsData?.projets || [];
-
-  if (isLoading) {
-    return (
-      <section id="projets" className="pf-projects">
-        <div className="pf-container">
-          <div className="pf-section-header">
-            <span className="pf-eyebrow">Portfolio & Réalisations</span>
-            <h2 className="pf-section-title">Projets Récents</h2>
-          </div>
-          <div style={{ textAlign: 'center', padding: '40px' }}>
-            <p>Chargement des projets...</p>
-          </div>
-        </div>
-      </section>
-    );
-  }
-
-  if (error) {
-    console.error("Erreur lors du chargement des projets:", error);
-  }
-
-  if (projects.length === 0) {
-    return null;
-  }
 
   const displayedProjects = projects.slice(0, visibleCount);
   const hasMore = visibleCount < projects.length;
@@ -89,119 +66,124 @@ export default function Projects() {
             Une sélection d'applications complètes conçues avec une exigence stricte de qualité de code, de performance et de design.
           </p>
         </div>
-
-        <div ref={gridRef} className="pf-projects-grid">
-          {displayedProjects.map((project) => (
-            <article key={project.id} className="pf-project-card">
-              <div className="pf-project-thumb">
-                <img
-                  src={project.image || "/assets/projects/default.svg"}
-                  alt={project.titre}
-                  className="pf-project-thumb-image"
-                />
-                <div className="pf-project-thumb-bg">
-                  <FiLayers className="pf-project-watermark" />
-                </div>
-                {project.important && (
-                  <span className="badge badge-accent pf-project-badge-top">
-                    En vedette
-                  </span>
-                )}
-              </div>
-
-              <div className="pf-project-body">
-                <span className="pf-project-category font-mono">{project.categorie}</span>
-                <h3 className="pf-project-title">{project.titre}</h3>
-                <p className="pf-project-desc">{project.description}</p>
-
-                <div className="pf-project-tags">
-                  {project.technologies.map((tech) => {
-                    const meta = getTechMeta(tech);
-                    return (
-                      <span key={tech} className="badge badge-neutral pf-tech-badge">
-                        <TechIcon name={tech} size={12} />
-                        <span>{meta.label}</span>
+        {isLoading || error || projects.length === 0 ? (
+          <SkeletonProjects />
+        ) : (
+          <>
+            <div ref={gridRef} className="pf-projects-grid">
+              {displayedProjects.map((project) => (
+                <article key={project.id} className="pf-project-card">
+                  <div className="pf-project-thumb">
+                    <img
+                      src={project.image || "/assets/projects/default.svg"}
+                      alt={project.titre}
+                      className="pf-project-thumb-image"
+                    />
+                    <div className="pf-project-thumb-bg">
+                      <FiLayers className="pf-project-watermark" />
+                    </div>
+                    {project.important && (
+                      <span className="badge badge-accent pf-project-badge-top">
+                        En vedette
                       </span>
-                    );
-                  })}
-                </div>
-
-                <div className="pf-project-footer">
-                  <div className="pf-project-links">
-                    {project.codeSource && (
-                      <a
-                        href={project.codeSource}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="pf-icon-btn pf-project-icon-btn"
-                        aria-label="Voir le code source"
-                        title="Code source GitHub"
-                        onClick={() => handleActionClick(project.titre, "repo")}
-                      >
-                        <FiGithub size={16} />
-                      </a>
-                    )}
-                    {project.url && (
-                      <a
-                        href={project.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="pf-icon-btn pf-project-icon-btn"
-                        aria-label="Voir la démo en direct"
-                        title="Démo live"
-                        onClick={() => handleActionClick(project.titre, "demo")}
-                      >
-                        <FiExternalLink size={16} />
-                      </a>
                     )}
                   </div>
 
-                  <a
-                    href={project.url ?? "#"}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="pf-project-explore"
-                    onClick={() => handleActionClick(project.titre, "demo")}
-                  >
-                    <span>Explorer</span>
-                    <FiArrowUpRight size={14} className="link-arrow" />
-                  </a>
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
+                  <div className="pf-project-body">
+                    <span className="pf-project-category font-mono">{project.categorie}</span>
+                    <h3 className="pf-project-title">{project.titre}</h3>
+                    <p className="pf-project-desc">{project.description}</p>
 
-        <div className="pf-projects-actions">
-          {hasMore && (
-            <button
-              type="button"
-              className="btn btn-secondary pf-projects-action-btn"
-              onClick={handleShowMore}
-            >
-              <span>Afficher plus de projets</span>
-              <FiChevronDown size={18} className="pf-chevron-icon" />
-            </button>
-          )}
-          {canCollapse && !hasMore && (
-            <button
-              type="button"
-              className="btn btn-secondary pf-projects-action-btn"
-              onClick={handleCollapse}
-            >
-              <span>Réduire la liste</span>
-              <FiChevronDown size={18} className="pf-chevron-icon pf-chevron-up" />
-            </button>
-          )}
-          <Link
-            to="/projects"
-            className="btn btn-primary pf-projects-action-btn"
-            onClick={handleViewAll}
-          >
-            <span>Voir tous les projets</span>
-            <FiChevronRight size={18} className="pf-chevron-icon" />
-          </Link>
-        </div>
+                    <div className="pf-project-tags">
+                      {project.technologies.map((tech) => {
+                        const meta = getTechMeta(tech);
+                        return (
+                          <span key={tech} className="badge badge-neutral pf-tech-badge">
+                            <TechIcon name={tech} size={12} />
+                            <span>{meta.label}</span>
+                          </span>
+                        );
+                      })}
+                    </div>
+
+                    <div className="pf-project-footer">
+                      <div className="pf-project-links">
+                        {project.codeSource && (
+                          <a
+                            href={project.codeSource}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="pf-icon-btn pf-project-icon-btn"
+                            aria-label="Voir le code source"
+                            title="Code source GitHub"
+                            onClick={() => handleActionClick(project.titre, "repo")}
+                          >
+                            <FiGithub size={16} />
+                          </a>
+                        )}
+                        {project.url && (
+                          <a
+                            href={project.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="pf-icon-btn pf-project-icon-btn"
+                            aria-label="Voir la démo en direct"
+                            title="Démo live"
+                            onClick={() => handleActionClick(project.titre, "demo")}
+                          >
+                            <FiExternalLink size={16} />
+                          </a>
+                        )}
+                      </div>
+
+                      <a
+                        href={project.url ?? "#"}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="pf-project-explore"
+                        onClick={() => handleActionClick(project.titre, "demo")}
+                      >
+                        <span>Explorer</span>
+                        <FiArrowUpRight size={14} className="link-arrow" />
+                      </a>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            <div className="pf-projects-actions">
+              {hasMore && (
+                <button
+                  type="button"
+                  className="btn btn-secondary pf-projects-action-btn"
+                  onClick={handleShowMore}
+                >
+                  <span>Afficher plus de projets</span>
+                  <FiChevronDown size={18} className="pf-chevron-icon" />
+                </button>
+              )}
+              {canCollapse && !hasMore && (
+                <button
+                  type="button"
+                  className="btn btn-secondary pf-projects-action-btn"
+                  onClick={handleCollapse}
+                >
+                  <span>Réduire la liste</span>
+                  <FiChevronDown size={18} className="pf-chevron-icon pf-chevron-up" />
+                </button>
+              )}
+              <Link
+                to="/projects"
+                className="btn btn-primary pf-projects-action-btn"
+                onClick={handleViewAll}
+              >
+                <span>Voir tous les projets</span>
+                <FiChevronRight size={18} className="pf-chevron-icon" />
+              </Link>
+            </div>
+          </>
+        )}
       </div>
     </section>
   );
