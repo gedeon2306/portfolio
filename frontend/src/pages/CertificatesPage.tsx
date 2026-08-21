@@ -17,6 +17,7 @@ import { getCertificates } from "../api/Actions";
 import type { Certificate } from "../types/Types";
 import { formatCertDate, extractYear, getAvailableYears } from "../utils/dateUtils";
 import "../css/CertificatesPage.css";
+import SkeletonCertificates from "../components/skeletonComponents/SkeletonCertificates";
 
 const CERTIFICATION_CATEGORIES = [
   { value: 'IA', label: 'Intelligence Artificielle' },
@@ -45,7 +46,7 @@ export default function CertificatesPage() {
   const [selectedYear, setSelectedYear] = useState<string>("");
   const [showFilters, setShowFilters] = useState(false);
 
-  const { data: certificatesData, isLoading, error } = useQuery({
+  const { data: certificatesData, isLoading } = useQuery({
     queryKey: ['certificates'],
     queryFn: getCertificates,
   });
@@ -112,33 +113,6 @@ export default function CertificatesPage() {
   };
 
   const hasActiveFilters = searchTerm || selectedCategory || selectedYear;
-
-  if (error) {
-    console.error("Erreur lors du chargement des certifications:", error);
-  }
-
-  if (isLoading) {
-    return (
-      <>
-        <Navbar />
-        <div className="pf-certificates-page">
-          <div className="pf-container">
-            <div className="pf-cert-page-header">
-              <Link to="/" className="pf-back-button" onClick={handleBack}>
-                <FiArrowLeft size={20} />
-                <span>Retour au portfolio</span>
-              </Link>
-            </div>
-            <div className="pf-cert-loading">
-              <div className="pf-spinner" />
-              <p>Chargement des certificats...</p>
-            </div>
-          </div>
-        </div>
-        <Footer />
-      </>
-    );
-  }
 
   return (
     <>
@@ -244,8 +218,14 @@ export default function CertificatesPage() {
           <div className="pf-cert-results">
             <div className="pf-cert-results-header">
               <span className="pf-cert-count">
-                {filteredCertificates.length} certificat{filteredCertificates.length > 1 ? 's' : ''}
-                {hasActiveFilters && ' trouvé(s)'}
+                {isLoading ? (
+                  "Chargement des certificats..."
+                ) : (
+                  <>
+                    {filteredCertificates.length} certificat{filteredCertificates.length > 1 ? 's' : ''}
+                    {hasActiveFilters && ' trouvé(s)'}
+                  </>
+                )}
               </span>
               {hasActiveFilters && (
                 <span className="pf-cert-filters-active">
@@ -269,7 +249,9 @@ export default function CertificatesPage() {
               )}
             </div>
 
-            {filteredCertificates.length === 0 ? (
+            {isLoading ? (
+              <SkeletonCertificates />
+            ) : (filteredCertificates.length === 0 ? (
               <div className="pf-cert-empty">
                 <FiAward size={48} className="pf-empty-icon" />
                 <h3>Aucun certificat trouvé</h3>
@@ -335,7 +317,7 @@ export default function CertificatesPage() {
                   </article>
                 ))}
               </div>
-            )}
+            ))}
           </div>
         </div>
       </div>
