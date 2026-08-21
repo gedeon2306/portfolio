@@ -15,7 +15,7 @@ import { FaXTwitter, FaInstagram } from "react-icons/fa6";
 import { useScrollReveal } from "./useScrollReveal";
 import { useToast } from "../context/ToastContext";
 import { useQuery } from "@tanstack/react-query";
-import { getContact } from "../api/Actions";
+import { getContact, sendContactMessage } from "../api/Actions";
 import Spinner from "./Spinner";
 import logoJdBlanc from "../assets/logo_jd_blanc_sbg.png";
 import "../css/Contact.css";
@@ -56,29 +56,56 @@ export default function Contact() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!values.name || !values.email || !values.message) {
+    
+    // Validation des champs
+    if (!values.name.trim() || !values.email.trim() || !values.message.trim()) {
       toast.error("Formulaire incomplet", "Veuillez remplir tous les champs obligatoires.");
       return;
     }
 
+    // Validation de l'email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(values.email)) {
+      toast.error("Email invalide", "Veuillez entrer une adresse email valide.");
+      return;
+    }
+
+    const apiKey = import.meta.env.VITE_PUBLIC_PORTFOLIO_API_KEY
+
     setStatus("sending");
+
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      setStatus("sent");
-      toast.success(
-        "Message envoyé avec succès !",
-        `Merci ${values.name}, je vous répondrai dans les plus brefs délais.`
-      );
-      setValues({ name: "", email: "", subject: "", message: "" });
-    } catch {
+      const result = await sendContactMessage({
+        name: values.name.trim(),
+        email: values.email.trim(),
+        subject: values.subject.trim(),
+        message: values.message.trim(),
+        apiKey: apiKey,
+      });
+
+      if (result.success) {
+        setStatus("sent");
+        toast.success(
+          "Message envoyé avec succès !",
+          result.message || `Merci ${values.name}, je vous répondrai dans les plus brefs délais.`
+        );
+        // Réinitialiser le formulaire
+        setValues({ name: "", email: "", subject: "", message: "" });
+      } else {
+        setStatus("error");
+        toast.error("Erreur d'envoi", result.error || "Une erreur est survenue lors de l'envoi.");
+      }
+    } catch (error) {
       setStatus("error");
       toast.error(
         "Erreur d'envoi",
         "Une erreur est survenue lors de l'envoi. Veuillez réessayer."
       );
+      console.error("Erreur lors de l'envoi du message:", error);
     }
   };
 
+  // Informations de contact - avec fallback string
   const contactInfo = [
     { 
       icon: FiMail, 
@@ -100,13 +127,17 @@ export default function Contact() {
     },
   ];
 
+  // Réseaux sociaux - conversion de null à undefined pour le type href
   const socials = [
-    { icon: FiGithub, href: contactData?.github || null, label: "GitHub" },
-    { icon: FiLinkedin, href: contactData?.linkedin || null, label: "LinkedIn" },
-    { icon: FaXTwitter, href: contactData?.twitter_x || null, label: "Twitter / X" },
-    { icon: FaInstagram, href: contactData?.instagram || null, label: "Instagram" },
-    { icon: FaTiktok, href: contactData?.tik_tok || null, label: "Instagram" },
+    { icon: FiGithub, href: contactData?.github || undefined, label: "GitHub" },
+    { icon: FiLinkedin, href: contactData?.linkedin || undefined, label: "LinkedIn" },
+    { icon: FaXTwitter, href: contactData?.twitter_x || undefined, label: "Twitter / X" },
+    { icon: FaInstagram, href: contactData?.instagram || undefined, label: "Instagram" },
+    { icon: FaTiktok, href: contactData?.tik_tok || undefined, label: "TikTok" },
   ];
+
+  // Filtrer les réseaux sociaux avec des liens valides
+  const activeSocials = socials.filter(social => social.href !== undefined && social.href !== "");
 
   return (
     <section id="contact" className="pf-contact">
@@ -119,10 +150,11 @@ export default function Contact() {
           </p>
         </div>
 
-        {isLoading? (
+        {isLoading ? (
           <SkeletonContact />
         ) : (
           <div ref={revealRef} className="pf-contact-grid pf-reveal">
+            {/* Partie gauche - Informations de contact */}
             <div className="pf-contact-info">
               <div className="pf-contact-info-header">
                 <img
@@ -173,25 +205,24 @@ export default function Contact() {
               <div className="pf-contact-socials-wrap">
                 <span className="pf-socials-title font-mono">Retrouvez-moi sur les réseaux</span>
                 <div className="pf-contact-socials">
-                  {socials.map((social) => (
-                    social.href && (
-                      <a
-                        key={social.label}
-                        href={social.href}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="pf-icon-btn"
-                        aria-label={social.label}
-                        title={social.label}
-                      >
-                        <social.icon size={16} />
-                      </a>
-                    )
+                  {activeSocials.map((social) => (
+                    <a
+                      key={social.label}
+                      href={social.href}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="pf-icon-btn"
+                      aria-label={social.label}
+                      title={social.label}
+                    >
+                      <social.icon size={16} />
+                    </a>
                   ))}
                 </div>
               </div>
             </div>
 
+            {/* Partie droite - Formulaire de contact */}
             <div className="pf-contact-form-wrap">
               <form className="pf-contact-form" onSubmit={handleSubmit} noValidate>
                 <div className="pf-form-row">
@@ -204,6 +235,8 @@ export default function Contact() {
                       value={values.name}
                       onChange={handleChange("name")}
                       required
+                      disabled={status === "sending"}
+                      autoComplete="name"
                     />
                   </div>
 
@@ -216,6 +249,8 @@ export default function Contact() {
                       value={values.email}
                       onChange={handleChange("email")}
                       required
+                      disabled={status === "sending"}
+                      autoComplete="email"
                     />
                   </div>
                 </div>
@@ -228,6 +263,7 @@ export default function Contact() {
                     placeholder="Création d'une application web, refonte UI..."
                     value={values.subject}
                     onChange={handleChange("subject")}
+                    disabled={status === "sending"}
                   />
                 </div>
 
@@ -240,6 +276,7 @@ export default function Contact() {
                     onChange={handleChange("message")}
                     rows={5}
                     required
+                    disabled={status === "sending"}
                   />
                 </div>
 

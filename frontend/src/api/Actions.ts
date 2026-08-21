@@ -75,6 +75,25 @@ export async function getContact(): Promise<ContactData | null> {
   return fetchData<ContactData>('frontend/contact/');
 }
 
+/**
+ * Envoie un message de contact via le formulaire.
+ */
+export async function sendContactMessage(data: {
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  apiKey: string;
+}): Promise<{ success: boolean; message?: string; error?: string }> {
+  try {
+    const resp = await api.post<{ success: string }>('frontend/contact/send/', data);
+    return { success: true, message: resp.data.success };
+  } catch (error: any) {
+    const errorMessage = error.response?.data?.error || 'Erreur lors de l\'envoi du message';
+    return { success: false, error: errorMessage };
+  }
+}
+
 const apiService = {
   getSettings,
   getAboutData,
@@ -84,6 +103,7 @@ const apiService = {
   getProjects,
   getProjectsHighlights,
   getContact,
+  sendContactMessage,
 };
 
 export default apiService;
