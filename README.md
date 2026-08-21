@@ -163,5 +163,3 @@ Ce projet est structuré en deux parties bien distinctes :
 - l’admin permet la gestion du contenu et de la configuration via une interface simple et fonctionnelle
 
 La logique est pensée pour être facilement maintenable, lisible et évolutive.
-
-
