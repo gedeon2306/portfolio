@@ -1,5 +1,7 @@
 import logging
-
+from django.conf import settings
+from django.core.mail import EmailMessage
+from django.utils.timezone import datetime
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
@@ -20,27 +22,6 @@ def _error_server():
     return Response({
         "error": "Une erreur est survenue, reesayez plus tard !"},
         status=status.HTTP_500_INTERNAL_SERVER_ERROR
-    )
-
-
-def _forbidden(texte):
-    return Response(
-        {"error": f"Vous n'avez pas les droits pour {texte}."},
-        status=status.HTTP_403_FORBIDDEN,
-    )
-
-
-def _not_found(texte):
-    return Response(
-        {"error": f"{texte} introuvable."},
-        status=status.HTTP_404_NOT_FOUND,
-    )
-
-
-def _bad_request(texte):
-    return Response(
-        {"error": f"{texte} invalide."},
-        status=status.HTTP_400_BAD_REQUEST,
     )
 
 
@@ -362,3 +343,83 @@ def frontend_contact(request):
         logger.exception(f"Erreur dans frontend_contact: {str(e)}")
         return _error_server()
 
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def send_contact_email(request):
+    """
+    Envoie un email de contact et une réponse automatique à l'expéditeur.
+    """
+    try:
+        data = request.data
+        name = data.get('name')
+        email = data.get('email')
+        subject = data.get('subject', 'Nouveau message du portfolio')
+        message = data.get('message')
+        api_key= data.get('apiKey')
+        
+        api_key_error = _check_api_key(api_key)
+        if api_key_error:
+            return api_key_error
+        
+        # Validation des champs requis
+        if not name or not email or not message:
+            return Response(
+                {"error": "Tous les champs obligatoires doivent être remplis."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        
+        admin_email = EmailMessage(
+            subject=f"[Portfolio] Nouveau message de {name}",
+            body=(
+                f"Vous avez reçu un nouveau message de votre portfolio.\n"
+                f"De : {name} ({email})\n\n"
+                f"Sujet : {subject}\n"
+                f"Message :\n"
+                f"{message}\n"
+            ),
+            from_email=settings.EMAIL_HOST_USER,
+            to=[settings.EMAIL_USER],
+            reply_to=[email],
+        )
+        
+        user_email = EmailMessage(
+            subject="Confirmation de réception - Votre message a bien été envoyé",
+            body=(
+                f"Bonjour M./Mme {name},\n\n"
+
+                f"Je vous confirme la réception de votre message avec le sujet :\n"
+                f"{subject}\n\n"
+                f"Je prendrai connaissance de votre demande dans les plus brefs "
+                f"délais et vous répondrai personnellement.\n\n"
+
+                f"En attendant, n'hésitez pas à consulter mon portfolio pour "
+                f"découvrir mes réalisations : "
+                f"{settings.FRONTEND_URL + "/projects"}\n\n"
+
+                f"Cordialement, JihrelDev\n\n"
+                
+                f"Cet email est une confirmation automatique. "
+                f"Merci de ne pas y répondre directement.\n"
+                f"© {datetime.now().year} - Tous droits réservés"
+            ),
+            from_email=settings.EMAIL_HOST_USER,
+            to=[email],
+        )
+        
+        # Envoyer les emails
+        admin_email.send(fail_silently=False)
+        user_email.send(fail_silently=False)
+        
+        return Response(
+            {"success": "Votre message a été envoyé avec succès. Vous recevrez une confirmation par email."},
+            status=status.HTTP_200_OK
+        )
+        
+    except Exception as e:
+        logger.exception(f"Erreur lors de l'envoi du mail de contact: {str(e)}")
+        return Response(
+            {"error": "Une erreur est survenue lors de l'envoi du message. Veuillez réessayer plus tard."},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

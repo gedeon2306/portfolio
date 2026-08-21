@@ -34,6 +34,7 @@ from .views_frontend import (
     frontend_projects,
     frontend_projects_highlights,
     frontend_contact,
+    send_contact_email,
 )
 
 urlpatterns = [
@@ -78,4 +79,5 @@ urlpatterns = [
     path('frontend/projects/', frontend_projects, name='frontend_projects'),
     path('frontend/projects/highlights/', frontend_projects_highlights, name='frontend_projects_highlights'),
     path('frontend/contact/', frontend_contact, name='frontend_contact'),
+    path('frontend/contact/send/', send_contact_email, name='send_contact_email'),
 ]
