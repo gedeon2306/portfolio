@@ -132,7 +132,7 @@ export default function Contact() {
                 />
                 <div>
                   <h3>
-                    Jihrel <span className="pf-contact-name-highlight">Dev</span>
+                    Jihrel<span className="pf-contact-name-highlight">Dev</span>
                   </h3>
                   <p>{contactData?.profession || "Développeur Full-Stack"}</p>
                 </div>

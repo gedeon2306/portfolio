@@ -7,8 +7,8 @@ import {
   FiFilter,
   FiX,
   FiGithub,
-  FiExternalLink,
 } from "react-icons/fi";
+import { IoDocumentOutline } from "react-icons/io5";
 import { useNavigate, Link } from "react-router-dom";
 import { useToast } from "../context/ToastContext";
 import Navbar from "../components/Navbar";
@@ -80,9 +80,11 @@ export default function ProjectsPage() {
     return filtered;
   }, [searchTerm, selectedCategory, selectedYear, projects]);
 
-  const handleActionClick = (name: string, type: "repo" | "demo") => {
+  const handleActionClick = (name: string, type: "repo" | "doc" | "demo") => {
     if (type === "repo") {
       toast.info("Code Source", `Redirection vers le dépôt de "${name}"...`);
+    } else if(type === "doc") {
+      toast.success("Documentation", `Ouverture de la documentation de "${name}"...`);
     } else {
       toast.success("Démo en direct", `Ouverture de la démo de "${name}"...`);
     }
@@ -303,6 +305,7 @@ export default function ProjectsPage() {
                       <div className="pf-project-footer">
                         <div className="pf-project-links">
                           {project.codeSource && (
+                          <>
                             <a
                               href={project.codeSource}
                               target="_blank"
@@ -314,19 +317,18 @@ export default function ProjectsPage() {
                             >
                               <FiGithub size={16} />
                             </a>
-                          )}
-                          {project.url && (
                             <a
-                              href={project.url}
+                              href={project.codeSource + "/blob/main/README.md"}
                               target="_blank"
                               rel="noreferrer"
                               className="pf-icon-btn pf-project-icon-btn"
-                              aria-label="Voir la démo en direct"
-                              title="Démo live"
-                              onClick={() => handleActionClick(project.titre, "demo")}
-                            >
-                              <FiExternalLink size={16} />
+                              aria-label="Voir la documentation"
+                                title="Documentation"
+                                onClick={() => handleActionClick(project.titre, "doc")}
+                              >
+                                <IoDocumentOutline size={16} />
                             </a>
+                          </>
                           )}
                         </div>
 
@@ -335,6 +337,8 @@ export default function ProjectsPage() {
                           target="_blank"
                           rel="noreferrer"
                           className="pf-project-explore"
+                          aria-label="Voir la démo en direct"
+                          title="Démo live"
                           onClick={() => handleActionClick(project.titre, "demo")}
                         >
                           <span>Explorer</span>

@@ -1,12 +1,12 @@
 import { useState, useRef } from "react";
 import { 
-  FiGithub, 
-  FiExternalLink, 
+  FiGithub,
   FiArrowUpRight, 
   FiLayers, 
   FiChevronDown, 
   FiChevronRight 
 } from "react-icons/fi";
+import { IoDocumentOutline } from "react-icons/io5";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "../context/ToastContext";
 import { useQuery } from "@tanstack/react-query";
@@ -34,9 +34,11 @@ export default function Projects() {
   const hasMore = visibleCount < projects.length;
   const canCollapse = visibleCount > INITIAL_COUNT && projects.length > INITIAL_COUNT;
 
-  const handleActionClick = (name: string, type: "repo" | "demo") => {
+  const handleActionClick = (name: string, type: "repo" | "doc" | "demo") => {
     if (type === "repo") {
       toast.info("Code Source", `Redirection vers le dépôt de "${name}"...`);
+    } else if(type === "doc") {
+      toast.success("Documentation", `Ouverture de la documentation de "${name}"...`);
     } else {
       toast.success("Démo en direct", `Ouverture de la démo de "${name}"...`);
     }
@@ -109,38 +111,40 @@ export default function Projects() {
                     <div className="pf-project-footer">
                       <div className="pf-project-links">
                         {project.codeSource && (
-                          <a
-                            href={project.codeSource}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="pf-icon-btn pf-project-icon-btn"
-                            aria-label="Voir le code source"
-                            title="Code source GitHub"
-                            onClick={() => handleActionClick(project.titre, "repo")}
-                          >
-                            <FiGithub size={16} />
-                          </a>
-                        )}
-                        {project.url && (
-                          <a
-                            href={project.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="pf-icon-btn pf-project-icon-btn"
-                            aria-label="Voir la démo en direct"
-                            title="Démo live"
-                            onClick={() => handleActionClick(project.titre, "demo")}
-                          >
-                            <FiExternalLink size={16} />
-                          </a>
-                        )}
-                      </div>
+                          <>
+                            <a
+                              href={project.codeSource}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="pf-icon-btn pf-project-icon-btn"
+                              aria-label="Voir le code source"
+                              title="Code source GitHub"
+                              onClick={() => handleActionClick(project.titre, "repo")}
+                            >
+                              <FiGithub size={16} />
+                            </a>
+                            <a
+                              href={project.codeSource + "/blob/main/README.md"}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="pf-icon-btn pf-project-icon-btn"
+                              aria-label="Voir la documentation"
+                                title="Documentation"
+                                onClick={() => handleActionClick(project.titre, "doc")}
+                              >
+                                <IoDocumentOutline size={16} />
+                            </a>
+                          </>
+                          )}
+                        </div>
 
-                      <a
-                        href={project.url ?? "#"}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="pf-project-explore"
+                        <a
+                          href={project.url ?? "#"}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="pf-project-explore"
+                          aria-label="Voir la démo en direct"
+                          title="Démo live"
                         onClick={() => handleActionClick(project.titre, "demo")}
                       >
                         <span>Explorer</span>
