@@ -1,11 +1,16 @@
-// NotFound.tsx
+import { useNavigate } from "react-router-dom";
 import { FiArrowLeft, FiHome, FiSearch, FiArrowUpRight } from "react-icons/fi";
 import { Link } from "react-router-dom";
 import { useScrollReveal } from "../components/useScrollReveal";
 import "../css/NotFound.css";
 
 export default function NotFound() {
+  const navigate = useNavigate();
   const revealRef = useScrollReveal<HTMLDivElement>();
+
+  const handleCollapse = (url = "") => {
+    navigate("/", { state: { scrollTo: url } });
+  };
 
   return (
     <div className="pf-notfound">
@@ -72,20 +77,20 @@ export default function NotFound() {
               <FiHome size={16} />
               <span>Retour à l'accueil</span>
             </Link>
-            <Link to="/#contact" className="btn btn-outline">
+            <button type="button" onClick={() => handleCollapse('contact')} className="btn btn-outline">
               <span>Me contacter</span>
               <FiArrowUpRight size={15} />
-            </Link>
+            </button>
           </div>
 
           <div className="pf-notfound-footer">
             <span className="pf-notfound-footer-text">
               Vous cherchez quelque chose en particulier ?
             </span>
-            <Link to="/#projets" className="pf-notfound-footer-link">
+            <button type="button" onClick={() => handleCollapse('projets')} className="pf-notfound-footer-link">
               Voir mes projets
               <FiArrowUpRight size={13} />
-            </Link>
+            </button>
           </div>
         </div>
       </div>
