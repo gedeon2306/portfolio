@@ -18,6 +18,7 @@ import { getProjects } from "../api/Actions";
 import { extractYear, getAvailableYears } from "../utils/dateUtils";
 import { TechIcon, getTechMeta } from "../utils/techIcons";
 import "../css/ProjectsPage.css";
+import SkeletonProjects from "../components/skeletonComponents/SkeletonProjects";
 
 const PROJECT_CATEGORIES = [
   { value: 'Web', label: 'Application Web' },
@@ -41,7 +42,7 @@ export default function ProjectsPage() {
   const [selectedYear, setSelectedYear] = useState<string>("");
   const [showFilters, setShowFilters] = useState(false);
 
-  const { data: projectsData, isLoading, error } = useQuery({
+  const { data: projectsData, isLoading } = useQuery({
     queryKey: ['projects'],
     queryFn: getProjects,
   });
@@ -107,33 +108,6 @@ export default function ProjectsPage() {
   };
 
   const hasActiveFilters = searchTerm || selectedCategory || selectedYear;
-
-  if (error) {
-    console.error("Erreur lors du chargement des projets:", error);
-  }
-
-  if (isLoading) {
-    return (
-      <>
-        <Navbar />
-        <div className="pf-projects-page">
-          <div className="pf-container">
-            <div className="pf-projects-page-header">
-              <Link to="/" className="pf-back-button" onClick={handleBack}>
-                <FiArrowLeft size={20} />
-                <span>Retour au portfolio</span>
-              </Link>
-            </div>
-            <div className="pf-projects-loading">
-              <div className="pf-spinner" />
-              <p>Chargement des projets...</p>
-            </div>
-          </div>
-        </div>
-        <Footer />
-      </>
-    );
-  }
 
   return (
     <>
@@ -229,8 +203,14 @@ export default function ProjectsPage() {
           <div className="pf-projects-results">
             <div className="pf-projects-results-header">
               <span className="pf-projects-count">
-                {filteredProjects.length} projet{filteredProjects.length > 1 ? 's' : ''}
-                {hasActiveFilters && ' trouvé(s)'}
+                {isLoading ? (
+                  "Chargement des projets..."
+                ) : (
+                  <>
+                    {filteredProjects.length} projet{filteredProjects.length > 1 ? 's' : ''}
+                    {hasActiveFilters && ' trouvé(s)'}
+                  </>
+                )}
               </span>
               {hasActiveFilters && (
                 <span className="pf-projects-filters-active">
@@ -254,7 +234,9 @@ export default function ProjectsPage() {
               )}
             </div>
 
-            {filteredProjects.length === 0 ? (
+            {isLoading ? (
+              <SkeletonProjects />
+            ) : (filteredProjects.length === 0 ? (
               <div className="pf-projects-empty">
                 <FiLayers size={48} className="pf-empty-icon" />
                 <h3>Aucun projet trouvé</h3>
@@ -349,7 +331,7 @@ export default function ProjectsPage() {
                   </article>
                 ))}
               </div>
-            )}
+            ))}
           </div>
         </div>
       </div>
