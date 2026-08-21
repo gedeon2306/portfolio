@@ -19,6 +19,7 @@ import { getContact } from "../api/Actions";
 import Spinner from "./Spinner";
 import logoJdBlanc from "../assets/logo_jd_blanc_sbg.png";
 import "../css/Contact.css";
+import SkeletonContact from "./skeletonComponents/SkeletonContact";
 
 export default function Contact() {
   const revealRef = useScrollReveal<HTMLDivElement>();
@@ -32,14 +33,10 @@ export default function Contact() {
     message: "",
   });
 
-  const { data: contactData, isLoading, error } = useQuery({
+  const { data: contactData, isLoading } = useQuery({
     queryKey: ['contact'],
     queryFn: getContact,
   });
-
-  if (error) {
-    console.error("Erreur lors du chargement des informations de contact:", error);
-  }
 
   const handleChange =
     (field: keyof typeof values) =>
@@ -86,19 +83,19 @@ export default function Contact() {
     { 
       icon: FiMail, 
       label: "Email Professionnel", 
-      value: contactData?.email || "", 
+      value: contactData?.email || "jihreldev@gmail.com", 
       canCopy: true
     },
     { 
       icon: FiMapPin, 
       label: "Localisation", 
-      value: contactData?.localisation || "", 
+      value: contactData?.localisation || "Brazzaville, CONGO", 
       canCopy: false
     },
     { 
       icon: FiPhone, 
       label: "Téléphone", 
-      value: contactData?.telephone || "", 
+      value: contactData?.telephone || "+242 069994213", 
       canCopy: true
     },
   ];
@@ -122,170 +119,166 @@ export default function Contact() {
           </p>
         </div>
 
-        <div ref={revealRef} className="pf-contact-grid pf-reveal">
-          {isLoading ? (
-            <div style={{ textAlign: 'center', padding: '40px', gridColumn: '1 / -1' }}>
-              <p>Chargement des informations de contact...</p>
-            </div>
-          ) : (
-            <>
-              <div className="pf-contact-info">
-                <div className="pf-contact-info-header">
-                  <img
-                    src={logoJdBlanc}
-                    alt="JihrelDev logo"
-                    className="pf-logo-mark pf-logo-mark-image"
-                  />
-                  <div>
-                    <h3>
-                      Jihrel <span className="pf-contact-name-highlight">Dev</span>
-                    </h3>
-                    <p>{contactData?.profession || "Développeur Full-Stack"}</p>
-                  </div>
-                </div>
-
-                <p className="pf-contact-lead">
-                  Disponible immédiatement pour des missions freelance, contrats ou collaborations techniques exigeantes.
-                </p>
-
-                <ul className="pf-contact-list">
-                  {contactInfo.map((item) => {
-                    const isCopied = copiedItem === item.label;
-
-                    return (
-                      <li
-                        key={item.label}
-                        className={`pf-contact-item ${item.canCopy ? "clickable" : ""}`}
-                        onClick={() => item.canCopy && handleCopy(item.value, item.label)}
-                        title={item.canCopy ? "Cliquer pour copier" : undefined}
-                      >
-                        <div className="pf-contact-icon">
-                          <item.icon size={17} />
-                        </div>
-                        <div className="pf-contact-details">
-                          <span className="pf-contact-label font-mono">{item.label}</span>
-                          <span className="pf-contact-value">{item.value}</span>
-                        </div>
-                        {item.canCopy && (
-                          <span className="pf-item-copy-indicator" aria-hidden="true">
-                            {isCopied ? <FiCheck size={14} className="copied-icon" /> : <FiCopy size={13} />}
-                          </span>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
-
-                <div className="pf-contact-socials-wrap">
-                  <span className="pf-socials-title font-mono">Retrouvez-moi sur les réseaux</span>
-                  <div className="pf-contact-socials">
-                    {socials.map((social) => (
-                      social.href && (
-                        <a
-                          key={social.label}
-                          href={social.href}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="pf-icon-btn"
-                          aria-label={social.label}
-                          title={social.label}
-                        >
-                          <social.icon size={16} />
-                        </a>
-                      )
-                    ))}
-                  </div>
+        {isLoading? (
+          <SkeletonContact />
+        ) : (
+          <div ref={revealRef} className="pf-contact-grid pf-reveal">
+            <div className="pf-contact-info">
+              <div className="pf-contact-info-header">
+                <img
+                  src={logoJdBlanc}
+                  alt="JihrelDev logo"
+                  className="pf-logo-mark pf-logo-mark-image"
+                />
+                <div>
+                  <h3>
+                    Jihrel <span className="pf-contact-name-highlight">Dev</span>
+                  </h3>
+                  <p>{contactData?.profession || "Développeur Full-Stack"}</p>
                 </div>
               </div>
 
-              <div className="pf-contact-form-wrap">
-                <form className="pf-contact-form" onSubmit={handleSubmit} noValidate>
-                  <div className="pf-form-row">
-                    <div className="field">
-                      <label htmlFor="contact-name">Nom complet *</label>
-                      <input
-                        id="contact-name"
-                        type="text"
-                        placeholder="Jean Dupont"
-                        value={values.name}
-                        onChange={handleChange("name")}
-                        required
-                      />
-                    </div>
+              <p className="pf-contact-lead">
+                Disponible immédiatement pour des missions freelance, contrats ou collaborations techniques exigeantes.
+              </p>
 
-                    <div className="field">
-                      <label htmlFor="contact-email">Adresse email *</label>
-                      <input
-                        id="contact-email"
-                        type="email"
-                        placeholder="jean@exemple.com"
-                        value={values.email}
-                        onChange={handleChange("email")}
-                        required
-                      />
-                    </div>
-                  </div>
+              <ul className="pf-contact-list">
+                {contactInfo.map((item) => {
+                  const isCopied = copiedItem === item.label;
 
+                  return (
+                    <li
+                      key={item.label}
+                      className={`pf-contact-item ${item.canCopy ? "clickable" : ""}`}
+                      onClick={() => item.canCopy && handleCopy(item.value, item.label)}
+                      title={item.canCopy ? "Cliquer pour copier" : undefined}
+                    >
+                      <div className="pf-contact-icon">
+                        <item.icon size={17} />
+                      </div>
+                      <div className="pf-contact-details">
+                        <span className="pf-contact-label font-mono">{item.label}</span>
+                        <span className="pf-contact-value">{item.value}</span>
+                      </div>
+                      {item.canCopy && (
+                        <span className="pf-item-copy-indicator" aria-hidden="true">
+                          {isCopied ? <FiCheck size={14} className="copied-icon" /> : <FiCopy size={13} />}
+                        </span>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+
+              <div className="pf-contact-socials-wrap">
+                <span className="pf-socials-title font-mono">Retrouvez-moi sur les réseaux</span>
+                <div className="pf-contact-socials">
+                  {socials.map((social) => (
+                    social.href && (
+                      <a
+                        key={social.label}
+                        href={social.href}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="pf-icon-btn"
+                        aria-label={social.label}
+                        title={social.label}
+                      >
+                        <social.icon size={16} />
+                      </a>
+                    )
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="pf-contact-form-wrap">
+              <form className="pf-contact-form" onSubmit={handleSubmit} noValidate>
+                <div className="pf-form-row">
                   <div className="field">
-                    <label htmlFor="contact-subject">Sujet du projet</label>
+                    <label htmlFor="contact-name">Nom complet *</label>
                     <input
-                      id="contact-subject"
+                      id="contact-name"
                       type="text"
-                      placeholder="Création d'une application web, refonte UI..."
-                      value={values.subject}
-                      onChange={handleChange("subject")}
-                    />
-                  </div>
-
-                  <div className="field">
-                    <label htmlFor="contact-message">Votre message *</label>
-                    <textarea
-                      id="contact-message"
-                      placeholder="Décrivez brièvement vos besoins, délais et attentes techniques..."
-                      value={values.message}
-                      onChange={handleChange("message")}
-                      rows={5}
+                      placeholder="Jean Dupont"
+                      value={values.name}
+                      onChange={handleChange("name")}
                       required
                     />
                   </div>
 
-                  <div className="pf-form-footer">
-                    <button
-                      type="submit"
-                      className="btn btn-primary pf-contact-submit"
-                      disabled={status === "sending"}
-                    >
-                      {status === "sending" ? (
-                        <>
-                          <Spinner size={16} color="#ffffff" />
-                          <span>Transmission en cours...</span>
-                        </>
-                      ) : (
-                        <>
-                          <span>Envoyer le message</span>
-                          <FiSend size={15} />
-                        </>
-                      )}
-                    </button>
-
-                    {status === "sent" && (
-                      <div className="pf-form-alert pf-alert-success">
-                        <FiCheck size={16} />
-                        <span>Votre message a été transmis avec succès !</span>
-                      </div>
-                    )}
-
-                    {status === "error" && (
-                      <div className="pf-form-alert pf-alert-error">
-                        <span>Une erreur est survenue, veuillez réessayer.</span>
-                      </div>
-                    )}
+                  <div className="field">
+                    <label htmlFor="contact-email">Adresse email *</label>
+                    <input
+                      id="contact-email"
+                      type="email"
+                      placeholder="jean@exemple.com"
+                      value={values.email}
+                      onChange={handleChange("email")}
+                      required
+                    />
                   </div>
-                </form>
-              </div>
-            </>
-          )}
-        </div>
+                </div>
+
+                <div className="field">
+                  <label htmlFor="contact-subject">Sujet du projet</label>
+                  <input
+                    id="contact-subject"
+                    type="text"
+                    placeholder="Création d'une application web, refonte UI..."
+                    value={values.subject}
+                    onChange={handleChange("subject")}
+                  />
+                </div>
+
+                <div className="field">
+                  <label htmlFor="contact-message">Votre message *</label>
+                  <textarea
+                    id="contact-message"
+                    placeholder="Décrivez brièvement vos besoins, délais et attentes techniques..."
+                    value={values.message}
+                    onChange={handleChange("message")}
+                    rows={5}
+                    required
+                  />
+                </div>
+
+                <div className="pf-form-footer">
+                  <button
+                    type="submit"
+                    className="btn btn-primary pf-contact-submit"
+                    disabled={status === "sending"}
+                  >
+                    {status === "sending" ? (
+                      <>
+                        <Spinner size={16} color="#ffffff" />
+                        <span>Transmission en cours...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Envoyer le message</span>
+                        <FiSend size={15} />
+                      </>
+                    )}
+                  </button>
+
+                  {status === "sent" && (
+                    <div className="pf-form-alert pf-alert-success">
+                      <FiCheck size={16} />
+                      <span>Votre message a été transmis avec succès !</span>
+                    </div>
+                  )}
+
+                  {status === "error" && (
+                    <div className="pf-form-alert pf-alert-error">
+                      <span>Une erreur est survenue, veuillez réessayer.</span>
+                    </div>
+                  )}
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );

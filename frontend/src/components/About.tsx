@@ -41,14 +41,10 @@ export default function About() {
   const revealRef = useScrollReveal<HTMLDivElement>();
   const toast = useToast();
 
-  const { data: aboutData, isLoading, error } = useQuery({
+  const { data: aboutData, isLoading } = useQuery({
     queryKey: ['about-data'],
     queryFn: getAboutData,
   });
-
-  if (error) {
-    console.error("Erreur lors du chargement des données About:", error);
-  }
 
   const prenom = aboutData?.prenom || "Gédéon Jihrel";
   const nom = aboutData?.nom || "GANGOUE";
