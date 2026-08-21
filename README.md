@@ -2,7 +2,7 @@
 
 <div align="center">
   <img src="/admin/public/logo_jd_violet_sbg.png" alt="learnEnglish Logo" width="120" />
-  <h3>Une application web pour apprendre l'anglais de manière ludique et efficace</h3>
+  <h3>Porfolio Fullstack, moderne et dynamique</h3>
 </div>
 
 ---
