@@ -19,6 +19,7 @@ import { getContact, sendContactMessage } from "../api/Actions";
 import Spinner from "./Spinner";
 import logoJdBlanc from "../assets/logo_jd_blanc_sbg.png";
 import "../css/Contact.css";
+import { useSettings } from "../App";
 import SkeletonContact from "./skeletonComponents/SkeletonContact";
 
 export default function Contact() {
@@ -26,12 +27,16 @@ export default function Contact() {
   const toast = useToast();
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [copiedItem, setCopiedItem] = useState<string | null>(null);
+  const [send, setSend] = useState<boolean>(false)
   const [values, setValues] = useState({
     name: "",
     email: "",
     subject: "",
     message: "",
   });
+  const { notificationEmail } = useSettings(); 
+
+  const EMAIL = notificationEmail || false;
 
   const { data: contactData, isLoading } = useQuery({
     queryKey: ['contact'],
@@ -56,6 +61,11 @@ export default function Contact() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+
+    if (!EMAIL) {
+      toast.error("Maintenance", "Indisponible pour le moment.");
+      return;
+    }
     
     // Validation des champs
     if (!values.name.trim() || !values.email.trim() || !values.message.trim()) {
@@ -91,6 +101,7 @@ export default function Contact() {
         );
         // Réinitialiser le formulaire
         setValues({ name: "", email: "", subject: "", message: "" });
+        setSend(true);
       } else {
         setStatus("error");
         toast.error("Erreur d'envoi", result.error || "Une erreur est survenue lors de l'envoi.");
@@ -284,7 +295,7 @@ export default function Contact() {
                   <button
                     type="submit"
                     className="btn btn-primary pf-contact-submit"
-                    disabled={status === "sending"}
+                    disabled={status === "sending" || send === true}
                   >
                     {status === "sending" ? (
                       <>

@@ -17,6 +17,7 @@ export interface Settings {
   titre_app?: string;
   mode_maintenance: boolean;
   linkedin?: string | null;
+  notification_email?: boolean;
 }
 
 // About / Profil

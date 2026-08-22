@@ -52,6 +52,7 @@ def settings_public(request):
             return Response({
                 "settings": {
                     "mode_maintenance": False,
+                    "notification_email": True,
                     "linkedin": linkedin
                 }
             }, status=status.HTTP_200_OK)
