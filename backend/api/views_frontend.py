@@ -397,7 +397,7 @@ def send_contact_email(request):
 
                 f"En attendant, n'hésitez pas à consulter mon portfolio pour "
                 f"découvrir mes réalisations : "
-                f"{settings.FRONTEND_URL + "/projects"}\n\n"
+                f"{settings.FRONTEND_URL + "/projects/?source=signature"}\n\n"
 
                 f"Cordialement, JihrelDev\n\n"
                 

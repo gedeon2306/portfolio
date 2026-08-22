@@ -358,7 +358,8 @@ export default function DashboardHome() {
               <tr>
                 <th>Chemin visité</th>
                 <th>Méthode</th>
-                <th>Origine / Referrer</th>
+                <th>Origine</th>
+                <th>Source</th>
                 <th>Adresse IP</th>
                 <th>Appareil</th>
                 <th>Horodatage</th>
@@ -388,6 +389,7 @@ export default function DashboardHome() {
                       <span className="badge badge-neutral">{row.method}</span>
                     </td>
                     <td className="text-secondary">{row.referrer || 'Accès direct'}</td>
+                    <td className="text-secondary">{row.source || 'Accès direct'}</td>
                     <td className="font-mono text-xs">{row.ip_address}</td>
                     <td>
                       <span className="badge badge-accent">
