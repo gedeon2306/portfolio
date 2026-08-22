@@ -426,7 +426,6 @@ def send_contact_email(request):
         )
 
 
-# backend/views_frontend.py
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def track_page_view(request):
