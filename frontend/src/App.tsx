@@ -27,6 +27,7 @@ export function useSettings() {
 function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<SettingsContextType>({
     modeMaintenance: false,
+    notificationEmail: false,
     linkedin: null,
     loading: true,
   });
@@ -39,6 +40,7 @@ function SettingsProvider({ children }: { children: React.ReactNode }) {
         if (mounted) {
           setSettings({
             modeMaintenance: s.modeMaintenance,
+            notificationEmail: s.notificationEmail,
             linkedin: s.linkedin || null,
             loading: false,
           });
