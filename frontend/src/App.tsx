@@ -9,6 +9,7 @@ import NotFound from "./pages/NotFound";
 import { loadSiteSettings, type SiteSettings } from "./config";
 import SkeletonLayout from "./components/skeletonComponents/SkeletonLayout";
 import { useEffect, useState, createContext, useContext } from "react";
+import { TrackingProvider } from './components/TrackingProvider';
 
 interface SettingsContextType extends SiteSettings {
   loading: boolean;
@@ -88,12 +89,14 @@ function AppContent() {
 
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<PortfolioPage />} />
-        <Route path="/certificates" element={<CertificatesPage />} />
-        <Route path="/projects" element={<ProjectsPage />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+      <TrackingProvider>
+        <Routes>
+          <Route path="/" element={<PortfolioPage />} />
+          <Route path="/certificates" element={<CertificatesPage />} />
+          <Route path="/projects" element={<ProjectsPage />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </TrackingProvider>
     </BrowserRouter>
   );
 }

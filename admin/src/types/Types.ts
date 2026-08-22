@@ -6,6 +6,7 @@ export interface PageView {
   path: string;
   method: string;
   referrer: string | null;
+  source: string | null;
   ip_address: string | null;
   user_agent: string | null;
   device_type: DeviceType;
