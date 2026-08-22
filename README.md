@@ -141,7 +141,7 @@ portfolio/
 ### 1) Cloner le projet
 
 ```bash
-git clone <url-du-repo>
+git clone https://github.com/gedeon2306/portfolio
 cd portfolio
 ```
 
