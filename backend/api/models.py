@@ -53,15 +53,14 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 
 class Dashboard(models.Model):
-    path = models.CharField(max_length=500, db_index=True, help_text="URL consultée (ex: /projects/my-app/)")
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    path = models.CharField(max_length=500, db_index=True)
     method = models.CharField(max_length=10, default="GET")
-
-    referrer = models.URLField(max_length=500, blank=True, null=True, help_text="Site d'origine du visiteur")
-
-    ip_address = models.GenericIPAddressField(blank=True, null=True, help_text="Adresse IP (peut être anonymisée)")
-    user_agent = models.CharField(max_length=255, blank=True, null=True, help_text="Navigateur / Système d'exploitation")
+    referrer = models.URLField(max_length=500, blank=True, null=True)
+    source = models.CharField(max_length=50, blank=True, null=True, db_index=True)
+    ip_address = models.GenericIPAddressField(blank=True, null=True)
+    user_agent = models.CharField(max_length=255, blank=True, null=True)
     session_key = models.CharField(max_length=40, blank=True, null=True, db_index=True)
-
     device_type = models.CharField(
         max_length=20,
         choices=[
@@ -73,7 +72,6 @@ class Dashboard(models.Model):
         ],
         default='other'
     )
-
     timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:
