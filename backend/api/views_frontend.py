@@ -111,6 +111,16 @@ def frontend_skills(request):
     Les compétences sont triées par pourcentage décroissant.
     """
     try:
+        # Définir l'ordre personnalisé souhaité
+        CATEGORY_ORDER = [
+            'Frontend & UI Engineering', 
+            'Backend & Architectures', 
+            'Bases de Données & Stockage', 
+            'Language de programmation',
+            'Basique & Design',
+            'DevOps, Cloud & Outillage'
+        ]
+                
         # Récupérer toutes les compétences avec leurs niveaux, triées par pourcentage décroissant
         skills_list = Skills_list.objects.select_related('skill').all().order_by('-pourcentage')
         
@@ -127,14 +137,23 @@ def frontend_skills(request):
                 'pourcentage': skill_item.pourcentage,
             })
         
-        # Construire le payload
+        # Fonction pour déterminer l'index de tri d'une catégorie
+        def get_category_priority(category_name):
+            try:
+                return CATEGORY_ORDER.index(category_name)
+            except ValueError:
+                return len(CATEGORY_ORDER)
+        
+        # Construire le payload en triant selon l'ordre défini
+        sorted_categories = sorted(grouped_skills.keys(), key=get_category_priority)
+
         payload = {
             'competences': [
                 {
                     'categorie': category,
-                    'skills': skills
+                    'skills': grouped_skills[category]
                 }
-                for category, skills in grouped_skills.items()
+                for category in sorted_categories
             ]
         }
         
@@ -274,7 +293,7 @@ def frontend_projects_highlights(request):
         projects = Projects.objects.filter(
             status=True,
             important=True
-        ).prefetch_related('tec_projets__technologie').order_by('-created_at')
+        ).prefetch_related('tec_projets__technologie').order_by('created_at')
 
         payload = {
             'projets': [
