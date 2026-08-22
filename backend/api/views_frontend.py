@@ -13,7 +13,7 @@ from .serializers import (
 
 from django.conf import settings
 
-from .models import Certificates, Langues, MyInfo, Projects, Settings, Skills_list
+from .models import Certificates, Dashboard, Langues, MyInfo, Projects, Settings, Skills_list
 
 logger = logging.getLogger(__name__)
 
@@ -422,5 +422,38 @@ def send_contact_email(request):
         logger.exception(f"Erreur lors de l'envoi du mail de contact: {str(e)}")
         return Response(
             {"error": "Une erreur est survenue lors de l'envoi du message. Veuillez réessayer plus tard."},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+# backend/views_frontend.py
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def track_page_view(request):
+    try:
+        data = request.data
+        
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0].strip()
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        
+        Dashboard.objects.create(
+            path=data.get('path', '/'),
+            method='GET',
+            referrer=data.get('referrer', ''),
+            source=data.get('source', ''),
+            ip_address=ip,
+            user_agent=request.META.get('HTTP_USER_AGENT', '')[:255],
+            session_key=request.session.session_key,
+            device_type=data.get('device_type', 'other'),
+        )
+        
+        return Response({'status': 'ok'}, status=status.HTTP_201_CREATED)
+        
+    except Exception as e:
+        return Response(
+            {'status': 'error', 'detail': str(e)}, 
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )

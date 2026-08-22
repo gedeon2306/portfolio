@@ -35,6 +35,7 @@ from .views_frontend import (
     frontend_projects_highlights,
     frontend_contact,
     send_contact_email,
+    track_page_view,
 )
 
 urlpatterns = [
@@ -80,4 +81,7 @@ urlpatterns = [
     path('frontend/projects/highlights/', frontend_projects_highlights, name='frontend_projects_highlights'),
     path('frontend/contact/', frontend_contact, name='frontend_contact'),
     path('frontend/contact/send/', send_contact_email, name='send_contact_email'),
+    
+    # Tracking route
+    path('frontend/track/', track_page_view, name='track_page_view'),
 ]
