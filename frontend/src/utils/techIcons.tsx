@@ -54,11 +54,14 @@ import {
   SiGnubash,
   SiGitlab,
   SiFastapi,
+  SiGoland,
+  SiLivewire,
 } from "react-icons/si";
 import { 
     FaCss3,
     FaAws,
     FaSwift,
+    FaAngular,
 } from "react-icons/fa";
 import { 
   TbBrandReactNative, 
@@ -85,11 +88,12 @@ export const TECHNOLOGIES: Record<string, TechMeta> = {
   "Vue.js": { label: "Vue.js", icon: SiVuedotjs, color: "#4FC08D" },
   "Nuxt.js": { label: "Nuxt.js", icon: SiNuxt, color: "#00DC82" },
   "Inertia.js": { label: "Inertia.js", icon: SiInertia, color: "#9553E9" },
-  Livewire: { label: "Livewire", icon: FiCode, color: "#FB70A9" },
+  Livewire: { label: "Livewire", icon: SiLivewire, color: "#FB70A9" },
   React: { label: "React", icon: SiReact, color: "#61DAFB" },
   "React 19": { label: "React 19", icon: SiReact, color: "#61DAFB" },
   "Next.js": { label: "Next.js", icon: SiNextdotjs, color: "#000000" },
   "React Native": { label: "React Native", icon: TbBrandReactNative, color: "#61DAFB" },
+  Angular: { label: "Angular", icon: FaAngular, color: "#7a0404" },
 
   // --- BACKEND ---
   "Node.js": { label: "Node.js", icon: SiNodedotjs, color: "#5FA04E" },
@@ -141,6 +145,7 @@ export const TECHNOLOGIES: Record<string, TechMeta> = {
   JavaScript: { label: "JavaScript", icon: SiJavascript, color: "#F7DF1E" },
   Java: { label: "Java", icon: RiJavaLine, color: "#007396" },
   TypeScript: { label: "TypeScript", icon: SiTypescript, color: "#3178C6" },
+  Goland: { label: "Goland", icon: SiGoland, color: "#21b6c3" },
 
   // --- BASIQUE & DESIGN ---
   HTML: { label: "HTML5", icon: SiHtml5, color: "#E34F26" },
@@ -156,11 +161,14 @@ export const TECHNOLOGIES: Record<string, TechMeta> = {
   "UI/UX": { label: "UI/UX", icon: FiMonitor, color: "#8B5CF6" },
   "Micro-animations": { label: "Micro-animations", icon: BiBraille, color: "#d244dc" },
 
-  // --- AUTRES / LIBS ---
+  // --- MOBILE ---
   "PWA (Progressive Web Apps)": { label: "PWA", icon: FiMonitor, color: "#7C3AED" },
   Flutter: { label: "Flutter", icon: SiFlutter, color: "#02569B" },
   Swift: { label: "Swift", icon: FaSwift, color: "#ffaa00" },
   Kotlin: { label: "Kotlin", icon: TbBrandKotlin, color: "#a3ab09" },
+  "Mobile & Cross-Platform": { label: "Mobile", icon: TbBrandReactNative, color: "#61DAFB" },
+
+  // --- AUTRES / LIBS ---
   GraphQL: { label: "GraphQL", icon: SiGraphql, color: "#E10098" },
   Prisma: { label: "Prisma", icon: SiPrisma, color: "#2D3748" },
   "Redux Toolkit": { label: "Redux Toolkit", icon: SiRedux, color: "#764ABC" },
@@ -178,7 +186,6 @@ export const TECHNOLOGIES: Record<string, TechMeta> = {
   "Full-Stack": { label: "Full-Stack", icon: FiCode, color: "#8B5CF6" },
   Frontend: { label: "Frontend", icon: FiMonitor, color: "#8B5CF6" },
   Backend: { label: "Backend", icon: FiServer, color: "#10B981" },
-  "Mobile & Cross-Platform": { label: "Mobile", icon: TbBrandReactNative, color: "#61DAFB" },
   "Cloud computing": { label: "Cloud", icon: FiCloud, color: "#38BDF8" },
   "Software engineering": { label: "Engineering", icon: FiCpu, color: "#C084FC" },
 };

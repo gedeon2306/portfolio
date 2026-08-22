@@ -59,7 +59,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle at 50% 50%, var(--accent-light) 0%, transparent 70%);
   z-index: 1;
 }
 
