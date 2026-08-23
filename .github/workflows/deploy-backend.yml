@@ -1,0 +1,18 @@
+name: Deploy Backend to PythonAnywhere
+
+on:
+  push:
+    branches:
+      - main  # Changez par 'master' si votre branche principale s'appelle master
+    paths:
+      - 'backend/**'  # Ne se déclenche QUE si le dossier backend est modifié
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Recharger l'application sur PythonAnywhere
+        run: |
+          curl -X POST "https://www.pythonanywhere.com/api/v0/user/${{ secrets.PA_USERNAME }}/webapps/${{ secrets.PA_DOMAIN }}/reload/" \
+            -H "Authorization: Token ${{ secrets.PA_API_TOKEN }}"
