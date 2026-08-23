@@ -4,5 +4,6 @@ db.sqlite3
 
 **/__pycache__/
 
+# Fichiers uploader
 media
 
