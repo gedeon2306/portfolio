@@ -369,13 +369,13 @@ export default function DashboardHome() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="table-empty">
+                  <td colSpan={8} className="table-empty">
                     Chargement...
                   </td>
                 </tr>
               ) : pageViews.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="table-empty">
+                  <td colSpan={8} className="table-empty">
                     Aucune visite ne correspond à votre recherche.
                   </td>
                 </tr>
