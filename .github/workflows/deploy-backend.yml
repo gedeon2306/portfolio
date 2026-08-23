@@ -3,7 +3,7 @@ name: Deploy Backend to PythonAnywhere
 on:
   push:
     branches:
-      - main  # ou 'master' selon votre branche
+      - main
     paths:
       - 'backend/**'
 
@@ -12,28 +12,55 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 1. Exécuter git pull sur PythonAnywhere
+      - name: Nettoyer les consoles, effectuer le git pull et recharger le serveur Web
+        env:
+          PA_USER: ${{ secrets.PA_USERNAME }}
+          PA_TOKEN: ${{ secrets.PA_API_TOKEN }}
+          PA_DOMAIN: ${{ secrets.PA_DOMAIN }}
         run: |
-          # Création d'une console temporaire pour faire le git pull dans le dépôt
-          CONSOLE_ID=$(curl -s -X POST "https://www.pythonanywhere.com/api/v0/user/${{ secrets.PA_USERNAME }}/consoles/" \
-            -H "Authorization: Token ${{ secrets.PA_API_TOKEN }}" \
+          echo "=== 1. FERMETURE DE TOUTES LES CONSOLES ACTIVES ==="
+          CONSOLES_JSON=$(curl -s -X GET "https://www.pythonanywhere.com/api/v0/user/${PA_USER}/consoles/" \
+            -H "Authorization: Token ${PA_TOKEN}")
+          
+          # Extraction et suppression de chaque console ouverte
+          CONSOLE_IDS=$(echo "$CONSOLES_JSON" | jq -r '.[].id // empty')
+          for ID in $CONSOLE_IDS; do
+            echo "Fermeture de la console ID: $ID"
+            curl -s -X DELETE "https://www.pythonanywhere.com/api/v0/user/${PA_USER}/consoles/${ID}/" \
+              -H "Authorization: Token ${PA_TOKEN}"
+          done
+
+          echo "=== 2. TENTATIVE DE GIT PULL VIA CONSOLE TEMPORAIRE ==="
+          NEW_CONSOLE_RESP=$(curl -s -X POST "https://www.pythonanywhere.com/api/v0/user/${PA_USER}/consoles/" \
+            -H "Authorization: Token ${PA_TOKEN}" \
             -H "Content-Type: application/json" \
-            -d '{"executable": "bin/bash"}' | jq -r '.id')
+            -d '{"executable": "bin/bash"}')
 
-          # Envoi de la commande git pull dans le dossier du projet
-          curl -s -X POST "https://www.pythonanywhere.com/api/v0/user/${{ secrets.PA_USERNAME }}/consoles/${CONSOLE_ID}/send_input/" \
-            -H "Authorization: Token ${{ secrets.PA_API_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            -d "{\"input\": \"cd ~/portfolio && git pull\n\"}"
+          NEW_CONSOLE_ID=$(echo "$NEW_CONSOLE_RESP" | jq -r '.id // empty')
 
-          # Attente de 5 secondes pour laisser le temps au git pull de se terminer
-          sleep 5
+          if [ -n "$NEW_CONSOLE_ID" ]; then
+            echo "Console $NEW_CONSOLE_ID créée avec succès. Envoi de git pull..."
+            curl -s -X POST "https://www.pythonanywhere.com/api/v0/user/${PA_USER}/consoles/${NEW_CONSOLE_ID}/send_input/" \
+              -H "Authorization: Token ${PA_TOKEN}" \
+              -H "Content-Type: application/json" \
+              -d '{"input": "cd ~/portfolio && git pull\n"}'
+            
+            sleep 5
 
-          # Fermeture de la console temporaire
-          curl -s -X DELETE "https://www.pythonanywhere.com/api/v0/user/${{ secrets.PA_USERNAME }}/consoles/${CONSOLE_ID}/" \
-            -H "Authorization: Token ${{ secrets.PA_API_TOKEN }}"
+            echo "Fermeture de la console temporaire $NEW_CONSOLE_ID..."
+            curl -s -X DELETE "https://www.pythonanywhere.com/api/v0/user/${PA_USER}/consoles/${NEW_CONSOLE_ID}/" \
+              -H "Authorization: Token ${PA_TOKEN}"
+          else
+            echo "Échec de création de la console. Le WSGI prendra le relais lors du reload."
+          fi
 
-      - name: 2. Relancer le serveur Web PythonAnywhere
-        run: |
-          curl -X POST "https://www.pythonanywhere.com/api/v0/user/${{ secrets.PA_USERNAME }}/webapps/${{ secrets.PA_DOMAIN }}/reload/" \
-            -H "Authorization: Token ${{ secrets.PA_API_TOKEN }}"
+          echo "=== 3. RECHARGEMENT DU SERVEUR WEB ==="
+          RELOAD_RESP=$(curl -s -o /dev/null -w "%{http_code}" -X POST "https://www.pythonanywhere.com/api/v0/user/${PA_USER}/webapps/${PA_DOMAIN}/reload/" \
+            -H "Authorization: Token ${PA_TOKEN}")
+
+          if [ "$RELOAD_RESP" -eq 200 ] || [ "$RELOAD_RESP" -eq 201 ]; then
+            echo "Serveur Web rechargé avec succès (Code $RELOAD_RESP)."
+          else
+            echo "Erreur lors du rechargement du serveur Web (Code $RELOAD_RESP)."
+            exit 1
+          fi
