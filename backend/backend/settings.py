@@ -96,21 +96,25 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'backend.wsgi.application'
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# Détection automatique de l'environnement PythonAnywhere
+if 'PYTHONANYWHERE_SITE' in os.environ:
+    # --- CONFIGURATION MYSQL (PRODUCTION - PYTHONANYWHERE) ---
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.mysql",
+            "OPTIONS": {
+                "read_default_file": str(BASE_DIR / "my.cnf"),
+            },
+        }
     }
-}
-
-# DATABASES = {
-#     "default": {
-#         "ENGINE": "django.db.backends.mysql",
-#         "OPTIONS": {
-#             "read_default_file": str(BASE_DIR / "my.cnf"),
-#         },
-#     }
-# }
+else:
+    # --- CONFIGURATION SQLITE (LOCAL - PC) ---
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 AUTH_PASSWORD_VALIDATORS = [
     {
