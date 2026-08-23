@@ -1,4 +1,4 @@
-import { useState, type KeyboardEvent, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   LuPlus,
   LuSearch,
@@ -24,7 +24,7 @@ import {
   deleteCertificate,
   fetchCertificateCategories,
 } from '../../api/Actions';
-import type { Certificate, CertificateFormData, CertificateListResponse } from '../../types/Types';
+import type { Certificate, CertificateFormData } from '../../types/Types';
 import './Certificates.css';
 
 const initialFormData: CertificateFormData = {
