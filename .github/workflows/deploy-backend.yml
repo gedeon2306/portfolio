@@ -3,16 +3,37 @@ name: Deploy Backend to PythonAnywhere
 on:
   push:
     branches:
-      - main  # Changez par 'master' si votre branche principale s'appelle master
+      - main  # ou 'master' selon votre branche
     paths:
-      - 'backend/**'  # Ne se déclenche QUE si le dossier backend est modifié
+      - 'backend/**'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Recharger l'application sur PythonAnywhere
+      - name: 1. Exécuter git pull sur PythonAnywhere
+        run: |
+          # Création d'une console temporaire pour faire le git pull dans le dépôt
+          CONSOLE_ID=$(curl -s -X POST "https://www.pythonanywhere.com/api/v0/user/${{ secrets.PA_USERNAME }}/consoles/" \
+            -H "Authorization: Token ${{ secrets.PA_API_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{"executable": "bin/bash"}' | jq -r '.id')
+
+          # Envoi de la commande git pull dans le dossier du projet
+          curl -s -X POST "https://www.pythonanywhere.com/api/v0/user/${{ secrets.PA_USERNAME }}/consoles/${CONSOLE_ID}/send_input/" \
+            -H "Authorization: Token ${{ secrets.PA_API_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"input\": \"cd ~/portfolio && git pull\n\"}"
+
+          # Attente de 5 secondes pour laisser le temps au git pull de se terminer
+          sleep 5
+
+          # Fermeture de la console temporaire
+          curl -s -X DELETE "https://www.pythonanywhere.com/api/v0/user/${{ secrets.PA_USERNAME }}/consoles/${CONSOLE_ID}/" \
+            -H "Authorization: Token ${{ secrets.PA_API_TOKEN }}"
+
+      - name: 2. Relancer le serveur Web PythonAnywhere
         run: |
           curl -X POST "https://www.pythonanywhere.com/api/v0/user/${{ secrets.PA_USERNAME }}/webapps/${{ secrets.PA_DOMAIN }}/reload/" \
             -H "Authorization: Token ${{ secrets.PA_API_TOKEN }}"
