@@ -664,7 +664,9 @@ export default function Projects() {
           categories={categories}
           isEdit={true}
           currentImage={editingProject.image}
-          currentTechnologies={editingProject.technologies.map((t) => typeof t === 'string' ? t : t.libelle)}
+          currentTechnologies={editingProject.technologies.map((t) =>
+            typeof t === 'string' ? { id: t, libelle: t, pourcentage: 0 } : t
+          )}
           onRemoveExistingTechnology={removeExistingTechnology}
         />
       )}
