@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { FiArrowRight, FiCode, FiLayers, FiCpu, FiArrowUpRight } from "react-icons/fi";
 import { useScrollReveal } from "./useScrollReveal";
 import { TechIcon } from "../utils/techIcons";
@@ -35,7 +36,12 @@ const HIGHLIGHTS = [
 ];
 
 export default function Hero() {
+  const navigate = useNavigate();
   const revealRef = useScrollReveal<HTMLDivElement>();
+
+  const handleCollapse = (url = "") => {
+    navigate("/", { state: { scrollTo: url } });
+  };
 
   return (
     <section id="top" className="pf-hero">
