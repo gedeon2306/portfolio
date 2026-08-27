@@ -68,10 +68,10 @@ export default function Hero() {
             <span>Explorer mes projets</span>
             <FiArrowRight size={16} className="btn-arrow" />
           </a>
-          <a href="#contact" className="btn btn-secondary pf-hero-btn-sec">
+          <button type="button" onClick={() => handleCollapse('contact')} className="btn btn-secondary pf-hero-btn-sec">
             <span>Me contacter</span>
             <IoIosContact size={16} />
-          </a>
+          </button>
         </div>
 
         <div ref={revealRef} className="pf-hero-cards pf-reveal">
